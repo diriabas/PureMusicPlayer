@@ -1132,7 +1132,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                        }
                             if (createPlaylistDialogOpen) {
                                 AlertDialog(
                                     onDismissRequest = { createPlaylistDialogOpen = false },
