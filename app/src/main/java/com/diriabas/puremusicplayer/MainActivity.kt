@@ -2,6 +2,8 @@ package com.diriabas.puremusicplayer
 
 import android.Manifest
 import android.content.ContentUris
+import org.json.JSONArray
+import org.json.JSONObject
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -78,6 +80,26 @@ class MainActivity : ComponentActivity() {
             var playing by remember { mutableStateOf(false) }
             var position by remember { mutableFloatStateOf(0f) }
             var duration by remember { mutableLongStateOf(0L) }
+            var playlists by remember { mutableStateOf(loadPlaylists()) }
+            var selectedPlaylist by remember { mutableStateOf<String?>(null) }
+            var sortMode by remember { mutableStateOf("По названию") }
+            var sortMenuExpanded by remember { mutableStateOf(false) }
+            var playlistMenuExpanded by remember { mutableStateOf(false) }
+            var pendingTrack by remember { mutableStateOf<Track?>(null) }
+            var newPlaylistName by remember { mutableStateOf("") }
+
+            val visibleTracks = remember(tracks, playlists, selectedPlaylist, sortMode) {
+                val base = if (selectedPlaylist == null) tracks else {
+                    val ids = playlists[selectedPlaylist].orEmpty().toSet()
+                    tracks.filter { it.id in ids }
+                }
+                when (sortMode) {
+                    "По исполнителю" -> base.sortedWith(
+                        compareBy<Track> { it.artist.lowercase() }.thenBy { it.title.lowercase() }
+                    )
+                    else -> base.sortedBy { it.title.lowercase() }
+                }
+            }
 
             val currentTrack = tracks.getOrNull(currentIndex)
 
@@ -261,52 +283,117 @@ class MainActivity : ComponentActivity() {
                             Spacer(Modifier.height(12.dp))
                         }
 
-                        Text(
-                            text = "ВСЕ КОМПОЗИЦИИ",
-                            color = Accent,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (selectedPlaylist == null) "ВСЕ КОМПОЗИЦИИ"
+                                else selectedPlaylist!!.uppercase(),
+                                color = Accent,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Box {
+                                Text(
+                                    text = "СОРТИРОВКА ▾",
+                                    color = Color.LightGray,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.clickable { sortMenuExpanded = true }
+                                )
+                                DropdownMenu(
+                                    expanded = sortMenuExpanded,
+                                    onDismissRequest = { sortMenuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("По названию") },
+                                        onClick = {
+                                            sortMode = "По названию"
+                                            sortMenuExpanded = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("По исполнителю") },
+                                        onClick = {
+                                            sortMode = "По исполнителю"
+                                            sortMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.width(12.dp))
+
+                            Box {
+                                Text(
+                                    text = "СПИСОК ▾",
+                                    color = Accent,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.clickable { playlistMenuExpanded = true }
+                                )
+                                DropdownMenu(
+                                    expanded = playlistMenuExpanded,
+                                    onDismissRequest = { playlistMenuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Все композиции") },
+                                        onClick = {
+                                            selectedPlaylist = null
+                                            playlistMenuExpanded = false
+                                        }
+                                    )
+                                    playlists.keys.sorted().forEach { name ->
+                                        DropdownMenuItem(
+                                            text = { Text(name) },
+                                            onClick = {
+                                                selectedPlaylist = name
+                                                playlistMenuExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         Spacer(Modifier.height(8.dp))
 
-                        if (tracks.isEmpty()) {
+                        if (visibleTracks.isEmpty()) {
                             Text(
-                                text = "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам.",
+                                text = if (selectedPlaylist == null)
+                                    "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам."
+                                else "В этом плейлисте пока нет песен.",
                                 color = Color.LightGray
                             )
                         } else {
                             LazyColumn(
-                                verticalArrangement =
-                                    Arrangement.spacedBy(7.dp)
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
                                 itemsIndexed(
-                                    items = tracks,
+                                    items = visibleTracks,
                                     key = { _, track -> track.id }
-                                ) { index, track ->
+                                ) { _, track ->
+                                    val trackIndex = tracks.indexOfFirst { it.id == track.id }
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(
-                                                color = if (index == currentIndex) {
+                                                color = if (track.id == currentTrack?.id) {
                                                     Color(0xFF293322)
                                                 } else {
                                                     Panel
                                                 },
                                                 shape = RoundedCornerShape(13.dp)
                                             )
-                                            .clickable { playAt(index) }
-                                            .padding(14.dp),
-                                        verticalAlignment =
-                                            Alignment.CenterVertically
+                                            .clickable { playAt(trackIndex) }
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         AlbumThumbnail(albumId = track.albumId)
-
                                         Spacer(Modifier.width(12.dp))
-
-                                        Column(
-                                            modifier = Modifier.weight(1f)
-                                        ) {
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = track.title,
                                                 color = Color.White,
@@ -324,9 +411,16 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         Text(
-                                            text = if (index == currentIndex &&
-                                                playing
-                                            ) "Ⅱ" else "▶",
+                                            text = "＋",
+                                            color = Accent,
+                                            fontSize = 23.sp,
+                                            modifier = Modifier
+                                                .clickable { pendingTrack = track }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+
+                                        Text(
+                                            text = if (track.id == currentTrack?.id && playing) "Ⅱ" else "▶",
                                             color = Accent,
                                             fontSize = 19.sp
                                         )
@@ -334,10 +428,108 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+
+                        if (pendingTrack != null) {
+                            AlertDialog(
+                                onDismissRequest = {
+                                    pendingTrack = null
+                                    newPlaylistName = ""
+                                },
+                                title = { Text("Добавить в плейлист") },
+                                text = {
+                                    Column {
+                                        Text(
+                                            text = pendingTrack?.title.orEmpty(),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        playlists.keys.sorted().forEach { name ->
+                                            TextButton(
+                                                onClick = {
+                                                    val track = pendingTrack
+                                                    if (track != null) {
+                                                        val updated = playlists.toMutableMap()
+                                                        updated[name] = (updated[name].orEmpty() + track.id).distinct()
+                                                        playlists = updated
+                                                        savePlaylists(updated)
+                                                    }
+                                                    pendingTrack = null
+                                                }
+                                            ) { Text("＋ $name") }
+                                        }
+                                        OutlinedTextField(
+                                            value = newPlaylistName,
+                                            onValueChange = { newPlaylistName = it },
+                                            label = { Text("Новый плейлист") },
+                                            singleLine = true
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(
+                                        onClick = {
+                                            val name = newPlaylistName.trim()
+                                            val track = pendingTrack
+                                            if (name.isNotEmpty() && track != null) {
+                                                val updated = playlists.toMutableMap()
+                                                updated[name] = (updated[name].orEmpty() + track.id).distinct()
+                                                playlists = updated
+                                                savePlaylists(updated)
+                                                selectedPlaylist = name
+                                            }
+                                            pendingTrack = null
+                                            newPlaylistName = ""
+                                        }
+                                    ) { Text("Создать и добавить") }
+                                },
+                                dismissButton = {
+                                    TextButton(
+                                        onClick = {
+                                            pendingTrack = null
+                                            newPlaylistName = ""
+                                        }
+                                    ) { Text("Отмена") }
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun loadPlaylists(): Map<String, List<Long>> {
+        val stored = getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .getString("playlists", "{}") ?: "{}"
+        return try {
+            val json = JSONObject(stored)
+            buildMap {
+                val keys = json.keys()
+                while (keys.hasNext()) {
+                    val name = keys.next()
+                    val array = json.optJSONArray(name) ?: JSONArray()
+                    put(name, buildList {
+                        for (i in 0 until array.length()) add(array.optLong(i))
+                    })
+                }
+            }
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun savePlaylists(playlists: Map<String, List<Long>>) {
+        val json = JSONObject()
+        playlists.forEach { (name, ids) ->
+            val array = JSONArray()
+            ids.forEach { array.put(it) }
+            json.put(name, array)
+        }
+        getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .edit()
+            .putString("playlists", json.toString())
+            .apply()
     }
 
     private fun loadTracks(): List<Track> {
