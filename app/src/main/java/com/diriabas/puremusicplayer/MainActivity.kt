@@ -1,4 +1,3 @@
-
 package com.diriabas.puremusicplayer
 
 import android.Manifest
@@ -10,7 +9,6 @@ import android.os.Bundle
 import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,7 +34,8 @@ private data class Track(
     val id: Long,
     val title: String,
     val artist: String,
-    val uri: Uri
+    val uri: Uri,
+    val albumId: Long
 )
 
 private val Accent = Color(0xFFB6F36B)
@@ -48,10 +47,11 @@ class MainActivity : ComponentActivity() {
     private var player: ExoPlayer? = null
 
     private val permission: String
-        get() = if (Build.VERSION.SDK_INT >= 33)
+        get() = if (Build.VERSION.SDK_INT >= 33) {
             Manifest.permission.READ_MEDIA_AUDIO
-        else
+        } else {
             Manifest.permission.READ_EXTERNAL_STORAGE
+        }
 
     private val requestPermission =
         registerForActivityResult(
@@ -66,32 +66,18 @@ class MainActivity : ComponentActivity() {
         val exoPlayer = ExoPlayer.Builder(this).build()
         player = exoPlayer
 
-        if (ContextCompat.checkSelfPermission(this, permission)
-            != PackageManager.PERMISSION_GRANTED
+        if (ContextCompat.checkSelfPermission(this, permission) !=
+            PackageManager.PERMISSION_GRANTED
         ) {
             requestPermission.launch(permission)
         }
 
         setContent {
-            var tracks by remember {
-                mutableStateOf(loadTracks())
-            }
-
-            var currentIndex by remember {
-                mutableStateOf(-1)
-            }
-
-            var playing by remember {
-                mutableStateOf(false)
-            }
-
-            var position by remember {
-                mutableFloatStateOf(0f)
-            }
-
-            var duration by remember {
-                mutableLongStateOf(0L)
-            }
+            var tracks by remember { mutableStateOf(loadTracks()) }
+            var currentIndex by remember { mutableIntStateOf(-1) }
+            var playing by remember { mutableStateOf(false) }
+            var position by remember { mutableFloatStateOf(0f) }
+            var duration by remember { mutableLongStateOf(0L) }
 
             val currentTrack = tracks.getOrNull(currentIndex)
 
@@ -99,9 +85,7 @@ class MainActivity : ComponentActivity() {
                 if (index !in tracks.indices) return
 
                 currentIndex = index
-                exoPlayer.setMediaItem(
-                    MediaItem.fromUri(tracks[index].uri)
-                )
+                exoPlayer.setMediaItem(MediaItem.fromUri(tracks[index].uri))
                 exoPlayer.prepare()
                 exoPlayer.play()
                 playing = true
@@ -110,13 +94,21 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(exoPlayer) {
                 while (true) {
                     playing = exoPlayer.isPlaying
-                    duration = exoPlayer.duration
-                        .takeIf { it > 0 } ?: 0L
+                    duration = exoPlayer.duration.takeIf { it > 0 } ?: 0L
+                    position = if (duration > 0L) {
+                        exoPlayer.currentPosition.toFloat() / duration
+                    } else {
+                        0f
+                    }
 
-                    position = if (duration > 0) {
-                        exoPlayer.currentPosition
-                            .toFloat() / duration
-                    } else 0f
+                    // Automatically advance when the current track finishes.
+                    if (currentIndex >= 0 &&
+                        !exoPlayer.isPlaying &&
+                        exoPlayer.playbackState ==
+                            androidx.media3.common.Player.STATE_ENDED
+                    ) {
+                        playAt(currentIndex + 1)
+                    }
 
                     delay(500)
                 }
@@ -139,7 +131,7 @@ class MainActivity : ComponentActivity() {
                             .padding(18.dp)
                     ) {
                         Text(
-                            "PURE MUSIC",
+                            text = "PURE MUSIC",
                             color = Accent,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
@@ -148,13 +140,13 @@ class MainActivity : ComponentActivity() {
                         Spacer(Modifier.height(18.dp))
 
                         Text(
-                            "Моя музыка",
+                            text = "Моя музыка",
                             fontSize = 29.sp,
                             color = Color.White
                         )
 
                         Text(
-                            "${tracks.size} аудиофайлов",
+                            text = "${tracks.size} аудиофайлов",
                             color = Color.LightGray
                         )
 
@@ -162,31 +154,15 @@ class MainActivity : ComponentActivity() {
 
                         if (currentTrack != null) {
                             Column(
-                                horizontalAlignment =
-                                    Alignment.CenterHorizontally,
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(190.dp)
-                                        .background(
-                                            Panel,
-                                            RoundedCornerShape(22.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "♫",
-                                        color = Accent,
-                                        fontSize = 100.sp
-                                    )
-                                }
+                                AlbumCover(albumId = currentTrack.albumId)
 
                                 Spacer(Modifier.height(18.dp))
 
                                 Text(
-                                    currentTrack.title,
+                                    text = currentTrack.title,
                                     color = Color.White,
                                     fontSize = 23.sp,
                                     fontWeight = FontWeight.Bold,
@@ -195,20 +171,20 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 Text(
-                                    currentTrack.artist,
+                                    text = currentTrack.artist,
                                     color = Color.LightGray,
-                                    fontSize = 15.sp
+                                    fontSize = 15.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
                                 Spacer(Modifier.height(12.dp))
 
                                 Slider(
                                     value = position.coerceIn(0f, 1f),
-                                    onValueChange = {
-                                        position = it
-                                    },
+                                    onValueChange = { position = it },
                                     onValueChangeFinished = {
-                                        if (duration > 0) {
+                                        if (duration > 0L) {
                                             exoPlayer.seekTo(
                                                 (position * duration).toLong()
                                             )
@@ -226,12 +202,12 @@ class MainActivity : ComponentActivity() {
                                         Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        time(exoPlayer.currentPosition),
+                                        text = time(exoPlayer.currentPosition),
                                         color = Color.Gray,
                                         fontSize = 12.sp
                                     )
                                     Text(
-                                        time(duration),
+                                        text = time(duration),
                                         color = Color.Gray,
                                         fontSize = 12.sp
                                     )
@@ -247,7 +223,7 @@ class MainActivity : ComponentActivity() {
                                         Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "◀",
+                                        text = "◀",
                                         color = Accent,
                                         fontSize = 27.sp,
                                         modifier = Modifier.clickable {
@@ -256,7 +232,7 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                     Text(
-                                        if (playing) "Ⅱ" else "▶",
+                                        text = if (playing) "Ⅱ" else "▶",
                                         color = Accent,
                                         fontSize = 42.sp,
                                         modifier = Modifier.clickable {
@@ -270,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                     Text(
-                                        "▶",
+                                        text = "▶",
                                         color = Accent,
                                         fontSize = 27.sp,
                                         modifier = Modifier.clickable {
@@ -286,7 +262,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         Text(
-                            "ВСЕ КОМПОЗИЦИИ",
+                            text = "ВСЕ КОМПОЗИЦИИ",
                             color = Accent,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
@@ -296,7 +272,7 @@ class MainActivity : ComponentActivity() {
 
                         if (tracks.isEmpty()) {
                             Text(
-                                "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам.",
+                                text = "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам.",
                                 color = Color.LightGray
                             )
                         } else {
@@ -305,21 +281,21 @@ class MainActivity : ComponentActivity() {
                                     Arrangement.spacedBy(7.dp)
                             ) {
                                 itemsIndexed(
-                                    tracks,
+                                    items = tracks,
                                     key = { _, track -> track.id }
                                 ) { index, track ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(
-                                                if (index == currentIndex)
+                                                color = if (index == currentIndex) {
                                                     Color(0xFF293322)
-                                                else Panel,
-                                                RoundedCornerShape(13.dp)
+                                                } else {
+                                                    Panel
+                                                },
+                                                shape = RoundedCornerShape(13.dp)
                                             )
-                                            .clickable {
-                                                playAt(index)
-                                            }
+                                            .clickable { playAt(index) }
                                             .padding(14.dp),
                                         verticalAlignment =
                                             Alignment.CenterVertically
@@ -328,23 +304,25 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Text(
-                                                track.title,
+                                                text = track.title,
                                                 color = Color.White,
                                                 fontSize = 15.sp,
                                                 maxLines = 1,
-                                                overflow =
-                                                    TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                track.artist,
+                                                text = track.artist,
                                                 color = Color.LightGray,
-                                                fontSize = 12.sp
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
 
                                         Text(
-                                            if (index == currentIndex &&
-                                                playing) "Ⅱ" else "▶",
+                                            text = if (index == currentIndex &&
+                                                playing
+                                            ) "Ⅱ" else "▶",
                                             color = Accent,
                                             fontSize = 19.sp
                                         )
@@ -359,20 +337,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun loadTracks(): List<Track> {
-        if (ContextCompat.checkSelfPermission(
-                this, permission
-            ) != PackageManager.PERMISSION_GRANTED
-        ) return emptyList()
+        if (ContextCompat.checkSelfPermission(this, permission) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return emptyList()
+        }
 
         val result = mutableListOf<Track>()
-
-        val collection =
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
 
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ALBUM_ID
         )
 
         contentResolver.query(
@@ -382,7 +360,6 @@ class MainActivity : ComponentActivity() {
             null,
             "${MediaStore.Audio.Media.TITLE} ASC"
         )?.use { cursor ->
-
             val idColumn = cursor.getColumnIndexOrThrow(
                 MediaStore.Audio.Media._ID
             )
@@ -392,22 +369,23 @@ class MainActivity : ComponentActivity() {
             val artistColumn = cursor.getColumnIndexOrThrow(
                 MediaStore.Audio.Media.ARTIST
             )
+            val albumColumn = cursor.getColumnIndexOrThrow(
+                MediaStore.Audio.Media.ALBUM_ID
+            )
 
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
+                val artist = cursor.getString(artistColumn)
+                    ?.takeUnless { it == "<unknown>" }
+                    ?: "Неизвестный исполнитель"
 
-                result.add(
-                    Track(
-                        id = id,
-                        title = cursor.getString(titleColumn)
-                            ?: "Без названия",
-                        artist = cursor.getString(artistColumn)
-                            ?.takeUnless { it == "<unknown>" }
-                            ?: "Неизвестный исполнитель",
-                        uri = ContentUris.withAppendedId(
-                            collection, id
-                        )
-                    )
+                result += Track(
+                    id = id,
+                    title = cursor.getString(titleColumn)
+                        ?: "Без названия",
+                    artist = artist,
+                    uri = ContentUris.withAppendedId(collection, id),
+                    albumId = cursor.getLong(albumColumn)
                 )
             }
         }
@@ -416,8 +394,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun time(milliseconds: Long): String {
-        val seconds = (milliseconds / 1000).coerceAtLeast(0)
-        return "%d:%02d".format(seconds / 60, seconds % 60)
+        val seconds = (milliseconds / 1000L).coerceAtLeast(0L)
+        return "%d:%02d".format(seconds / 60L, seconds % 60L)
     }
 
     override fun onDestroy() {
