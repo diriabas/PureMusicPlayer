@@ -147,8 +147,19 @@ class MainActivity : ComponentActivity() {
             // Permission result is applied immediately.
         }
 
+    @Suppress("DEPRECATION")
+    private fun hideSystemStatusBar() {
+        window.decorView.systemUiVisibility = (
+            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+                android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        hideSystemStatusBar()
 
         val sessionToken = SessionToken(
             this,
@@ -376,7 +387,7 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(horizontal = 18.dp, vertical = 8.dp),
+                                                .padding(horizontal = 0.dp, vertical = 8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
@@ -392,11 +403,8 @@ class MainActivity : ComponentActivity() {
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(
-                                            color = Panel,
-                                            shape = RoundedCornerShape(26.dp)
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 16.dp)
+                                        .background(color = Panel)
+                                        .padding(horizontal = 0.dp, vertical = 12.dp)
                                 ) {
                                     AlbumCover(albumId = currentTrack.albumId)
 
@@ -1672,6 +1680,16 @@ class MainActivity : ComponentActivity() {
     private fun time(milliseconds: Long): String {
         val seconds = (milliseconds / 1000L).coerceAtLeast(0L)
         return "%d:%02d".format(seconds / 60L, seconds % 60L)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemStatusBar()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemStatusBar()
     }
 
     override fun onDestroy() {
