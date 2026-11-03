@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -147,19 +149,8 @@ class MainActivity : ComponentActivity() {
             // Permission result is applied immediately.
         }
 
-    @Suppress("DEPRECATION")
-    private fun hideSystemStatusBar() {
-        window.decorView.systemUiVisibility = (
-            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
-                android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            )
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        hideSystemStatusBar()
 
         val sessionToken = SessionToken(
             this,
@@ -194,6 +185,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            CompositionLocalProvider(LocalIndication provides null) {
             val exoPlayer = controllerState.value
 
             if (exoPlayer == null) {
@@ -358,7 +350,7 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 34.dp),
+                                    .padding(top = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -402,6 +394,23 @@ class MainActivity : ComponentActivity() {
                                                 .padding(horizontal = 0.dp, vertical = 8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 18.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Моя музыка",
+                                                    color = Color.White,
+                                                    fontSize = 27.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = "${tracks.size} аудиофайлов",
+                                                    color = MutedText,
+                                                    fontSize = 15.sp
+                                                )
+                                            }
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -480,10 +489,10 @@ class MainActivity : ComponentActivity() {
                                         horizontalArrangement = Arrangement.SpaceAround,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Repeat the complete playlist (not a single track).
-                                        TransportGlyph("↻", 29, if (repeatPlaylist) Accent else Accent.copy(alpha = 0.62f)) {
-                                            repeatPlaylist = !repeatPlaylist
-                                            exoPlayer.repeatMode = if (repeatPlaylist) androidx.media3.common.Player.REPEAT_MODE_ALL else androidx.media3.common.Player.REPEAT_MODE_OFF
+                                        // Shuffle is first, matching the previous player layout.
+                                        TransportGlyph("⤨", 29, if (shufflePlayback) Accent else Accent.copy(alpha = 0.62f)) {
+                                            shufflePlayback = !shufflePlayback
+                                            exoPlayer.shuffleModeEnabled = shufflePlayback
                                         }
 
                                         TransportGlyph("|◀", 25, Accent) { playAt(currentIndex - 1) }
@@ -510,9 +519,10 @@ class MainActivity : ComponentActivity() {
 
                                         TransportGlyph("▶|", 25, Accent) { playAt(currentIndex + 1) }
 
-                                        TransportGlyph("⤨", 29, if (shufflePlayback) Accent else Accent.copy(alpha = 0.62f)) {
-                                            shufflePlayback = !shufflePlayback
-                                            exoPlayer.shuffleModeEnabled = shufflePlayback
+                                        // Repeat the complete playlist, not just the current track.
+                                        TransportGlyph("↻", 29, if (repeatPlaylist) Accent else Accent.copy(alpha = 0.62f)) {
+                                            repeatPlaylist = !repeatPlaylist
+                                            exoPlayer.repeatMode = if (repeatPlaylist) androidx.media3.common.Player.REPEAT_MODE_ALL else androidx.media3.common.Player.REPEAT_MODE_OFF
                                         }
                                     }
                                 }
@@ -1416,6 +1426,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            }
         }
     }
 
@@ -1664,16 +1675,6 @@ class MainActivity : ComponentActivity() {
     private fun time(milliseconds: Long): String {
         val seconds = (milliseconds / 1000L).coerceAtLeast(0L)
         return "%d:%02d".format(seconds / 60L, seconds % 60L)
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemStatusBar()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        hideSystemStatusBar()
     }
 
     override fun onDestroy() {
