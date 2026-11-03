@@ -87,17 +87,30 @@ class MainActivity : ComponentActivity() {
             var playlistMenuExpanded by remember { mutableStateOf(false) }
             var pendingTrack by remember { mutableStateOf<Track?>(null) }
             var newPlaylistName by remember { mutableStateOf("") }
+            var searchQuery by remember { mutableStateOf("") }
+            var favoritesOnly by remember { mutableStateOf(false) }
+            var favoriteIds by remember { mutableStateOf(loadFavorites()) }
 
-            val visibleTracks = remember(tracks, playlists, selectedPlaylist, sortMode) {
+            val visibleTracks = remember(
+                tracks, playlists, selectedPlaylist, sortMode,
+                searchQuery, favoritesOnly, favoriteIds
+            ) {
                 val base = if (selectedPlaylist == null) tracks else {
                     val ids = playlists[selectedPlaylist].orEmpty().toSet()
                     tracks.filter { it.id in ids }
                 }
+                val filtered = base.filter { track ->
+                    val matchesSearch = searchQuery.isBlank() ||
+                        track.title.contains(searchQuery, ignoreCase = true) ||
+                        track.artist.contains(searchQuery, ignoreCase = true)
+                    val matchesFavorites = !favoritesOnly || track.id in favoriteIds
+                    matchesSearch && matchesFavorites
+                }
                 when (sortMode) {
-                    "По исполнителю" -> base.sortedWith(
+                    "По исполнителю" -> filtered.sortedWith(
                         compareBy<Track> { it.artist.lowercase() }.thenBy { it.title.lowercase() }
                     )
-                    else -> base.sortedBy { it.title.lowercase() }
+                    else -> filtered.sortedBy { it.title.lowercase() }
                 }
             }
 
@@ -360,6 +373,40 @@ class MainActivity : ComponentActivity() {
 
                         Spacer(Modifier.height(8.dp))
 
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Поиск по названию или исполнителю") },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    Text(
+                                        text = "✕",
+                                        color = Color.LightGray,
+                                        modifier = Modifier.clickable { searchQuery = "" }.padding(8.dp)
+                                    )
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Accent,
+                                unfocusedBorderColor = Panel,
+                                focusedLabelColor = Accent,
+                                unfocusedLabelColor = Color.LightGray,
+                                cursorColor = Accent
+                            )
+                        )
+
+                        Text(
+                            text = if (favoritesOnly) "★ ПОКАЗАТЬ ВСЕ ПЕСНИ" else "☆ ТОЛЬКО ИЗБРАННОЕ",
+                            color = Accent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { favoritesOnly = !favoritesOnly }.padding(vertical = 8.dp)
+                        )
+
                         if (visibleTracks.isEmpty()) {
                             Text(
                                 text = if (selectedPlaylist == null)
@@ -417,6 +464,20 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier
                                                 .clickable { pendingTrack = track }
                                                 .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+
+                                        Text(
+                                            text = if (track.id in favoriteIds) "★" else "☆",
+                                            color = Accent,
+                                            fontSize = 21.sp,
+                                            modifier = Modifier
+                                                .clickable {
+                                                    val updated = favoriteIds.toMutableSet()
+                                                    if (!updated.add(track.id)) updated.remove(track.id)
+                                                    favoriteIds = updated
+                                                    saveFavorites(updated)
+                                                }
+                                                .padding(horizontal = 7.dp, vertical = 4.dp)
                                         )
 
                                         Text(
@@ -497,6 +558,28 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun loadFavorites(): Set<Long> {
+        val stored = getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .getString("favorites", "[]") ?: "[]"
+        return try {
+            val array = JSONArray(stored)
+            buildSet {
+                for (i in 0 until array.length()) add(array.optLong(i))
+            }
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    private fun saveFavorites(favorites: Set<Long>) {
+        val array = JSONArray()
+        favorites.forEach { array.put(it) }
+        getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .edit()
+            .putString("favorites", array.toString())
+            .apply()
     }
 
     private fun loadPlaylists(): Map<String, List<Long>> {
