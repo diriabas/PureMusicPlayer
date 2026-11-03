@@ -65,3 +65,46 @@ fun AlbumCover(albumId: Long) {
         }
     }
 }
+
+
+/** Миниатюра обложки для строк альбомов и композиций. */
+@Composable
+fun AlbumThumbnail(albumId: Long) {
+    val context = LocalContext.current
+    val bitmap = produceState<Bitmap?>(initialValue = null, key1 = albumId) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                val artworkUri = Uri.parse("content://media/external/audio/albumart/$albumId")
+                context.contentResolver.openInputStream(artworkUri)?.use {
+                    BitmapFactory.decodeStream(it)
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }.value
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(9.dp))
+            .background(CoverPanel),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Обложка альбома",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Image(
+                painter = painterResource(id = R.drawable.pure_music_monogram),
+                contentDescription = "Золотой вензель Pure Music",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
