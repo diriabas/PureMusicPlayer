@@ -71,10 +71,10 @@ fun AlbumCover(albumId: Long) {
         Text(
             text = "AV",
             color = CoverGold.copy(alpha = 0.22f),
-            fontSize = 220.sp,
+            fontSize = 232.sp,
             fontFamily = FontFamily.Cursive,
             fontWeight = FontWeight.Light,
-            letterSpacing = (-13).sp,
+            letterSpacing = (-15).sp,
             maxLines = 1
         )
     }
