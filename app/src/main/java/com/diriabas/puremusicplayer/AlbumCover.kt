@@ -6,12 +6,9 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -21,13 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private val CoverAccent = Color(0xFFB6F36B)
-private val CoverPanel = Color(0xFF1B1D22)
+private val CoverPanel = Color(0xFF0B0C0E)
 
 @Composable
 fun AlbumCover(albumId: Long) {
@@ -53,9 +49,9 @@ fun AlbumCover(albumId: Long) {
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(190.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .fillMaxWidth(0.88f)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(20.dp))
             .background(CoverPanel),
         contentAlignment = Alignment.Center
     ) {
@@ -63,61 +59,15 @@ fun AlbumCover(albumId: Long) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "Обложка альбома",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
-            Text(
-                text = "♫",
-                color = CoverAccent,
-                fontSize = 100.sp
-            )
-        }
-    }
-}
-
-
-@Composable
-fun AlbumThumbnail(albumId: Long) {
-    val context = LocalContext.current
-
-    val bitmap = produceState<Bitmap?>(
-        initialValue = null,
-        key1 = albumId
-    ) {
-        value = withContext(Dispatchers.IO) {
-            try {
-                val artworkUri = Uri.parse(
-                    "content://media/external/audio/albumart/$albumId"
-                )
-                context.contentResolver.openInputStream(artworkUri)?.use {
-                    BitmapFactory.decodeStream(it)
-                }
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }.value
-
-    Box(
-        modifier = Modifier
-            .size(52.dp)
-            .clip(RoundedCornerShape(9.dp))
-            .background(CoverPanel),
-        contentAlignment = Alignment.Center
-    ) {
-        if (bitmap != null) {
             Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Миниатюра обложки альбома",
-                modifier = Modifier.fillMaxSize(),
+                painter = painterResource(id = R.drawable.pure_music_monogram),
+                contentDescription = "Золотой вензель Pure Music",
+                modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.Crop
-            )
-        } else {
-            Text(
-                text = "♫",
-                color = CoverAccent,
-                fontSize = 25.sp
             )
         }
     }
