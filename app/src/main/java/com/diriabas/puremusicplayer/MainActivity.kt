@@ -57,8 +57,7 @@ private data class Track(
     val title: String,
     val artist: String,
     val uri: Uri,
-    val albumId: Long,
-    val album: String
+    val albumId: Long
 )
 
 private val Accent = Color(0xFFD6B878) // Champagne gold
@@ -214,9 +213,6 @@ class MainActivity : ComponentActivity() {
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
-                var libraryMode by remember { mutableStateOf("Композиции") }
-                var selectedAlbumId by remember { mutableStateOf<Long?>(null) }
-                var selectedArtist by remember { mutableStateOf<String?>(null) }
                 var sortMode by remember { mutableStateOf("По названию") }
                 var sortMenuExpanded by remember { mutableStateOf(false) }
                 var playlistMenuExpanded by remember { mutableStateOf(false) }
@@ -237,7 +233,7 @@ class MainActivity : ComponentActivity() {
 
                 val visibleTracks = remember(
                     tracks, playlists, selectedPlaylist, sortMode,
-                    searchQuery, favoritesOnly, favoriteIds, selectedAlbumId, selectedArtist
+                    searchQuery, favoritesOnly, favoriteIds
                 ) {
                     val base = if (selectedPlaylist == null) tracks else {
                         val ids = playlists[selectedPlaylist].orEmpty().toSet()
@@ -247,16 +243,12 @@ class MainActivity : ComponentActivity() {
                     val filtered = base.filter { track ->
                         val matchesSearch = searchQuery.isBlank() ||
                             track.title.contains(searchQuery, ignoreCase = true) ||
-                            track.artist.contains(searchQuery, ignoreCase = true) ||
-                            track.album.contains(searchQuery, ignoreCase = true)
+                            track.artist.contains(searchQuery, ignoreCase = true)
 
                         val matchesFavorites = !favoritesOnly ||
                             track.id in favoriteIds
 
-                        val matchesAlbum = selectedAlbumId == null || track.albumId == selectedAlbumId
-                        val matchesArtist = selectedArtist == null || track.artist == selectedArtist
-
-                        matchesSearch && matchesFavorites && matchesAlbum && matchesArtist
+                        matchesSearch && matchesFavorites
                     }
 
                     when (sortMode) {
@@ -606,9 +598,6 @@ class MainActivity : ComponentActivity() {
                                             text = { Text("Все композиции") },
                                             onClick = {
                                                 selectedPlaylist = null
-                                                selectedAlbumId = null
-                                                selectedArtist = null
-                                                libraryMode = "Композиции"
                                                 playlistMenuExpanded = false
                                             }
                                         )
@@ -618,46 +607,10 @@ class MainActivity : ComponentActivity() {
                                                 text = { Text(name) },
                                                 onClick = {
                                                     selectedPlaylist = name
-                                                    selectedAlbumId = null
-                                                    selectedArtist = null
-                                                    libraryMode = "Композиции"
                                                     playlistMenuExpanded = false
                                                 }
                                             )
                                         }
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf("Композиции", "Альбомы", "Исполнители").forEach { mode ->
-                                    val selected = libraryMode == mode
-                                    Button(
-                                        onClick = {
-                                            libraryMode = mode
-                                            selectedAlbumId = null
-                                            selectedArtist = null
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 11.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (selected) Accent else Panel,
-                                            contentColor = if (selected) Background else Accent
-                                        ),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                                    ) {
-                                        Text(
-                                            text = mode,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1
-                                        )
                                     }
                                 }
                             }
@@ -670,7 +623,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 label = {
-                                    Text("Поиск по названию, исполнителю или альбому")
+                                    Text("Поиск по названию или исполнителю")
                                 },
                                 trailingIcon = {
                                     if (searchQuery.isNotEmpty()) {
@@ -719,54 +672,6 @@ class MainActivity : ComponentActivity() {
                                     },
                                     color = Color.LightGray
                                 )
-                            } else if (libraryMode == "Альбомы") {
-                                val albums = visibleTracks.groupBy { it.albumId }.values
-                                    .sortedBy { group -> group.first().album.lowercase() }
-                                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    itemsIndexed(albums, key = { _, group -> group.first().albumId }) { _, group ->
-                                        val sample = group.first()
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(13.dp))
-                                                .clickable {
-                                                    selectedAlbumId = sample.albumId
-                                                    selectedArtist = null
-                                                    libraryMode = "Композиции"
-                                                }.padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            AlbumThumbnail(albumId = sample.albumId)
-                                            Spacer(Modifier.width(12.dp))
-                                            Column(Modifier.weight(1f)) {
-                                                Text(sample.album, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text(sample.artist, color = Color.LightGray, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            }
-                                            Text("${group.size} тр.", color = Accent, fontSize = 12.sp)
-                                        }
-                                    }
-                                }
-                            } else if (libraryMode == "Исполнители") {
-                                val artists = visibleTracks.groupBy { it.artist }.toList()
-                                    .sortedBy { it.first.lowercase() }
-                                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    itemsIndexed(artists, key = { _, entry -> entry.first }) { _, entry ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(13.dp))
-                                                .clickable {
-                                                    selectedArtist = entry.first
-                                                    selectedAlbumId = null
-                                                    libraryMode = "Композиции"
-                                                }.padding(14.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(Modifier.size(48.dp).background(PanelRaised, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                                                Text(entry.first.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                            }
-                                            Spacer(Modifier.width(12.dp))
-                                            Text(entry.first, color = Color.White, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            Text("${entry.second.size} тр.", color = Accent, fontSize = 12.sp)
-                                        }
-                                    }
-                                }
                             } else {
                                 LazyColumn(
                                     verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -1334,59 +1239,85 @@ class MainActivity : ComponentActivity() {
         val result = mutableListOf<Track>()
         val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
 
+        // Keep the proven audio query minimal for better compatibility with
+        // OEM MediaStore providers. Album names are loaded separately below.
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ALBUM_ID
         )
 
-        contentResolver.query(
-            collection,
-            projection,
-            "${MediaStore.Audio.Media.IS_MUSIC} != 0",
-            null,
-            "${MediaStore.Audio.Media.TITLE} ASC"
-        )?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media._ID
+        try {
+            contentResolver.query(
+                collection,
+                projection,
+                "${MediaStore.Audio.Media.IS_MUSIC} != 0",
+                null,
+                "${MediaStore.Audio.Media.TITLE} ASC"
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val artist = cursor.getString(artistColumn)
+                        ?.takeUnless { it.isBlank() || it == "<unknown>" }
+                        ?: "Неизвестный исполнитель"
+
+                    result += Track(
+                        id = id,
+                        title = cursor.getString(titleColumn)
+                            ?.takeUnless { it.isBlank() }
+                            ?: "Без названия",
+                        artist = artist,
+                        uri = ContentUris.withAppendedId(collection, id),
+                        albumId = cursor.getLong(albumColumn),
+                        album = "Неизвестный альбом"
+                    )
+                }
+            }
+        } catch (error: Exception) {
+            android.util.Log.e("PureMusicPlayer", "Не удалось прочитать MediaStore audio", error)
+            return emptyList()
+        }
+
+        // Read album names in a separate query. If an OEM provider does not
+        // expose the Albums collection correctly, tracks still remain visible.
+        try {
+            val albumNames = mutableMapOf<Long, String>()
+            val albumProjection = arrayOf(
+                MediaStore.Audio.Albums._ID,
+                MediaStore.Audio.Albums.ALBUM
             )
-
-            val titleColumn = cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.TITLE
-            )
-
-            val artistColumn = cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.ARTIST
-            )
-
-            val albumNameColumn = cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.ALBUM
-            )
-
-            val albumColumn = cursor.getColumnIndexOrThrow(
-                MediaStore.Audio.Media.ALBUM_ID
-            )
-
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idColumn)
-
-                val artist = cursor.getString(artistColumn)
-                    ?.takeUnless { it == "<unknown>" }
-                    ?: "Неизвестный исполнитель"
-
-                result += Track(
-                    id = id,
-                    title = cursor.getString(titleColumn) ?: "Без названия",
-                    artist = artist,
-                    uri = ContentUris.withAppendedId(collection, id),
-                    albumId = cursor.getLong(albumColumn),
-                    album = cursor.getString(albumNameColumn)
+            contentResolver.query(
+                MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
+                albumProjection,
+                null,
+                null,
+                "${MediaStore.Audio.Albums.ALBUM} ASC"
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Albums._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Albums.ALBUM)
+                while (cursor.moveToNext()) {
+                    val albumId = cursor.getLong(idColumn)
+                    val albumName = cursor.getString(nameColumn)
                         ?.takeUnless { it.isBlank() || it == "<unknown>" }
                         ?: "Неизвестный альбом"
+                    albumNames[albumId] = albumName
+                }
+            }
+
+            for (index in result.indices) {
+                val track = result[index]
+                result[index] = track.copy(
+                    album = albumNames[track.albumId] ?: "Неизвестный альбом"
                 )
             }
+        } catch (error: Exception) {
+            android.util.Log.w("PureMusicPlayer", "Не удалось прочитать названия альбомов", error)
         }
 
         return result
