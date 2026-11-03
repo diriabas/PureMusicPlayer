@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
@@ -25,11 +27,14 @@ import kotlinx.coroutines.withContext
 
 private val CoverPanel = Color(0xFF0B0C0E)
 
+/**
+ * Loads the album artwork once for the current album ID.
+ * Returns null when the device has no embedded album artwork.
+ */
 @Composable
-fun AlbumCover(albumId: Long) {
+private fun loadAlbumArtwork(albumId: Long): Bitmap? {
     val context = LocalContext.current
-
-    val bitmap = produceState<Bitmap?>(
+    return produceState<Bitmap?>(
         initialValue = null,
         key1 = albumId
     ) {
@@ -46,12 +51,53 @@ fun AlbumCover(albumId: Long) {
             }
         }
     }.value
+}
+
+/**
+ * Large square artwork for the Now Playing panel.
+ * Shows the custom gold monogram when the track has no album cover.
+ */
+@Composable
+fun AlbumCover(albumId: Long) {
+    val bitmap = loadAlbumArtwork(albumId)
 
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.88f)
+            .fillMaxWidth(0.96f)
             .aspectRatio(1f)
             .clip(RoundedCornerShape(20.dp))
+            .background(CoverPanel),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Обложка альбома",
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Image(
+                painter = painterResource(id = R.drawable.pure_music_monogram),
+                contentDescription = "Золотой вензель Pure Music",
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+/**
+ * Small square artwork used in album and track lists.
+ */
+@Composable
+fun AlbumThumbnail(albumId: Long) {
+    val bitmap = loadAlbumArtwork(albumId)
+
+    Box(
+        modifier = Modifier
+            .size(46.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(CoverPanel),
         contentAlignment = Alignment.Center
     ) {
