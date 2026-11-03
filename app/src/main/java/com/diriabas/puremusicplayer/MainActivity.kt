@@ -1,9 +1,9 @@
-
 package com.diriabas.puremusicplayer
 
 import android.Manifest
 import android.content.ContentUris
 import android.content.ComponentName
+import android.content.Intent
 import org.json.JSONArray
 import org.json.JSONObject
 import android.content.pm.PackageManager
@@ -17,6 +17,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +50,45 @@ private data class Track(
 private val Accent = Color(0xFFB6F36B)
 private val Background = Color(0xFF101114)
 private val Panel = Color(0xFF1B1D22)
+
+
+private data class EqualizerPreset(
+    val name: String,
+    val levels: List<Int>
+)
+
+private val equalizerFrequencies = listOf(
+    "31 Гц", "62 Гц", "125 Гц", "250 Гц", "500 Гц",
+    "1 кГц", "2 кГц", "4 кГц", "8 кГц", "16 кГц"
+)
+
+private val equalizerPresets = listOf(
+    EqualizerPreset("Flat", listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    EqualizerPreset("Rock", listOf(5, 4, 3, 1, -1, 1, 3, 4, 5, 5)),
+    EqualizerPreset("Hard Rock", listOf(6, 5, 4, 2, -1, 2, 4, 5, 6, 6)),
+    EqualizerPreset("Metal", listOf(5, 4, 3, 1, -2, 2, 4, 5, 4, 3)),
+    EqualizerPreset("Heavy Metal", listOf(6, 5, 4, 1, -2, 2, 5, 6, 5, 4)),
+    EqualizerPreset("Pop", listOf(-1, 1, 3, 4, 2, 0, -1, -1, 1, 2)),
+    EqualizerPreset("Dance", listOf(5, 4, 2, 0, 1, 3, 4, 3, 2, 2)),
+    EqualizerPreset("Electronic", listOf(5, 4, 2, 1, -1, 2, 3, 4, 5, 5)),
+    EqualizerPreset("Techno", listOf(5, 4, 3, 1, 0, 2, 3, 4, 4, 4)),
+    EqualizerPreset("House", listOf(4, 3, 2, 0, 1, 2, 3, 3, 4, 4)),
+    EqualizerPreset("Hip-Hop", listOf(6, 5, 3, 1, -1, 1, 2, 2, 3, 4)),
+    EqualizerPreset("Rap", listOf(5, 4, 2, 1, 0, 1, 2, 2, 3, 3)),
+    EqualizerPreset("R&B", listOf(4, 3, 2, 1, 0, 1, 2, 3, 3, 3)),
+    EqualizerPreset("Jazz", listOf(4, 3, 1, 2, -1, 1, 2, 3, 4, 4)),
+    EqualizerPreset("Blues", listOf(3, 2, 1, 2, -1, 1, 2, 3, 3, 3)),
+    EqualizerPreset("Soul", listOf(3, 2, 2, 1, 0, 1, 2, 3, 3, 3)),
+    EqualizerPreset("Funk", listOf(4, 3, 1, 2, -1, 1, 3, 3, 3, 2)),
+    EqualizerPreset("Classical", listOf(4, 3, 2, 1, -1, -1, 0, 2, 3, 4)),
+    EqualizerPreset("Acoustic", listOf(3, 2, 1, 2, 0, 1, 2, 3, 3, 3)),
+    EqualizerPreset("Vocal", listOf(-2, -1, 0, 2, 4, 4, 3, 2, 0, -1)),
+    EqualizerPreset("Piano", listOf(2, 1, 0, 2, 3, 2, 1, 2, 3, 3)),
+    EqualizerPreset("Bass Boost", listOf(7, 6, 5, 3, 1, 0, 0, 0, 0, 0)),
+    EqualizerPreset("Deep Bass", listOf(8, 7, 5, 3, 1, 0, -1, -1, 0, 0)),
+    EqualizerPreset("Treble Boost", listOf(0, 0, -1, 0, 1, 2, 3, 5, 6, 6)),
+    EqualizerPreset("Loudness", listOf(4, 3, 1, 0, 0, 1, 2, 3, 3, 3))
+)
 
 class MainActivity : ComponentActivity() {
 
@@ -165,6 +206,15 @@ class MainActivity : ComponentActivity() {
                 var searchQuery by remember { mutableStateOf("") }
                 var favoritesOnly by remember { mutableStateOf(false) }
                 var favoriteIds by remember { mutableStateOf(loadFavorites()) }
+                var equalizerDialogOpen by remember { mutableStateOf(false) }
+                var equalizerEnabled by remember { mutableStateOf(loadEqualizerEnabled()) }
+                var equalizerLevels by remember { mutableStateOf(loadEqualizerLevels()) }
+                var bassStrength by remember { mutableIntStateOf(loadEffectStrength("bass", 0)) }
+                var virtualizerStrength by remember { mutableIntStateOf(loadEffectStrength("virtualizer", 0)) }
+                var presetMenuExpanded by remember { mutableStateOf(false) }
+                var saveProfileDialogOpen by remember { mutableStateOf(false) }
+                var profileName by remember { mutableStateOf("") }
+                var customProfiles by remember { mutableStateOf(loadEqualizerProfiles()) }
 
                 val visibleTracks = remember(
                     tracks, playlists, selectedPlaylist, sortMode,
@@ -402,6 +452,13 @@ class MainActivity : ComponentActivity() {
                                 Spacer(Modifier.height(18.dp))
                                 HorizontalDivider(color = Panel)
                                 Spacer(Modifier.height(12.dp))
+                            }
+
+                            TextButton(
+                                onClick = { equalizerDialogOpen = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("♫ ЭКВАЛАЙЗЕР И ЗВУК", color = Accent)
                             }
 
                             Row(
@@ -651,6 +708,215 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+
+                            if (equalizerDialogOpen) {
+                                AlertDialog(
+                                    onDismissRequest = { equalizerDialogOpen = false },
+                                    title = { Text("Эквалайзер", color = Color.White) },
+                                    text = {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 520.dp)
+                                                .verticalScroll(rememberScrollState())
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Эквалайзер включён", color = Color.White)
+                                                Switch(
+                                                    checked = equalizerEnabled,
+                                                    onCheckedChange = {
+                                                        equalizerEnabled = it
+                                                        sendEqualizerSettings(
+                                                            it, equalizerLevels, bassStrength, virtualizerStrength
+                                                        )
+                                                    }
+                                                )
+                                            }
+
+                                            Box {
+                                                TextButton(onClick = { presetMenuExpanded = true }) {
+                                                    Text("ПРЕСЕТЫ ▾", color = Accent)
+                                                }
+                                                DropdownMenu(
+                                                    expanded = presetMenuExpanded,
+                                                    onDismissRequest = { presetMenuExpanded = false }
+                                                ) {
+                                                    equalizerPresets.forEach { preset ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(preset.name) },
+                                                            onClick = {
+                                                                equalizerLevels = preset.levels
+                                                                presetMenuExpanded = false
+                                                                sendEqualizerSettings(
+                                                                    equalizerEnabled, equalizerLevels,
+                                                                    bassStrength, virtualizerStrength
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+                                                    customProfiles.toSortedMap().forEach { (name, values) ->
+                                                        DropdownMenuItem(
+                                                            text = { Text("★ $name") },
+                                                            onClick = {
+                                                                equalizerLevels = values
+                                                                presetMenuExpanded = false
+                                                                sendEqualizerSettings(
+                                                                    equalizerEnabled, equalizerLevels,
+                                                                    bassStrength, virtualizerStrength
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Text(
+                                                "Частотные полосы · от −12 до +12 дБ",
+                                                color = Color.LightGray,
+                                                fontSize = 12.sp
+                                            )
+
+                                            equalizerFrequencies.forEachIndexed { index, label ->
+                                                Column {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Text(label, color = Color.White, fontSize = 12.sp)
+                                                        Text(
+                                                            "${equalizerLevels[index]} дБ",
+                                                            color = Accent,
+                                                            fontSize = 12.sp
+                                                        )
+                                                    }
+                                                    Slider(
+                                                        value = equalizerLevels[index].toFloat(),
+                                                        onValueChange = { value ->
+                                                            equalizerLevels = equalizerLevels.toMutableList().also {
+                                                                it[index] = value.toInt()
+                                                            }
+                                                        },
+                                                        onValueChangeFinished = {
+                                                            sendEqualizerSettings(
+                                                                equalizerEnabled, equalizerLevels,
+                                                                bassStrength, virtualizerStrength
+                                                            )
+                                                        },
+                                                        valueRange = -12f..12f,
+                                                        steps = 23,
+                                                        enabled = equalizerEnabled,
+                                                        colors = SliderDefaults.colors(
+                                                            thumbColor = Accent,
+                                                            activeTrackColor = Accent
+                                                        )
+                                                    )
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = Panel)
+                                            Text("Усиление баса", color = Color.White)
+                                            Slider(
+                                                value = bassStrength.toFloat(),
+                                                onValueChange = { bassStrength = it.toInt() },
+                                                onValueChangeFinished = {
+                                                    sendEqualizerSettings(
+                                                        equalizerEnabled, equalizerLevels,
+                                                        bassStrength, virtualizerStrength
+                                                    )
+                                                },
+                                                valueRange = 0f..100f,
+                                                enabled = equalizerEnabled,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Accent,
+                                                    activeTrackColor = Accent
+                                                )
+                                            )
+                                            Text("$bassStrength %", color = Color.LightGray, fontSize = 12.sp)
+
+                                            Text("Объёмное звучание", color = Color.White)
+                                            Slider(
+                                                value = virtualizerStrength.toFloat(),
+                                                onValueChange = { virtualizerStrength = it.toInt() },
+                                                onValueChangeFinished = {
+                                                    sendEqualizerSettings(
+                                                        equalizerEnabled, equalizerLevels,
+                                                        bassStrength, virtualizerStrength
+                                                    )
+                                                },
+                                                valueRange = 0f..100f,
+                                                enabled = equalizerEnabled,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Accent,
+                                                    activeTrackColor = Accent
+                                                )
+                                            )
+                                            Text("$virtualizerStrength %", color = Color.LightGray, fontSize = 12.sp)
+
+                                            TextButton(onClick = {
+                                                equalizerLevels = List(10) { 0 }
+                                                bassStrength = 0
+                                                virtualizerStrength = 0
+                                                equalizerEnabled = true
+                                                sendEqualizerSettings(
+                                                    true, equalizerLevels, bassStrength, virtualizerStrength
+                                                )
+                                            }) {
+                                                Text("СБРОСИТЬ НАСТРОЙКИ", color = Accent)
+                                            }
+                                            TextButton(onClick = {
+                                                profileName = ""
+                                                saveProfileDialogOpen = true
+                                            }) {
+                                                Text("СОХРАНИТЬ СВОЙ ПРОФИЛЬ", color = Accent)
+                                            }
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = { equalizerDialogOpen = false }) {
+                                            Text("Готово", color = Accent)
+                                        }
+                                    }
+                                )
+                            }
+
+                            if (saveProfileDialogOpen) {
+                                AlertDialog(
+                                    onDismissRequest = { saveProfileDialogOpen = false },
+                                    title = { Text("Сохранить профиль") },
+                                    text = {
+                                        OutlinedTextField(
+                                            value = profileName,
+                                            onValueChange = { profileName = it },
+                                            singleLine = true,
+                                            label = { Text("Название профиля") }
+                                        )
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            val name = profileName.trim()
+                                            if (name.isNotEmpty()) {
+                                                val updated = customProfiles.toMutableMap()
+                                                updated[name] = equalizerLevels
+                                                customProfiles = updated
+                                                saveEqualizerProfiles(updated)
+                                            }
+                                            saveProfileDialogOpen = false
+                                        }) {
+                                            Text("Сохранить", color = Accent)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { saveProfileDialogOpen = false }) {
+                                            Text("Отмена")
+                                        }
+                                    }
+                                )
+                            }
+
                             if (pendingTrack != null) {
                                 AlertDialog(
                                     onDismissRequest = {
@@ -749,6 +1015,79 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+
+    private fun loadEqualizerEnabled(): Boolean =
+        getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .getBoolean("eq_enabled", true)
+
+    private fun loadEqualizerLevels(): List<Int> {
+        val stored = getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .getString("eq_levels", null)
+        val values = stored?.split(",")?.mapNotNull { it.toIntOrNull() }
+        return if (values?.size == 10) values.map { it.coerceIn(-12, 12) }
+        else List(10) { 0 }
+    }
+
+    private fun loadEffectStrength(key: String, fallback: Int): Int =
+        getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .getInt("eq_$key", fallback).coerceIn(0, 100)
+
+    private fun sendEqualizerSettings(
+        enabled: Boolean,
+        levels: List<Int>,
+        bass: Int,
+        virtualizer: Int
+    ) {
+        getSharedPreferences("pure_music_player", MODE_PRIVATE).edit()
+            .putBoolean("eq_enabled", enabled)
+            .putString("eq_levels", levels.joinToString(","))
+            .putInt("eq_bass", bass)
+            .putInt("eq_virtualizer", virtualizer)
+            .apply()
+
+        val intent = Intent(this, PlaybackService::class.java).apply {
+            action = PlaybackService.ACTION_UPDATE_EQUALIZER
+            putExtra(PlaybackService.EXTRA_EQ_ENABLED, enabled)
+            putExtra(PlaybackService.EXTRA_EQ_LEVELS, levels.toIntArray())
+            putExtra(PlaybackService.EXTRA_BASS_STRENGTH, bass)
+            putExtra(PlaybackService.EXTRA_VIRTUALIZER_STRENGTH, virtualizer)
+        }
+        startService(intent)
+    }
+
+    private fun loadEqualizerProfiles(): Map<String, List<Int>> {
+        val stored = getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            .getString("eq_profiles", "{}") ?: "{}"
+        return try {
+            val json = JSONObject(stored)
+            buildMap {
+                val keys = json.keys()
+                while (keys.hasNext()) {
+                    val name = keys.next()
+                    val array = json.optJSONArray(name) ?: JSONArray()
+                    val values = buildList {
+                        for (i in 0 until array.length()) add(array.optInt(i))
+                    }
+                    if (values.size == 10) put(name, values.map { it.coerceIn(-12, 12) })
+                }
+            }
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun saveEqualizerProfiles(profiles: Map<String, List<Int>>) {
+        val json = JSONObject()
+        profiles.forEach { (name, values) ->
+            val array = JSONArray()
+            values.forEach { array.put(it) }
+            json.put(name, array)
+        }
+        getSharedPreferences("pure_music_player", MODE_PRIVATE).edit()
+            .putString("eq_profiles", json.toString())
+            .apply()
     }
 
     private fun loadFavorites(): Set<Long> {
