@@ -300,6 +300,10 @@ class MainActivity : ComponentActivity() {
                                         verticalAlignment =
                                             Alignment.CenterVertically
                                     ) {
+                                        AlbumThumbnail(albumId = track.albumId)
+
+                                        Spacer(Modifier.width(12.dp))
+
                                         Column(
                                             modifier = Modifier.weight(1f)
                                         ) {

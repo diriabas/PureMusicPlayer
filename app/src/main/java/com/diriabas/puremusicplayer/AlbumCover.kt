@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,6 +71,53 @@ fun AlbumCover(albumId: Long) {
                 text = "♫",
                 color = CoverAccent,
                 fontSize = 100.sp
+            )
+        }
+    }
+}
+
+
+@Composable
+fun AlbumThumbnail(albumId: Long) {
+    val context = LocalContext.current
+
+    val bitmap = produceState<Bitmap?>(
+        initialValue = null,
+        key1 = albumId
+    ) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                val artworkUri = Uri.parse(
+                    "content://media/external/audio/albumart/$albumId"
+                )
+                context.contentResolver.openInputStream(artworkUri)?.use {
+                    BitmapFactory.decodeStream(it)
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }.value
+
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(CoverPanel),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Миниатюра обложки альбома",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = "♫",
+                color = CoverAccent,
+                fontSize = 25.sp
             )
         }
     }
