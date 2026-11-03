@@ -15,6 +15,7 @@ import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,9 +26,18 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,6 +49,8 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.delay
+import kotlin.math.abs
+import kotlin.math.sin
 
 private data class Track(
     val id: Long,
@@ -377,7 +389,18 @@ class MainActivity : ComponentActivity() {
                                     Spacer(Modifier.height(14.dp))
                                     AlbumCover(albumId = currentTrack.albumId)
 
-                                    Spacer(Modifier.height(20.dp))
+                                    Spacer(Modifier.height(14.dp))
+                                    PremiumSpectrum(isPlaying = playing)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = if (playing) "AUDIO PLAYING" else "PLAYBACK PAUSED",
+                                        color = MutedText,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 2.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+
+                                    Spacer(Modifier.height(18.dp))
 
                                     Text(
                                         text = currentTrack.title,
@@ -1280,3 +1303,51 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 }
+
+
+@Composable
+private fun PremiumSpectrum(isPlaying: Boolean) {
+    val transition = rememberInfiniteTransition(label = "premium_spectrum")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2.0 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1900, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "spectrum_phase"
+    )
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+    ) {
+        val barCount = 36
+        val gap = 4.dp.toPx()
+        val barWidth = ((size.width - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
+        val maxHeight = size.height * 0.92f
+
+        for (index in 0 until barCount) {
+            val wave = abs(sin(phase + index * 0.47f)).toFloat()
+            val detail = abs(sin(phase * 1.7f + index * 0.91f)).toFloat()
+            val level = if (isPlaying) {
+                0.16f + wave * 0.58f + detail * 0.26f
+            } else {
+                0.12f + abs(sin(index * 0.63f)).toFloat() * 0.12f
+            }
+            val barHeight = (maxHeight * level).coerceIn(4.dp.toPx(), maxHeight)
+            val x = index * (barWidth + gap)
+            val y = (size.height - barHeight) / 2f
+            val alpha = if (isPlaying) 0.55f + wave * 0.45f else 0.42f
+
+            drawRoundRect(
+                color = Accent.copy(alpha = alpha),
+                topLeft = Offset(x, y),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
+            )
+        }
+    }
+}
+
