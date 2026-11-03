@@ -803,50 +803,123 @@ class MainActivity : ComponentActivity() {
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             Text(
-                                                text = "Твои музыкальные подборки",
+                                                text = "ТВОИ МУЗЫКАЛЬНЫЕ ПОДБОРКИ",
                                                 color = MutedText,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
+                                                fontSize = 10.sp,
+                                                letterSpacing = 1.4.sp,
+                                                modifier = Modifier.padding(top = 5.dp, bottom = 20.dp)
                                             )
-                                            TextButton(
-                                                onClick = {
-                                                    playlistNameInput = ""
-                                                    createPlaylistDialogOpen = true
-                                                },
+
+                                            Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .background(PanelRaised, RoundedCornerShape(14.dp))
+                                                    .border(1.dp, Accent.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
+                                                    .background(PanelRaised, RoundedCornerShape(16.dp))
+                                                    .clickable {
+                                                        playlistNameInput = ""
+                                                        createPlaylistDialogOpen = true
+                                                    }
+                                                    .padding(horizontal = 16.dp, vertical = 15.dp),
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(38.dp)
+                                                        .background(Accent.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text("+", color = Accent, fontSize = 26.sp, fontWeight = FontWeight.Light)
+                                                }
+                                                Spacer(Modifier.width(13.dp))
+                                                Column(Modifier.weight(1f)) {
+                                                    Text("Создать плейлист", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                    Text("Собери музыку под настроение", color = MutedText, fontSize = 11.sp)
+                                                }
+                                                Text("›", color = Accent, fontSize = 25.sp)
                                             }
-                                            Spacer(Modifier.height(12.dp))
-                                            if (playlists.isEmpty()) {
+
+                                            Spacer(Modifier.height(20.dp))
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
                                                 Text(
-                                                    text = "Пока нет плейлистов. Создай первую подборку или добавляй песни в плейлист из раздела «Музыка».",
-                                                    color = MutedText,
-                                                    modifier = Modifier.padding(vertical = 16.dp)
+                                                    "МОИ ПОДБОРКИ",
+                                                    color = Accent,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    letterSpacing = 1.5.sp
                                                 )
+                                                Spacer(Modifier.weight(1f))
+                                                Text(
+                                                    "${playlists.size}",
+                                                    color = MutedText,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                            Spacer(Modifier.height(10.dp))
+
+                                            if (playlists.isEmpty()) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .border(1.dp, Color(0xFF302A20), RoundedCornerShape(18.dp))
+                                                        .background(Panel, RoundedCornerShape(18.dp))
+                                                        .padding(horizontal = 20.dp, vertical = 28.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Text("♫", color = Accent, fontSize = 38.sp)
+                                                    Spacer(Modifier.height(8.dp))
+                                                    Text("Здесь пока пусто", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                    Spacer(Modifier.height(5.dp))
+                                                    Text(
+                                                        "Создай первый плейлист или добавляй композиции в подборки из раздела «Музыка».",
+                                                        color = MutedText,
+                                                        fontSize = 12.sp,
+                                                        lineHeight = 18.sp
+                                                    )
+                                                }
                                             } else {
                                                 playlists.toSortedMap().forEach { (name, ids) ->
                                                     Row(
                                                         modifier = Modifier
                                                             .fillMaxWidth()
-                                                            .padding(bottom = 8.dp)
-                                                            .background(Panel, RoundedCornerShape(14.dp))
+                                                            .padding(bottom = 10.dp)
+                                                            .border(1.dp, Color(0xFF302A20), RoundedCornerShape(16.dp))
+                                                            .background(Panel, RoundedCornerShape(16.dp))
                                                             .clickable {
                                                                 selectedPlaylist = name
                                                                 selectedTab = 1
                                                             }
-                                                            .padding(16.dp),
+                                                            .padding(14.dp),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text("♫", color = Accent, fontSize = 24.sp)
-                                                        Spacer(Modifier.width(14.dp))
-                                                        Column(Modifier.weight(1f)) {
-                                                            Text(name, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                                            Text("${ids.size} композиций", color = MutedText, fontSize = 12.sp)
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(54.dp)
+                                                                .background(PanelRaised, RoundedCornerShape(13.dp)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text("♫", color = Accent, fontSize = 27.sp)
                                                         }
-                                                        Text("›", color = Accent, fontSize = 26.sp)
+                                                        Spacer(Modifier.width(13.dp))
+                                                        Column(Modifier.weight(1f)) {
+                                                            Text(
+                                                                name,
+                                                                color = Color.White,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                            Spacer(Modifier.height(4.dp))
+                                                            Text(
+                                                                if (ids.size == 1) "1 композиция" else "${ids.size} композиций",
+                                                                color = MutedText,
+                                                                fontSize = 11.sp
+                                                            )
+                                                        }
+                                                        Text("ОТКРЫТЬ  ›", color = Accent, fontSize = 9.sp, letterSpacing = 0.6.sp)
                                                     }
                                                 }
                                             }
