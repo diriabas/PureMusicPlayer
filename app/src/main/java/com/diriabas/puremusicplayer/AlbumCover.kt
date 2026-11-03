@@ -8,8 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -40,7 +39,9 @@ private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
         value = withContext(Dispatchers.IO) {
             try {
                 val artworkUri = Uri.parse("content://media/external/audio/albumart/$albumId")
-                context.contentResolver.openInputStream(artworkUri)?.use { stream -> BitmapFactory.decodeStream(stream) }
+                context.contentResolver.openInputStream(artworkUri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
             } catch (_: Exception) {
                 null
             }
@@ -64,7 +65,7 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "Обложка альбома",
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
@@ -94,7 +95,7 @@ fun AlbumThumbnail(albumId: Long) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "Обложка альбома",
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
