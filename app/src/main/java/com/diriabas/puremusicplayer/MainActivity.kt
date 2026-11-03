@@ -343,7 +343,7 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 26.dp),
+                                    .padding(top = 34.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -376,17 +376,9 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .verticalScroll(rememberScrollState())
-                                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                                                .padding(horizontal = 18.dp, vertical = 8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Text(
-                                                text = "Главная",
-                                                color = Color.White,
-                                                fontSize = 27.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
                                             Text(
                                                 text = "Твоя музыка. Твой мир.",
                                                 color = MutedText,
@@ -598,98 +590,7 @@ class MainActivity : ComponentActivity() {
 
                             Spacer(Modifier.height(10.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (selectedPlaylist == null) {
-                                        "ВСЕ КОМПОЗИЦИИ"
-                                    } else {
-                                        selectedPlaylist!!.uppercase()
-                                    },
-                                    color = Accent,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.2.sp,
-                                    modifier = Modifier.weight(1f)
-                                )
 
-                                Box {
-                                    Text(
-                                        text = "СОРТИРОВКА ▾",
-                                        color = Color.LightGray,
-                                        fontSize = 11.sp,
-                                        modifier = Modifier.clickable {
-                                            sortMenuExpanded = true
-                                        }
-                                    )
-
-                                    DropdownMenu(
-                                        expanded = sortMenuExpanded,
-                                        onDismissRequest = {
-                                            sortMenuExpanded = false
-                                        }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("По названию") },
-                                            onClick = {
-                                                sortMode = "По названию"
-                                                sortMenuExpanded = false
-                                            }
-                                        )
-
-                                        DropdownMenuItem(
-                                            text = { Text("По исполнителю") },
-                                            onClick = {
-                                                sortMode = "По исполнителю"
-                                                sortMenuExpanded = false
-                                            }
-                                        )
-                                    }
-                                }
-
-                                Spacer(Modifier.width(12.dp))
-
-                                Box {
-                                    Text(
-                                        text = "СПИСОК ▾",
-                                        color = Accent,
-                                        fontSize = 11.sp,
-                                        modifier = Modifier.clickable {
-                                            playlistMenuExpanded = true
-                                        }
-                                    )
-
-                                    DropdownMenu(
-                                        expanded = playlistMenuExpanded,
-                                        onDismissRequest = {
-                                            playlistMenuExpanded = false
-                                        }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("Все композиции") },
-                                            onClick = {
-                                                selectedPlaylist = null
-                                                playlistMenuExpanded = false
-                                            }
-                                        )
-
-                                        playlists.keys.sorted().forEach { name ->
-                                            DropdownMenuItem(
-                                                text = { Text(name) },
-                                                onClick = {
-                                                    selectedPlaylist = name
-                                                    playlistMenuExpanded = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(8.dp))
 
                             if (selectedAlbumId != null || selectedArtist != null) {
                                 TextButton(
@@ -702,36 +603,6 @@ class MainActivity : ComponentActivity() {
                                     Text("← Назад к библиотеке", color = Accent)
                                 }
                             }
-
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                label = {
-                                    Text("Поиск по названию, исполнителю или альбому")
-                                },
-                                trailingIcon = {
-                                    if (searchQuery.isNotEmpty()) {
-                                        Text(
-                                            text = "✕",
-                                            color = Color.LightGray,
-                                            modifier = Modifier
-                                                .clickable { searchQuery = "" }
-                                                .padding(8.dp)
-                                        )
-                                    }
-                                },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White,
-                                    focusedBorderColor = Accent,
-                                    unfocusedBorderColor = Panel,
-                                    focusedLabelColor = Accent,
-                                    unfocusedLabelColor = Color.LightGray,
-                                    cursorColor = Accent
-                                )
-                            )
 
                             Text(
                                 text = if (favoritesOnly) {
@@ -1085,10 +956,15 @@ class MainActivity : ComponentActivity() {
 
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFF101114))
-                                    .border(width = 1.dp, color = Color(0xFF302A20))
-                                    .padding(top = 8.dp, bottom = 10.dp),
+                                    .fillMaxWidth(0.92f)
+                                    .align(Alignment.CenterHorizontally)
+                                    .background(Color(0xFF101114), RoundedCornerShape(18.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = Color(0xFF302A20),
+                                        shape = RoundedCornerShape(18.dp)
+                                    )
+                                    .padding(top = 5.dp, bottom = 6.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1111,13 +987,13 @@ class MainActivity : ComponentActivity() {
                                         Text(
                                             text = symbol,
                                             color = if (selected) Accent else MutedText,
-                                            fontSize = 23.sp,
+                                            fontSize = 21.sp,
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                         )
                                         Text(
                                             text = label,
                                             color = if (selected) Accent else MutedText,
-                                            fontSize = 9.sp,
+                                            fontSize = 8.sp,
                                             maxLines = 1
                                         )
                                         if (selected) {
