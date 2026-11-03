@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -21,12 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.unit.dp
 
 private val CoverGold = Color(0xFFD6B878)
 private val CoverBlack = Color(0xFF0B0C0E)
@@ -49,10 +46,9 @@ private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
     }.value
 }
 
-/** Large square album cover with a fine champagne-gold frame. */
+/** Main player artwork: the ornate gold AV monogram supplied for this design. */
 @Composable
 fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
-    val bitmap = rememberAlbumArtwork(albumId)
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -61,26 +57,16 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
             .border(1.5.dp, CoverGold, CoverShape),
         contentAlignment = Alignment.Center
     ) {
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Обложка альбома",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Text(
-                text = "AV",
-                color = CoverGold.copy(alpha = 0.82f),
-                fontSize = 112.sp,
-                fontFamily = FontFamily.Cursive,
-                fontWeight = FontWeight.Light
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.av_monogram),
+            contentDescription = "Золотой вензель AV",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 
-/** Compact artwork tile for album and track lists. */
+/** Album thumbnails in the library continue to use each album's real artwork. */
 @Composable
 fun AlbumThumbnail(albumId: Long) {
     val bitmap = rememberAlbumArtwork(albumId)
@@ -99,7 +85,12 @@ fun AlbumThumbnail(albumId: Long) {
                 contentScale = ContentScale.Crop
             )
         } else {
-            Text("AV", color = CoverGold, fontSize = 19.sp, fontFamily = FontFamily.Cursive)
+            Image(
+                painter = painterResource(id = R.drawable.av_monogram),
+                contentDescription = "Золотой вензель AV",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
