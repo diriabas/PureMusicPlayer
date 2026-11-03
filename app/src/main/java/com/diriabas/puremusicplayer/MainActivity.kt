@@ -358,13 +358,21 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "PURE MUSIC",
-                                    color = Accent,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 1.5.sp
-                                )
+                                Column(verticalArrangement = Arrangement.Center) {
+                                    Text(
+                                        text = "PURE MUSIC",
+                                        color = Accent,
+                                        fontSize = 23.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.5.sp
+                                    )
+                                    Text(
+                                        text = "PREMIUM Hi-Fi PLAYER",
+                                        color = MutedText,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 1.1.sp
+                                    )
+                                }
 
                                 Text(
                                     text = "AV",
@@ -390,27 +398,19 @@ class MainActivity : ComponentActivity() {
                                                 .padding(horizontal = 0.dp, vertical = 8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Text(
-                                                text = "Твоя музыка. Твой мир.",
-                                                color = MutedText,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(top = 3.dp, bottom = 16.dp)
-                                            )
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(color = Panel)
-                                        .padding(horizontal = 0.dp, vertical = 12.dp)
+                                        .background(color = Background)
+                                        .padding(horizontal = 0.dp, vertical = 8.dp)
                                 ) {
                                     AlbumCover(albumId = currentTrack.albumId)
 
-                                    Spacer(Modifier.height(10.dp))
+                                    Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
-                                    Spacer(Modifier.height(18.dp))
+                                    Spacer(Modifier.height(12.dp))
 
                                     Text(
                                         text = currentTrack.title,
@@ -1037,9 +1037,9 @@ class MainActivity : ComponentActivity() {
 
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.92f)
+                                    .fillMaxWidth()
                                     .align(Alignment.CenterHorizontally)
-                                    .background(Color(0xFF101114), RoundedCornerShape(18.dp))
+                                    .background(Color(0xFF08090A), RoundedCornerShape(0.dp))
                                     .border(
                                         width = 1.dp,
                                         color = Color(0xFF302A20),
@@ -1053,7 +1053,7 @@ class MainActivity : ComponentActivity() {
                                     Triple("⌂", "Главная", 0),
                                     Triple("♫", "Музыка", 1),
                                     Triple("▤", "Плейлисты", 2),
-                                    Triple("≋", "Звук", 3),
+                                    Triple("≋", "Эквалайзер", 3),
                                     Triple("⚙", "Настройки", 4)
                                 )
                                 navItems.forEach { (symbol, label, index) ->
