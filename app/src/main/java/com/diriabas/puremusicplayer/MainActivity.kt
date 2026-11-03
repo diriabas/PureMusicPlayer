@@ -637,22 +637,28 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 listOf("Композиции", "Альбомы", "Исполнители").forEach { mode ->
                                     val selected = libraryMode == mode
-                                    Text(
-                                        text = mode,
-                                        color = if (selected) Background else Accent,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(if (selected) Accent else Panel, RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                libraryMode = mode
-                                                selectedAlbumId = null
-                                                selectedArtist = null
-                                            }
-                                            .padding(vertical = 11.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
+                                    Button(
+                                        onClick = {
+                                            libraryMode = mode
+                                            selectedAlbumId = null
+                                            selectedArtist = null
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 11.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (selected) Accent else Panel,
+                                            contentColor = if (selected) Background else Accent
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = mode,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
 
