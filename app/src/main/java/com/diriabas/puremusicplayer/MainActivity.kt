@@ -223,6 +223,8 @@ class MainActivity : ComponentActivity() {
                 var tracks by remember { mutableStateOf(loadTracks()) }
                 var currentIndex by remember { mutableIntStateOf(-1) }
                 var playing by remember { mutableStateOf(false) }
+                var repeatPlaylist by remember { mutableStateOf(false) }
+                var shufflePlayback by remember { mutableStateOf(false) }
                 var position by remember { mutableFloatStateOf(0f) }
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
@@ -325,6 +327,8 @@ class MainActivity : ComponentActivity() {
                         }
 
                         playing = exoPlayer.isPlaying
+                        repeatPlaylist = exoPlayer.repeatMode == androidx.media3.common.Player.REPEAT_MODE_ALL
+                        shufflePlayback = exoPlayer.shuffleModeEnabled
                         duration = exoPlayer.duration.takeIf { it > 0 } ?: 0L
 
                         position = if (duration > 0L) {
@@ -432,42 +436,23 @@ class MainActivity : ComponentActivity() {
 
                                     Spacer(Modifier.height(18.dp))
 
-                                    Box(
+                                    Slider(
+                                        value = position.coerceIn(0f, 1f),
+                                        onValueChange = { position = it },
+                                        onValueChangeFinished = {
+                                            if (duration > 0L) {
+                                                exoPlayer.seekTo((position * duration).toLong())
+                                            }
+                                        },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(30.dp)
-                                            .border(
-                                                width = 1.dp,
-                                                color = Accent.copy(alpha = 0.55f),
-                                                shape = RoundedCornerShape(50)
-                                            )
-                                            .background(
-                                                color = PanelRaised.copy(alpha = 0.55f),
-                                                shape = RoundedCornerShape(50)
-                                            )
-                                            .padding(horizontal = 9.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Slider(
-                                            value = position.coerceIn(0f, 1f),
-                                            onValueChange = { position = it },
-                                            onValueChangeFinished = {
-                                                if (duration > 0L) {
-                                                    exoPlayer.seekTo(
-                                                        (position * duration).toLong()
-                                                    )
-                                                }
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(24.dp),
-                                            colors = SliderDefaults.colors(
-                                                thumbColor = Accent,
-                                                activeTrackColor = Accent,
-                                                inactiveTrackColor = MutedText.copy(alpha = 0.42f)
-                                            )
+                                            .height(18.dp),
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Accent,
+                                            activeTrackColor = Accent,
+                                            inactiveTrackColor = MutedText.copy(alpha = 0.38f)
                                         )
-                                    }
+                                    )
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -486,50 +471,49 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    Spacer(Modifier.height(16.dp))
+                                    Spacer(Modifier.height(10.dp))
 
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(78.dp),
+                                        horizontalArrangement = Arrangement.SpaceAround,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = "◀",
-                                            color = Accent,
-                                            fontSize = 25.sp,
-                                            modifier = Modifier.clickable {
-                                                playAt(currentIndex - 1)
-                                            }
-                                        )
+                                        // Repeat the complete playlist (not a single track).
+                                        TransportGlyph("↻", 29, if (repeatPlaylist) Accent else Accent.copy(alpha = 0.62f)) {
+                                            repeatPlaylist = !repeatPlaylist
+                                            exoPlayer.repeatMode = if (repeatPlaylist) androidx.media3.common.Player.REPEAT_MODE_ALL else androidx.media3.common.Player.REPEAT_MODE_OFF
+                                        }
 
-                                        Text(
-                                            text = if (playing) "Ⅱ" else "▶",
-                                            color = Accent,
-                                            fontSize = 36.sp,
+                                        TransportGlyph("|◀", 25, Accent) { playAt(currentIndex - 1) }
+
+                                        Box(
                                             modifier = Modifier
-                                                .background(
-                                                    color = PanelRaised,
-                                                    shape = RoundedCornerShape(50)
-                                                )
-                                                .padding(horizontal = 25.dp, vertical = 10.dp)
+                                                .size(76.dp)
+                                                .border(2.dp, Accent, RoundedCornerShape(50))
+                                                .background(Color(0xFF100E09), RoundedCornerShape(50))
                                                 .clickable {
-                                                if (exoPlayer.isPlaying) {
-                                                    exoPlayer.pause()
-                                                } else {
-                                                    exoPlayer.play()
-                                                }
-                                                playing = exoPlayer.isPlaying
-                                            }
-                                        )
+                                                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                    playing = exoPlayer.isPlaying
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = if (playing) "Ⅱ" else "▶",
+                                                color = Accent,
+                                                fontSize = 34.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.offset(x = if (playing) 0.dp else 2.dp, y = 0.dp)
+                                            )
+                                        }
 
-                                        Text(
-                                            text = "▶",
-                                            color = Accent,
-                                            fontSize = 25.sp,
-                                            modifier = Modifier.clickable {
-                                                playAt(currentIndex + 1)
-                                            }
-                                        )
+                                        TransportGlyph("▶|", 25, Accent) { playAt(currentIndex + 1) }
+
+                                        TransportGlyph("⤨", 29, if (shufflePlayback) Accent else Accent.copy(alpha = 0.62f)) {
+                                            shufflePlayback = !shufflePlayback
+                                            exoPlayer.shuffleModeEnabled = shufflePlayback
+                                        }
                                     }
                                 }
 
@@ -1749,3 +1733,26 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
     }
 }
 
+
+
+@Composable
+private fun TransportGlyph(
+    symbol: String,
+    fontSize: Int,
+    tint: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier.size(48.dp).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = symbol,
+            color = tint,
+            fontSize = fontSize.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
