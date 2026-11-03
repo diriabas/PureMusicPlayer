@@ -62,9 +62,9 @@ fun AlbumCover(albumId: Long) {
 
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.96f)
+            .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(CoverPanel),
         contentAlignment = Alignment.Center
     ) {
