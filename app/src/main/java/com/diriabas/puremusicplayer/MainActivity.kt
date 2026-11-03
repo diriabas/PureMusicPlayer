@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -339,23 +340,27 @@ class MainActivity : ComponentActivity() {
                                 .padding(18.dp)
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "PURE MUSIC",
                                     color = Accent,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 2.2.sp
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.5.sp
                                 )
 
                                 Text(
-                                    text = "Ванови Антон",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
+                                    text = "AV",
+                                    color = Accent,
+                                    fontSize = 16.sp,
+                                    fontFamily = FontFamily.Serif,
+                                    fontWeight = FontWeight.Light,
+                                    letterSpacing = 0.3.sp
                                 )
                             }
 
@@ -389,15 +394,6 @@ class MainActivity : ComponentActivity() {
                                         )
                                         .padding(horizontal = 18.dp, vertical = 20.dp)
                                 ) {
-                                    Text(
-                                        text = "NOW PLAYING",
-                                        color = Accent,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 2.8.sp
-                                    )
-
-                                    Spacer(Modifier.height(14.dp))
                                     AlbumCover(albumId = currentTrack.albumId)
 
                                     Spacer(Modifier.height(14.dp))
