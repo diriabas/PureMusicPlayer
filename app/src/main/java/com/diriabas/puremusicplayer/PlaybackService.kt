@@ -1,6 +1,7 @@
-
 package com.diriabas.puremusicplayer
 
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -15,7 +16,23 @@ class PlaybackService : MediaSessionService() {
 
         val player = ExoPlayer.Builder(this).build()
         exoPlayer = player
-        mediaSession = MediaSession.Builder(this, player).build()
+
+        val activityIntent = Intent(
+            this,
+            MainActivity::class.java
+        )
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            activityIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE
+        )
+
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(pendingIntent)
+            .build()
     }
 
     override fun onGetSession(
