@@ -1,3 +1,4 @@
+
 package com.diriabas.puremusicplayer
 
 import android.Manifest
@@ -47,9 +48,11 @@ private data class Track(
     val albumId: Long
 )
 
-private val Accent = Color(0xFFB6F36B)
-private val Background = Color(0xFF101114)
-private val Panel = Color(0xFF1B1D22)
+private val Accent = Color(0xFFD6B878) // Champagne gold
+private val Background = Color(0xFF0B0C0E)
+private val Panel = Color(0xFF17191D)
+private val PanelRaised = Color(0xFF202329)
+private val MutedText = Color(0xFFA7A9AE)
 
 
 private data class EqualizerPreset(
@@ -321,7 +324,8 @@ class MainActivity : ComponentActivity() {
                                     text = "PURE MUSIC",
                                     color = Accent,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 2.2.sp
                                 )
 
                                 Text(
@@ -336,13 +340,17 @@ class MainActivity : ComponentActivity() {
 
                             Text(
                                 text = "Моя музыка",
-                                fontSize = 29.sp,
-                                color = Color.White
+                                fontSize = 28.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.2.sp
                             )
 
                             Text(
                                 text = "${tracks.size} аудиофайлов",
-                                color = Color.LightGray
+                                color = MutedText,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.3.sp
                             )
 
                             Spacer(Modifier.height(18.dp))
@@ -350,30 +358,46 @@ class MainActivity : ComponentActivity() {
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            color = Panel,
+                                            shape = RoundedCornerShape(26.dp)
+                                        )
+                                        .padding(horizontal = 18.dp, vertical = 20.dp)
                                 ) {
+                                    Text(
+                                        text = "NOW PLAYING",
+                                        color = Accent,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 2.8.sp
+                                    )
+
+                                    Spacer(Modifier.height(14.dp))
                                     AlbumCover(albumId = currentTrack.albumId)
 
-                                    Spacer(Modifier.height(18.dp))
+                                    Spacer(Modifier.height(20.dp))
 
                                     Text(
                                         text = currentTrack.title,
                                         color = Color.White,
-                                        fontSize = 23.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.1.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
 
                                     Text(
                                         text = currentTrack.artist,
-                                        color = Color.LightGray,
-                                        fontSize = 15.sp,
+                                        color = MutedText,
+                                        fontSize = 14.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
 
-                                    Spacer(Modifier.height(12.dp))
+                                    Spacer(Modifier.height(18.dp))
 
                                     Slider(
                                         value = position.coerceIn(0f, 1f),
@@ -397,18 +421,18 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(
                                             text = time(exoPlayer.currentPosition),
-                                            color = Color.Gray,
-                                            fontSize = 12.sp
+                                            color = MutedText,
+                                            fontSize = 11.sp
                                         )
 
                                         Text(
                                             text = time(duration),
-                                            color = Color.Gray,
-                                            fontSize = 12.sp
+                                            color = MutedText,
+                                            fontSize = 11.sp
                                         )
                                     }
 
-                                    Spacer(Modifier.height(12.dp))
+                                    Spacer(Modifier.height(16.dp))
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -418,7 +442,7 @@ class MainActivity : ComponentActivity() {
                                         Text(
                                             text = "◀",
                                             color = Accent,
-                                            fontSize = 27.sp,
+                                            fontSize = 25.sp,
                                             modifier = Modifier.clickable {
                                                 playAt(currentIndex - 1)
                                             }
@@ -427,8 +451,14 @@ class MainActivity : ComponentActivity() {
                                         Text(
                                             text = if (playing) "Ⅱ" else "▶",
                                             color = Accent,
-                                            fontSize = 42.sp,
-                                            modifier = Modifier.clickable {
+                                            fontSize = 36.sp,
+                                            modifier = Modifier
+                                                .background(
+                                                    color = PanelRaised,
+                                                    shape = RoundedCornerShape(50)
+                                                )
+                                                .padding(horizontal = 25.dp, vertical = 10.dp)
+                                                .clickable {
                                                 if (exoPlayer.isPlaying) {
                                                     exoPlayer.pause()
                                                 } else {
@@ -441,7 +471,7 @@ class MainActivity : ComponentActivity() {
                                         Text(
                                             text = "▶",
                                             color = Accent,
-                                            fontSize = 27.sp,
+                                            fontSize = 25.sp,
                                             modifier = Modifier.clickable {
                                                 playAt(currentIndex + 1)
                                             }
@@ -450,15 +480,25 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 Spacer(Modifier.height(18.dp))
-                                HorizontalDivider(color = Panel)
+                                HorizontalDivider(color = Color(0xFF34302A))
                                 Spacer(Modifier.height(12.dp))
                             }
 
                             TextButton(
                                 onClick = { equalizerDialogOpen = true },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = PanelRaised,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
                             ) {
-                                Text("♫ ЭКВАЛАЙЗЕР И ЗВУК", color = Accent)
+                                Text(
+                                    "♫  ЭКВАЛАЙЗЕР И ЗВУК",
+                                    color = Accent,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.1.sp
+                                )
                             }
 
                             Row(
@@ -473,8 +513,9 @@ class MainActivity : ComponentActivity() {
                                         selectedPlaylist!!.uppercase()
                                     },
                                     color = Accent,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.2.sp,
                                     modifier = Modifier.weight(1f)
                                 )
 
@@ -624,7 +665,7 @@ class MainActivity : ComponentActivity() {
                                                 .fillMaxWidth()
                                                 .background(
                                                     color = if (track.id == currentTrack?.id) {
-                                                        Color(0xFF293322)
+                                                        Color(0xFF302A20)
                                                     } else {
                                                         Panel
                                                     },
