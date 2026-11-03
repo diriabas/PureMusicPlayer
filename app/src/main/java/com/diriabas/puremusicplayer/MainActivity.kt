@@ -20,7 +20,7 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material.ripple.ripple
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -186,7 +186,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            CompositionLocalProvider(LocalIndication provides rememberRipple(color = Accent)) {
+            CompositionLocalProvider(LocalIndication provides ripple(color = Accent)) {
             val exoPlayer = controllerState.value
 
             if (exoPlayer == null) {
