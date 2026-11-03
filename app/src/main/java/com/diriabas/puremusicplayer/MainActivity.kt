@@ -217,6 +217,9 @@ class MainActivity : ComponentActivity() {
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
                 var libraryMode by remember { mutableStateOf("Композиции") }
+                var selectedTab by remember { mutableIntStateOf(0) }
+                var createPlaylistDialogOpen by remember { mutableStateOf(false) }
+                var playlistNameInput by remember { mutableStateOf("") }
                 var selectedAlbumId by remember { mutableStateOf<Long?>(null) }
                 var selectedArtist by remember { mutableStateOf<String?>(null) }
                 var sortMode by remember { mutableStateOf("По названию") }
@@ -335,10 +338,7 @@ class MainActivity : ComponentActivity() {
                         color = Background
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(18.dp)
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             Row(
                                 modifier = Modifier
@@ -365,25 +365,36 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            Spacer(Modifier.height(18.dp))
 
-                            Text(
-                                text = "Моя музыка",
-                                fontSize = 28.sp,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.2.sp
-                            )
-
-                            Text(
-                                text = "${tracks.size} аудиофайлов",
-                                color = MutedText,
-                                fontSize = 13.sp,
-                                letterSpacing = 0.3.sp
-                            )
-
-                            Spacer(Modifier.height(18.dp))
-
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                            ) {
+                                when (selectedTab) {
+                                    0 -> {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "Главная",
+                                                color = Color.White,
+                                                fontSize = 27.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Text(
+                                                text = "Твоя музыка. Твой мир.",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 3.dp, bottom = 16.dp)
+                                            )
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -527,23 +538,36 @@ class MainActivity : ComponentActivity() {
                                 Spacer(Modifier.height(12.dp))
                             }
 
-                            TextButton(
-                                onClick = { equalizerDialogOpen = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        color = PanelRaised,
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                            ) {
-                                Text(
-                                    "♫  ЭКВАЛАЙЗЕР И ЗВУК",
-                                    color = Accent,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 1.1.sp
-                                )
-                            }
 
+                                            if (currentTrack == null) {
+                                                Text(
+                                                    text = "Выбери композицию во вкладке «Музыка»",
+                                                    color = MutedText,
+                                                    modifier = Modifier.padding(vertical = 36.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    1 -> {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = "Музыка",
+                                                color = Color.White,
+                                                fontSize = 27.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                text = "${tracks.size} аудиофайлов",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
+                                            )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -889,6 +913,263 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+
+
+                                        }
+                                    }
+
+                                    2 -> {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = "Плейлисты",
+                                                color = Color.White,
+                                                fontSize = 27.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                text = "Твои музыкальные подборки",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
+                                            )
+                                            TextButton(
+                                                onClick = {
+                                                    playlistNameInput = ""
+                                                    createPlaylistDialogOpen = true
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(PanelRaised, RoundedCornerShape(14.dp))
+                                            ) {
+                                                Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
+                                            }
+                                            Spacer(Modifier.height(12.dp))
+                                            if (playlists.isEmpty()) {
+                                                Text(
+                                                    text = "Пока нет плейлистов. Создай первую подборку или добавляй песни в плейлист из раздела «Музыка».",
+                                                    color = MutedText,
+                                                    modifier = Modifier.padding(vertical = 16.dp)
+                                                )
+                                            } else {
+                                                playlists.toSortedMap().forEach { (name, ids) ->
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(bottom = 8.dp)
+                                                            .background(Panel, RoundedCornerShape(14.dp))
+                                                            .clickable {
+                                                                selectedPlaylist = name
+                                                                selectedTab = 1
+                                                            }
+                                                            .padding(16.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text("♫", color = Accent, fontSize = 24.sp)
+                                                        Spacer(Modifier.width(14.dp))
+                                                        Column(Modifier.weight(1f)) {
+                                                            Text(name, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                            Text("${ids.size} композиций", color = MutedText, fontSize = 12.sp)
+                                                        }
+                                                        Text("›", color = Accent, fontSize = 26.sp)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    3 -> {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = "Звук",
+                                                color = Color.White,
+                                                fontSize = 27.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                text = "Настрой звучание под себя",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
+                                            )
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(Panel, RoundedCornerShape(18.dp))
+                                                    .padding(16.dp)
+                                            ) {
+                                                Text("Эквалайзер · 10 полос", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                Text("25 готовых пресетов и собственные профили", color = MutedText, fontSize = 12.sp)
+                                                Spacer(Modifier.height(14.dp))
+                                                Text("Усиление баса", color = Color.White)
+                                                Text("${bassStrength} %", color = Accent, fontSize = 12.sp)
+                                                Spacer(Modifier.height(8.dp))
+                                                Text("Объёмное звучание", color = Color.White)
+                                                Text("${virtualizerStrength} %", color = Accent, fontSize = 12.sp)
+                                                Spacer(Modifier.height(16.dp))
+                                                Button(
+                                                    onClick = { equalizerDialogOpen = true },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Background)
+                                                ) {
+                                                    Text("ОТКРЫТЬ ЭКВАЛАЙЗЕР")
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    else -> {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = "Настройки",
+                                                color = Color.White,
+                                                fontSize = 27.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                text = "Параметры Pure Music Player",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
+                                            )
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(Panel, RoundedCornerShape(14.dp))
+                                                    .padding(16.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("♫", color = Accent, fontSize = 24.sp)
+                                                Spacer(Modifier.width(14.dp))
+                                                Column(Modifier.weight(1f)) {
+                                                    Text("Музыкальная библиотека", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                    Text("${tracks.size} аудиофайлов найдено", color = MutedText, fontSize = 12.sp)
+                                                }
+                                            }
+                                            Spacer(Modifier.height(10.dp))
+                                            TextButton(
+                                                onClick = { tracks = loadTracks() },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(PanelRaised, RoundedCornerShape(14.dp))
+                                            ) {
+                                                Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
+                                            }
+                                            Spacer(Modifier.height(10.dp))
+                                            Text(
+                                                text = "PURE MUSIC  ·  PREMIUM HI-FI",
+                                                color = Accent,
+                                                fontSize = 12.sp,
+                                                letterSpacing = 1.1.sp,
+                                                modifier = Modifier.padding(top = 18.dp)
+                                            )
+                                            Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF101114))
+                                    .border(width = 1.dp, color = Color(0xFF302A20))
+                                    .padding(top = 8.dp, bottom = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val navItems = listOf(
+                                    Triple("⌂", "Главная", 0),
+                                    Triple("♫", "Музыка", 1),
+                                    Triple("▤", "Плейлисты", 2),
+                                    Triple("≋", "Звук", 3),
+                                    Triple("⚙", "Настройки", 4)
+                                )
+                                navItems.forEach { (symbol, label, index) ->
+                                    val selected = selectedTab == index
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedTab = index }
+                                            .padding(vertical = 2.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = symbol,
+                                            color = if (selected) Accent else MutedText,
+                                            fontSize = 23.sp,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        Text(
+                                            text = label,
+                                            color = if (selected) Accent else MutedText,
+                                            fontSize = 9.sp,
+                                            maxLines = 1
+                                        )
+                                        if (selected) {
+                                            Spacer(Modifier.height(3.dp))
+                                            Box(
+                                                Modifier
+                                                    .width(22.dp)
+                                                    .height(2.dp)
+                                                    .background(Accent, RoundedCornerShape(2.dp))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                            if (createPlaylistDialogOpen) {
+                                AlertDialog(
+                                    onDismissRequest = { createPlaylistDialogOpen = false },
+                                    title = { Text("Новый плейлист", color = Color.White) },
+                                    text = {
+                                        OutlinedTextField(
+                                            value = playlistNameInput,
+                                            onValueChange = { playlistNameInput = it },
+                                            singleLine = true,
+                                            label = { Text("Название плейлиста") }
+                                        )
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            val name = playlistNameInput.trim()
+                                            if (name.isNotEmpty()) {
+                                                val updated = playlists.toMutableMap()
+                                                if (!updated.containsKey(name)) {
+                                                    updated[name] = emptyList()
+                                                    playlists = updated
+                                                    savePlaylists(updated)
+                                                }
+                                                selectedPlaylist = name
+                                                selectedTab = 1
+                                            }
+                                            createPlaylistDialogOpen = false
+                                        }) {
+                                            Text("Создать", color = Accent)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { createPlaylistDialogOpen = false }) {
+                                            Text("Отмена")
+                                        }
+                                    }
+                                )
+                            }
 
                             if (equalizerDialogOpen) {
                                 AlertDialog(
