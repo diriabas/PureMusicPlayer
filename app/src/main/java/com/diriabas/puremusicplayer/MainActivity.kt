@@ -1049,10 +1049,10 @@ class MainActivity : ComponentActivity() {
 
         val intent = Intent(this, PlaybackService::class.java).apply {
             action = PlaybackService.ACTION_UPDATE_EQUALIZER
-            putExtra(PlaybackService.EXTRA_EQ_ENABLED, enabled)
-            putExtra(PlaybackService.EXTRA_EQ_LEVELS, levels.toIntArray())
-            putExtra(PlaybackService.EXTRA_BASS_STRENGTH, bass)
-            putExtra(PlaybackService.EXTRA_VIRTUALIZER_STRENGTH, virtualizer)
+            putExtra("eq_enabled", enabled)
+            putExtra("eq_levels", levels.toIntArray())
+            putExtra("bass_strength", bass)
+            putExtra("virtualizer_strength", virtualizer)
         }
         startService(intent)
     }
