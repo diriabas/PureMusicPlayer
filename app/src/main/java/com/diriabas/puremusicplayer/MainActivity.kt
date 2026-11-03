@@ -16,11 +16,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.material.ripple.ripple
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,7 +27,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -186,7 +183,6 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            CompositionLocalProvider(LocalIndication provides ripple(color = Accent)) {
             val exoPlayer = controllerState.value
 
             if (exoPlayer == null) {
@@ -503,7 +499,7 @@ class MainActivity : ComponentActivity() {
                                                 .size(76.dp)
                                                 .border(2.dp, Accent, RoundedCornerShape(50))
                                                 .background(Color(0xFF100E09), RoundedCornerShape(50))
-                                                .clickable {
+                                                .clickable(interactionSource = null, indication = null) {
                                                     if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                                                     playing = exoPlayer.isPlaying
                                                 },
@@ -581,7 +577,7 @@ class MainActivity : ComponentActivity() {
                                                 if (isSelected) Accent else Panel,
                                                 RoundedCornerShape(10.dp)
                                             )
-                                            .clickable {
+                                            .clickable(interactionSource = null, indication = null) {
                                                 libraryMode = mode
                                                 selectedAlbumId = null
                                                 selectedArtist = null
@@ -617,7 +613,7 @@ class MainActivity : ComponentActivity() {
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
-                                    .clickable {
+                                    .clickable(interactionSource = null, indication = null) {
                                         favoritesOnly = !favoritesOnly
                                     }
                                     .padding(vertical = 8.dp)
@@ -633,7 +629,7 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(Panel, RoundedCornerShape(13.dp))
-                                            .clickable {
+                                            .clickable(interactionSource = null, indication = null) {
                                                 selectedAlbumId = sample.albumId
                                                 selectedArtist = null
                                                 libraryMode = "Композиции"
@@ -659,7 +655,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .background(Panel, RoundedCornerShape(13.dp))
-                                                .clickable {
+                                                .clickable(interactionSource = null, indication = null) {
                                                     selectedArtist = artistName
                                                     selectedAlbumId = null
                                                     libraryMode = "Композиции"
@@ -709,7 +705,7 @@ class MainActivity : ComponentActivity() {
                                                     },
                                                     shape = RoundedCornerShape(13.dp)
                                                 )
-                                                .clickable {
+                                                .clickable(interactionSource = null, indication = null) {
                                                     playAt(trackIndex)
                                                 }
                                                 .padding(10.dp),
@@ -744,7 +740,7 @@ class MainActivity : ComponentActivity() {
                                                 color = Accent,
                                                 fontSize = 23.sp,
                                                 modifier = Modifier
-                                                    .clickable {
+                                                    .clickable(interactionSource = null, indication = null) {
                                                         pendingTrack = track
                                                     }
                                                     .padding(
@@ -758,7 +754,7 @@ class MainActivity : ComponentActivity() {
                                                 color = Accent,
                                                 fontSize = 21.sp,
                                                 modifier = Modifier
-                                                    .clickable {
+                                                    .clickable(interactionSource = null, indication = null) {
                                                         val updated =
                                                             favoriteIds.toMutableSet()
 
@@ -818,7 +814,7 @@ class MainActivity : ComponentActivity() {
                                                     .fillMaxWidth()
                                                     .border(1.dp, Accent.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
                                                     .background(PanelRaised, RoundedCornerShape(16.dp))
-                                                    .clickable {
+                                                    .clickable(interactionSource = null, indication = null) {
                                                         playlistNameInput = ""
                                                         createPlaylistDialogOpen = true
                                                     }
@@ -891,7 +887,7 @@ class MainActivity : ComponentActivity() {
                                                             .padding(bottom = 10.dp)
                                                             .border(1.dp, Color(0xFF302A20), RoundedCornerShape(16.dp))
                                                             .background(Panel, RoundedCornerShape(16.dp))
-                                                            .clickable {
+                                                            .clickable(interactionSource = null, indication = null) {
                                                                 selectedPlaylist = name
                                                                 selectedTab = 1
                                                             }
@@ -1056,7 +1052,7 @@ class MainActivity : ComponentActivity() {
                                     Column(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clickable { selectedTab = index }
+                                            .clickable(interactionSource = null, indication = null) { selectedTab = index }
                                             .padding(vertical = 2.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
@@ -1427,7 +1423,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            }
         }
     }
 
@@ -1745,7 +1740,7 @@ private fun TransportGlyph(
     onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier.size(48.dp).clickable(onClick = onClick),
+        modifier = Modifier.size(48.dp).clickable(interactionSource = null, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
