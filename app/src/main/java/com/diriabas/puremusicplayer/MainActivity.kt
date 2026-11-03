@@ -342,7 +342,7 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp),
+                                    .padding(top = 26.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -398,16 +398,7 @@ class MainActivity : ComponentActivity() {
 
                                     Spacer(Modifier.height(14.dp))
                                     PremiumSpectrum(isPlaying = playing)
-                                    Spacer(Modifier.height(6.dp))
-                                    Text(
-                                        text = if (playing) "AUDIO PLAYING" else "PLAYBACK PAUSED",
-                                        color = MutedText,
-                                        fontSize = 9.sp,
-                                        letterSpacing = 2.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-
-                                    Spacer(Modifier.height(18.dp))
+                                    Spacer(Modifier.height(24.dp))
 
                                     Text(
                                         text = currentTrack.title,
