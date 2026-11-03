@@ -34,7 +34,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
@@ -213,8 +212,6 @@ class MainActivity : ComponentActivity() {
                 var tracks by remember { mutableStateOf(loadTracks()) }
                 var currentIndex by remember { mutableIntStateOf(-1) }
                 var playing by remember { mutableStateOf(false) }
-                var repeatPlaylist by remember { mutableStateOf(false) }
-                var shufflePlayback by remember { mutableStateOf(false) }
                 var position by remember { mutableFloatStateOf(0f) }
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
@@ -317,8 +314,6 @@ class MainActivity : ComponentActivity() {
                         }
 
                         playing = exoPlayer.isPlaying
-                        repeatPlaylist = exoPlayer.repeatMode == androidx.media3.common.Player.REPEAT_MODE_ALL
-                        shufflePlayback = exoPlayer.shuffleModeEnabled
                         duration = exoPlayer.duration.takeIf { it > 0 } ?: 0L
 
                         position = if (duration > 0L) {
@@ -348,25 +343,17 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 10.dp),
+                                    .padding(top = 34.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(verticalArrangement = Arrangement.Center) {
-                                    Text(
-                                        text = "PURE MUSIC",
-                                        color = Accent,
-                                        fontSize = 23.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.5.sp
-                                    )
-                                    Text(
-                                        text = "PREMIUM Hi-Fi PLAYER",
-                                        color = MutedText,
-                                        fontSize = 10.sp,
-                                        letterSpacing = 1.1.sp
-                                    )
-                                }
+                                Text(
+                                    text = "PURE MUSIC",
+                                    color = Accent,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.5.sp
+                                )
 
                                 Text(
                                     text = "AV",
@@ -389,101 +376,90 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(horizontal = 0.dp, vertical = 8.dp),
+                                                .padding(horizontal = 18.dp, vertical = 8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Column(
+                                            Text(
+                                                text = "Твоя музыка. Твой мир.",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(horizontal = 18.dp, vertical = 4.dp)
-                                            ) {
-                                                Text(
-                                                    text = "Моя музыка",
-                                                    color = Color.White,
-                                                    fontSize = 27.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Text(
-                                                    text = "${tracks.size} аудиофайлов",
-                                                    color = MutedText,
-                                                    fontSize = 15.sp
-                                                )
-                                            }
+                                                    .padding(top = 3.dp, bottom = 16.dp)
+                                            )
                             if (currentTrack != null) {
                                 Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .weight(1f)
-                                        .padding(horizontal = 18.dp, vertical = 8.dp)
-                                        .clip(RoundedCornerShape(30.dp))
-                                        .background(Panel)
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    // Square album artwork scales to the available card height.
-                                    BoxWithConstraints(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .weight(1f),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        val coverSize = minOf(maxWidth, maxHeight * 0.96f)
-                                        AlbumCover(
-                                            albumId = currentTrack.albumId,
-                                            modifier = Modifier.size(coverSize)
+                                        .background(
+                                            color = Panel,
+                                            shape = RoundedCornerShape(26.dp)
                                         )
-                                    }
+                                        .padding(horizontal = 8.dp, vertical = 16.dp)
+                                ) {
+                                    AlbumCover(albumId = currentTrack.albumId)
 
+                                    Spacer(Modifier.height(10.dp))
                                     PremiumSpectrum(isPlaying = playing)
+                                    Spacer(Modifier.height(18.dp))
 
                                     Text(
-                                        text = "AUDIO PLAYING",
-                                        color = MutedText,
-                                        fontSize = 11.sp,
-                                        letterSpacing = 1.4.sp,
-                                        fontWeight = FontWeight.Medium
+                                        text = currentTrack.title,
+                                        color = Color.White,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.1.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
 
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = currentTrack.title,
-                                            color = Color.White,
-                                            fontSize = 22.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            letterSpacing = 0.1.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            text = currentTrack.artist,
-                                            color = MutedText,
-                                            fontSize = 14.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
+                                    Text(
+                                        text = currentTrack.artist,
+                                        color = MutedText,
+                                        fontSize = 14.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
 
-                                    Slider(
-                                        value = position.coerceIn(0f, 1f),
-                                        onValueChange = { position = it },
-                                        onValueChangeFinished = {
-                                            if (duration > 0L) {
-                                                exoPlayer.seekTo((position * duration).toLong())
-                                            }
-                                        },
+                                    Spacer(Modifier.height(18.dp))
+
+                                    Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(22.dp),
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = Accent,
-                                            activeTrackColor = Accent,
-                                            inactiveTrackColor = Color(0xFF51445C)
+                                            .height(30.dp)
+                                            .border(
+                                                width = 1.dp,
+                                                color = Accent.copy(alpha = 0.55f),
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .background(
+                                                color = PanelRaised.copy(alpha = 0.55f),
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .padding(horizontal = 9.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Slider(
+                                            value = position.coerceIn(0f, 1f),
+                                            onValueChange = { position = it },
+                                            onValueChangeFinished = {
+                                                if (duration > 0L) {
+                                                    exoPlayer.seekTo(
+                                                        (position * duration).toLong()
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(24.dp),
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Accent,
+                                                activeTrackColor = Accent,
+                                                inactiveTrackColor = MutedText.copy(alpha = 0.42f)
+                                            )
                                         )
-                                    )
+                                    }
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -494,6 +470,7 @@ class MainActivity : ComponentActivity() {
                                             color = MutedText,
                                             fontSize = 11.sp
                                         )
+
                                         Text(
                                             text = time(duration),
                                             color = MutedText,
@@ -501,63 +478,56 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
+                                    Spacer(Modifier.height(16.dp))
+
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(76.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        TransportGlyph(
-                                            "⤨", 25,
-                                            if (shufflePlayback) Accent else Accent.copy(alpha = 0.62f)
-                                        ) {
-                                            shufflePlayback = !shufflePlayback
-                                            exoPlayer.shuffleModeEnabled = shufflePlayback
-                                        }
-
-                                        TransportGlyph("|◀", 24, Accent) {
-                                            playAt(currentIndex - 1)
-                                        }
-
-                                        Box(
-                                            modifier = Modifier
-                                                .size(82.dp)
-                                                .clip(RoundedCornerShape(50))
-                                                .background(PanelRaised)
-                                                .border(1.5.dp, Accent.copy(alpha = 0.9f), RoundedCornerShape(50))
-                                                .clickable(interactionSource = null, indication = null) {
-                                                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                                    playing = exoPlayer.isPlaying
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = if (playing) "Ⅱ" else "▶",
-                                                color = Accent,
-                                                fontSize = 34.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.offset(x = if (playing) 0.dp else 2.dp)
-                                            )
-                                        }
-
-                                        TransportGlyph("▶|", 24, Accent) {
-                                            playAt(currentIndex + 1)
-                                        }
-
-                                        TransportGlyph(
-                                            "↻", 25,
-                                            if (repeatPlaylist) Accent else Accent.copy(alpha = 0.62f)
-                                        ) {
-                                            repeatPlaylist = !repeatPlaylist
-                                            exoPlayer.repeatMode = if (repeatPlaylist) {
-                                                androidx.media3.common.Player.REPEAT_MODE_ALL
-                                            } else {
-                                                androidx.media3.common.Player.REPEAT_MODE_OFF
+                                        Text(
+                                            text = "◀",
+                                            color = Accent,
+                                            fontSize = 25.sp,
+                                            modifier = Modifier.clickable {
+                                                playAt(currentIndex - 1)
                                             }
-                                        }
+                                        )
+
+                                        Text(
+                                            text = if (playing) "Ⅱ" else "▶",
+                                            color = Accent,
+                                            fontSize = 36.sp,
+                                            modifier = Modifier
+                                                .background(
+                                                    color = PanelRaised,
+                                                    shape = RoundedCornerShape(50)
+                                                )
+                                                .padding(horizontal = 25.dp, vertical = 10.dp)
+                                                .clickable {
+                                                if (exoPlayer.isPlaying) {
+                                                    exoPlayer.pause()
+                                                } else {
+                                                    exoPlayer.play()
+                                                }
+                                                playing = exoPlayer.isPlaying
+                                            }
+                                        )
+
+                                        Text(
+                                            text = "▶",
+                                            color = Accent,
+                                            fontSize = 25.sp,
+                                            modifier = Modifier.clickable {
+                                                playAt(currentIndex + 1)
+                                            }
+                                        )
                                     }
                                 }
+
+                                Spacer(Modifier.height(18.dp))
+                                HorizontalDivider(color = Color(0xFF34302A))
+                                Spacer(Modifier.height(12.dp))
                             }
 
 
@@ -608,7 +578,7 @@ class MainActivity : ComponentActivity() {
                                                 if (isSelected) Accent else Panel,
                                                 RoundedCornerShape(10.dp)
                                             )
-                                            .clickable(interactionSource = null, indication = null) {
+                                            .clickable {
                                                 libraryMode = mode
                                                 selectedAlbumId = null
                                                 selectedArtist = null
@@ -644,7 +614,7 @@ class MainActivity : ComponentActivity() {
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
-                                    .clickable(interactionSource = null, indication = null) {
+                                    .clickable {
                                         favoritesOnly = !favoritesOnly
                                     }
                                     .padding(vertical = 8.dp)
@@ -660,7 +630,7 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(Panel, RoundedCornerShape(13.dp))
-                                            .clickable(interactionSource = null, indication = null) {
+                                            .clickable {
                                                 selectedAlbumId = sample.albumId
                                                 selectedArtist = null
                                                 libraryMode = "Композиции"
@@ -686,7 +656,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .background(Panel, RoundedCornerShape(13.dp))
-                                                .clickable(interactionSource = null, indication = null) {
+                                                .clickable {
                                                     selectedArtist = artistName
                                                     selectedAlbumId = null
                                                     libraryMode = "Композиции"
@@ -736,7 +706,7 @@ class MainActivity : ComponentActivity() {
                                                     },
                                                     shape = RoundedCornerShape(13.dp)
                                                 )
-                                                .clickable(interactionSource = null, indication = null) {
+                                                .clickable {
                                                     playAt(trackIndex)
                                                 }
                                                 .padding(10.dp),
@@ -771,7 +741,7 @@ class MainActivity : ComponentActivity() {
                                                 color = Accent,
                                                 fontSize = 23.sp,
                                                 modifier = Modifier
-                                                    .clickable(interactionSource = null, indication = null) {
+                                                    .clickable {
                                                         pendingTrack = track
                                                     }
                                                     .padding(
@@ -785,7 +755,7 @@ class MainActivity : ComponentActivity() {
                                                 color = Accent,
                                                 fontSize = 21.sp,
                                                 modifier = Modifier
-                                                    .clickable(interactionSource = null, indication = null) {
+                                                    .clickable {
                                                         val updated =
                                                             favoriteIds.toMutableSet()
 
@@ -833,123 +803,50 @@ class MainActivity : ComponentActivity() {
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             Text(
-                                                text = "ТВОИ МУЗЫКАЛЬНЫЕ ПОДБОРКИ",
+                                                text = "Твои музыкальные подборки",
                                                 color = MutedText,
-                                                fontSize = 10.sp,
-                                                letterSpacing = 1.4.sp,
-                                                modifier = Modifier.padding(top = 5.dp, bottom = 20.dp)
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
                                             )
-
-                                            Row(
+                                            TextButton(
+                                                onClick = {
+                                                    playlistNameInput = ""
+                                                    createPlaylistDialogOpen = true
+                                                },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .border(1.dp, Accent.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
-                                                    .background(PanelRaised, RoundedCornerShape(16.dp))
-                                                    .clickable(interactionSource = null, indication = null) {
-                                                        playlistNameInput = ""
-                                                        createPlaylistDialogOpen = true
-                                                    }
-                                                    .padding(horizontal = 16.dp, vertical = 15.dp),
-                                                verticalAlignment = Alignment.CenterVertically
+                                                    .background(PanelRaised, RoundedCornerShape(14.dp))
                                             ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(38.dp)
-                                                        .background(Accent.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text("+", color = Accent, fontSize = 26.sp, fontWeight = FontWeight.Light)
-                                                }
-                                                Spacer(Modifier.width(13.dp))
-                                                Column(Modifier.weight(1f)) {
-                                                    Text("Создать плейлист", color = Color.White, fontWeight = FontWeight.SemiBold)
-                                                    Text("Собери музыку под настроение", color = MutedText, fontSize = 11.sp)
-                                                }
-                                                Text("›", color = Accent, fontSize = 25.sp)
+                                                Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
                                             }
-
-                                            Spacer(Modifier.height(20.dp))
-
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    "МОИ ПОДБОРКИ",
-                                                    color = Accent,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 1.5.sp
-                                                )
-                                                Spacer(Modifier.weight(1f))
-                                                Text(
-                                                    "${playlists.size}",
-                                                    color = MutedText,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                            Spacer(Modifier.height(10.dp))
-
+                                            Spacer(Modifier.height(12.dp))
                                             if (playlists.isEmpty()) {
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .border(1.dp, Color(0xFF302A20), RoundedCornerShape(18.dp))
-                                                        .background(Panel, RoundedCornerShape(18.dp))
-                                                        .padding(horizontal = 20.dp, vertical = 28.dp),
-                                                    horizontalAlignment = Alignment.CenterHorizontally
-                                                ) {
-                                                    Text("♫", color = Accent, fontSize = 38.sp)
-                                                    Spacer(Modifier.height(8.dp))
-                                                    Text("Здесь пока пусто", color = Color.White, fontWeight = FontWeight.SemiBold)
-                                                    Spacer(Modifier.height(5.dp))
-                                                    Text(
-                                                        "Создай первый плейлист или добавляй композиции в подборки из раздела «Музыка».",
-                                                        color = MutedText,
-                                                        fontSize = 12.sp,
-                                                        lineHeight = 18.sp
-                                                    )
-                                                }
+                                                Text(
+                                                    text = "Пока нет плейлистов. Создай первую подборку или добавляй песни в плейлист из раздела «Музыка».",
+                                                    color = MutedText,
+                                                    modifier = Modifier.padding(vertical = 16.dp)
+                                                )
                                             } else {
                                                 playlists.toSortedMap().forEach { (name, ids) ->
                                                     Row(
                                                         modifier = Modifier
                                                             .fillMaxWidth()
-                                                            .padding(bottom = 10.dp)
-                                                            .border(1.dp, Color(0xFF302A20), RoundedCornerShape(16.dp))
-                                                            .background(Panel, RoundedCornerShape(16.dp))
-                                                            .clickable(interactionSource = null, indication = null) {
+                                                            .padding(bottom = 8.dp)
+                                                            .background(Panel, RoundedCornerShape(14.dp))
+                                                            .clickable {
                                                                 selectedPlaylist = name
                                                                 selectedTab = 1
                                                             }
-                                                            .padding(14.dp),
+                                                            .padding(16.dp),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(54.dp)
-                                                                .background(PanelRaised, RoundedCornerShape(13.dp)),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Text("♫", color = Accent, fontSize = 27.sp)
-                                                        }
-                                                        Spacer(Modifier.width(13.dp))
+                                                        Text("♫", color = Accent, fontSize = 24.sp)
+                                                        Spacer(Modifier.width(14.dp))
                                                         Column(Modifier.weight(1f)) {
-                                                            Text(
-                                                                name,
-                                                                color = Color.White,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                maxLines = 1,
-                                                                overflow = TextOverflow.Ellipsis
-                                                            )
-                                                            Spacer(Modifier.height(4.dp))
-                                                            Text(
-                                                                if (ids.size == 1) "1 композиция" else "${ids.size} композиций",
-                                                                color = MutedText,
-                                                                fontSize = 11.sp
-                                                            )
+                                                            Text(name, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                            Text("${ids.size} композиций", color = MutedText, fontSize = 12.sp)
                                                         }
-                                                        Text("ОТКРЫТЬ  ›", color = Accent, fontSize = 9.sp, letterSpacing = 0.6.sp)
+                                                        Text("›", color = Accent, fontSize = 26.sp)
                                                     }
                                                 }
                                             }
@@ -1059,9 +956,9 @@ class MainActivity : ComponentActivity() {
 
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .fillMaxWidth(0.92f)
                                     .align(Alignment.CenterHorizontally)
-                                    .background(Color(0xFF08090A), RoundedCornerShape(0.dp))
+                                    .background(Color(0xFF101114), RoundedCornerShape(18.dp))
                                     .border(
                                         width = 1.dp,
                                         color = Color(0xFF302A20),
@@ -1075,7 +972,7 @@ class MainActivity : ComponentActivity() {
                                     Triple("⌂", "Главная", 0),
                                     Triple("♫", "Музыка", 1),
                                     Triple("▤", "Плейлисты", 2),
-                                    Triple("≋", "Эквалайзер", 3),
+                                    Triple("≋", "Звук", 3),
                                     Triple("⚙", "Настройки", 4)
                                 )
                                 navItems.forEach { (symbol, label, index) ->
@@ -1083,7 +980,7 @@ class MainActivity : ComponentActivity() {
                                     Column(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clickable(interactionSource = null, indication = null) { selectedTab = index }
+                                            .clickable { selectedTab = index }
                                             .padding(vertical = 2.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
@@ -1761,26 +1658,3 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
     }
 }
 
-
-
-@Composable
-private fun TransportGlyph(
-    symbol: String,
-    fontSize: Int,
-    tint: Color,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier.size(48.dp).clickable(interactionSource = null, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = symbol,
-            color = tint,
-            fontSize = fontSize.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            maxLines = 1
-        )
-    }
-}
