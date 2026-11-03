@@ -214,6 +214,9 @@ class MainActivity : ComponentActivity() {
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
+                var libraryMode by remember { mutableStateOf("Композиции") }
+                var selectedAlbumId by remember { mutableStateOf<Long?>(null) }
+                var selectedArtist by remember { mutableStateOf<String?>(null) }
                 var sortMode by remember { mutableStateOf("По названию") }
                 var sortMenuExpanded by remember { mutableStateOf(false) }
                 var playlistMenuExpanded by remember { mutableStateOf(false) }
@@ -234,7 +237,8 @@ class MainActivity : ComponentActivity() {
 
                 val visibleTracks = remember(
                     tracks, playlists, selectedPlaylist, sortMode,
-                    searchQuery, favoritesOnly, favoriteIds
+                    searchQuery, favoritesOnly, favoriteIds,
+                    selectedAlbumId, selectedArtist
                 ) {
                     val base = if (selectedPlaylist == null) tracks else {
                         val ids = playlists[selectedPlaylist].orEmpty().toSet()
@@ -244,12 +248,17 @@ class MainActivity : ComponentActivity() {
                     val filtered = base.filter { track ->
                         val matchesSearch = searchQuery.isBlank() ||
                             track.title.contains(searchQuery, ignoreCase = true) ||
-                            track.artist.contains(searchQuery, ignoreCase = true)
+                            track.artist.contains(searchQuery, ignoreCase = true) ||
+                            track.album.contains(searchQuery, ignoreCase = true)
 
                         val matchesFavorites = !favoritesOnly ||
                             track.id in favoriteIds
+                        val matchesAlbum = selectedAlbumId == null ||
+                            track.albumId == selectedAlbumId
+                        val matchesArtist = selectedArtist == null ||
+                            track.artist == selectedArtist
 
-                        matchesSearch && matchesFavorites
+                        matchesSearch && matchesFavorites && matchesAlbum && matchesArtist
                     }
 
                     when (sortMode) {
@@ -326,6 +335,7 @@ class MainActivity : ComponentActivity() {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
                                 .padding(18.dp)
                         ) {
                             Row(
@@ -527,6 +537,36 @@ class MainActivity : ComponentActivity() {
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                listOf("Композиции", "Альбомы", "Исполнители").forEach { mode ->
+                                    val isSelected = libraryMode == mode
+                                    Text(
+                                        text = mode,
+                                        color = if (isSelected) Background else Accent,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(
+                                                if (isSelected) Accent else Panel,
+                                                RoundedCornerShape(10.dp)
+                                            )
+                                            .clickable {
+                                                libraryMode = mode
+                                                selectedAlbumId = null
+                                                selectedArtist = null
+                                            }
+                                            .padding(vertical = 11.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -618,13 +658,25 @@ class MainActivity : ComponentActivity() {
 
                             Spacer(Modifier.height(8.dp))
 
+                            if (selectedAlbumId != null || selectedArtist != null) {
+                                TextButton(
+                                    onClick = {
+                                        libraryMode = if (selectedAlbumId != null) "Альбомы" else "Исполнители"
+                                        selectedAlbumId = null
+                                        selectedArtist = null
+                                    }
+                                ) {
+                                    Text("← Назад к библиотеке", color = Accent)
+                                }
+                            }
+
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 label = {
-                                    Text("Поиск по названию или исполнителю")
+                                    Text("Поиск по названию, исполнителю или альбому")
                                 },
                                 trailingIcon = {
                                     if (searchQuery.isNotEmpty()) {
@@ -664,7 +716,65 @@ class MainActivity : ComponentActivity() {
                                     .padding(vertical = 8.dp)
                             )
 
-                            if (visibleTracks.isEmpty()) {
+                            if (libraryMode == "Альбомы" && selectedAlbumId == null) {
+                                val albums = visibleTracks.groupBy { it.albumId }
+                                    .values
+                                    .sortedBy { it.first().album.lowercase() }
+                                albums.forEach { albumTracks ->
+                                    val sample = albumTracks.first()
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Panel, RoundedCornerShape(13.dp))
+                                            .clickable {
+                                                selectedAlbumId = sample.albumId
+                                                selectedArtist = null
+                                                libraryMode = "Композиции"
+                                            }
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AlbumThumbnail(albumId = sample.albumId)
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(sample.album, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                            Text(sample.artist, color = Color.LightGray, fontSize = 12.sp)
+                                        }
+                                        Text("${albumTracks.size} тр.", color = Accent, fontSize = 12.sp)
+                                    }
+                                    Spacer(Modifier.height(7.dp))
+                                }
+                            } else if (libraryMode == "Исполнители" && selectedArtist == null) {
+                                visibleTracks.groupBy { it.artist }
+                                    .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+                                    .forEach { (artistName, artistTracks) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Panel, RoundedCornerShape(13.dp))
+                                                .clickable {
+                                                    selectedArtist = artistName
+                                                    selectedAlbumId = null
+                                                    libraryMode = "Композиции"
+                                                }
+                                                .padding(14.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(46.dp)
+                                                    .background(PanelRaised, RoundedCornerShape(12.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(artistName.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(artistName, color = Color.White, modifier = Modifier.weight(1f))
+                                            Text("${artistTracks.size} тр.", color = Accent, fontSize = 12.sp)
+                                        }
+                                        Spacer(Modifier.height(7.dp))
+                                    }
+                            } else if (visibleTracks.isEmpty()) {
                                 Text(
                                     text = if (selectedPlaylist == null) {
                                         "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам."
@@ -674,13 +784,10 @@ class MainActivity : ComponentActivity() {
                                     color = Color.LightGray
                                 )
                             } else {
-                                LazyColumn(
+                                Column(
                                     verticalArrangement = Arrangement.spacedBy(7.dp)
                                 ) {
-                                    itemsIndexed(
-                                        items = visibleTracks,
-                                        key = { _, track -> track.id }
-                                    ) { _, track ->
+                                    visibleTracks.forEach { track ->
                                         val trackIndex =
                                             tracks.indexOfFirst { it.id == track.id }
 
