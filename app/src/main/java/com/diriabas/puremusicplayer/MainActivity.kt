@@ -1,8 +1,8 @@
-
 package com.diriabas.puremusicplayer
 
 import android.Manifest
 import android.content.ContentUris
+import android.content.ComponentName
 import org.json.JSONArray
 import org.json.JSONObject
 import android.content.pm.PackageManager
@@ -30,7 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.MediaMetadata
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.delay
 
 private data class Track(
@@ -47,7 +50,8 @@ private val Panel = Color(0xFF1B1D22)
 
 class MainActivity : ComponentActivity() {
 
-    private var player: ExoPlayer? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private val controllerState = mutableStateOf<MediaController?>(null)
 
     private val permission: String
         get() = if (Build.VERSION.SDK_INT >= 33) {
@@ -60,22 +64,88 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
-            if (granted) recreate()
+            if (granted) {
+                if (Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestNotificationPermission.launch(
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
+                } else {
+                    recreate()
+                }
+            }
+        }
+
+    private val requestNotificationPermission =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) {
+            // Permission result is applied immediately; no activity restart is needed.
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val exoPlayer = ExoPlayer.Builder(this).build()
-        player = exoPlayer
+        val sessionToken = SessionToken(
+            this,
+            ComponentName(this, PlaybackService::class.java)
+        )
+        val future = MediaController.Builder(this, sessionToken).buildAsync()
+        controllerFuture = future
+        future.addListener({
+            try {
+                controllerState.value = future.get()
+            } catch (error: Exception) {
+                controllerState.value = null
+            }
+        }, ContextCompat.getMainExecutor(this))
 
         if (ContextCompat.checkSelfPermission(this, permission) !=
             PackageManager.PERMISSION_GRANTED
         ) {
             requestPermission.launch(permission)
+        } else if (
+            Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermission.launch(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
         }
 
         setContent {
+            val exoPlayer = controllerState.value
+            if (exoPlayer == null) {
+                MaterialTheme(
+                    colorScheme = darkColorScheme(
+                        primary = Accent,
+                        background = Background,
+                        surface = Panel
+                    )
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = Background
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Подключение аудиоплеера…",
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            } else {
             var tracks by remember { mutableStateOf(loadTracks()) }
             var currentIndex by remember { mutableIntStateOf(-1) }
             var playing by remember { mutableStateOf(false) }
@@ -121,7 +191,22 @@ class MainActivity : ComponentActivity() {
                 if (index !in tracks.indices) return
 
                 currentIndex = index
-                exoPlayer.setMediaItem(MediaItem.fromUri(tracks[index].uri))
+                val mediaItems = tracks.map { track ->
+                    val metadata = MediaMetadata.Builder()
+                        .setTitle(track.title)
+                        .setArtist(track.artist)
+                        .setArtworkUri(
+                            Uri.parse(
+                                "content://media/external/audio/albumart/${track.albumId}"
+                            )
+                        )
+                        .build()
+                    MediaItem.Builder()
+                        .setUri(track.uri)
+                        .setMediaMetadata(metadata)
+                        .build()
+                }
+                exoPlayer.setMediaItems(mediaItems, index, 0L)
                 exoPlayer.prepare()
                 exoPlayer.play()
                 playing = true
@@ -129,6 +214,10 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(exoPlayer) {
                 while (true) {
+                    val serviceIndex = exoPlayer.currentMediaItemIndex
+                    if (serviceIndex >= 0 && serviceIndex in tracks.indices) {
+                        currentIndex = serviceIndex
+                    }
                     playing = exoPlayer.isPlaying
                     duration = exoPlayer.duration.takeIf { it > 0 } ?: 0L
                     position = if (duration > 0L) {
@@ -136,16 +225,6 @@ class MainActivity : ComponentActivity() {
                     } else {
                         0f
                     }
-
-                    // Automatically advance when the current track finishes.
-                    if (currentIndex >= 0 &&
-                        !exoPlayer.isPlaying &&
-                        exoPlayer.playbackState ==
-                            androidx.media3.common.Player.STATE_ENDED
-                    ) {
-                        playAt(currentIndex + 1)
-                    }
-
                     delay(500)
                 }
             }
@@ -558,6 +637,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            }
         }
     }
 
@@ -679,8 +759,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        player?.release()
-        player = null
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
         super.onDestroy()
     }
 }
