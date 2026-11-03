@@ -57,7 +57,8 @@ private data class Track(
     val title: String,
     val artist: String,
     val uri: Uri,
-    val albumId: Long
+    val albumId: Long,
+    val album: String
 )
 
 private val Accent = Color(0xFFD6B878) // Champagne gold
