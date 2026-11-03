@@ -4,6 +4,7 @@ package com.diriabas.puremusicplayer
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
+import android.os.Bundle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
@@ -25,10 +26,7 @@ class PlaybackService : MediaSessionService() {
         val player = ExoPlayer.Builder(this).build()
         exoPlayer = player
 
-        val activityIntent = Intent(
-            this,
-            MainActivity::class.java
-        )
+        val activityIntent = Intent(this, MainActivity::class.java)
 
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -43,11 +41,6 @@ class PlaybackService : MediaSessionService() {
 
         setMediaNotificationProvider(
             object : MediaNotification.Provider {
-
-                override fun getNotificationChannelInfo():
-                    MediaNotification.Provider.NotificationChannelInfo {
-                    return defaultProvider.getNotificationChannelInfo()
-                }
 
                 override fun createNotification(
                     mediaSession: MediaSession,
@@ -64,8 +57,8 @@ class PlaybackService : MediaSessionService() {
                         onNotificationChangedCallback
                     )
 
-                    val hiddenNotification =
-                        Notification.Builder(
+                    val modifiedNotification =
+                        Notification.Builder.recoverBuilder(
                             this@PlaybackService,
                             original.notification
                         )
@@ -74,7 +67,19 @@ class PlaybackService : MediaSessionService() {
 
                     return MediaNotification(
                         original.notificationId,
-                        hiddenNotification
+                        modifiedNotification
+                    )
+                }
+
+                override fun handleCustomCommand(
+                    session: MediaSession,
+                    action: String,
+                    extras: Bundle
+                ): Boolean {
+                    return defaultProvider.handleCustomCommand(
+                        session,
+                        action,
+                        extras
                     )
                 }
             }
