@@ -34,6 +34,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
@@ -410,37 +411,61 @@ class MainActivity : ComponentActivity() {
                                             }
                             if (currentTrack != null) {
                                 Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(color = Background)
-                                        .padding(horizontal = 0.dp, vertical = 8.dp)
+                                        .weight(1f)
+                                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                                        .clip(RoundedCornerShape(30.dp))
+                                        .background(Panel)
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    AlbumCover(albumId = currentTrack.albumId)
+                                    // Square album artwork scales to the available card height.
+                                    BoxWithConstraints(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val coverSize = minOf(maxWidth, maxHeight * 0.96f)
+                                        AlbumCover(
+                                            albumId = currentTrack.albumId,
+                                            modifier = Modifier.size(coverSize)
+                                        )
+                                    }
 
-                                    Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
-                                    Spacer(Modifier.height(12.dp))
 
                                     Text(
-                                        text = currentTrack.title,
-                                        color = Color.White,
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.1.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-
-                                    Text(
-                                        text = currentTrack.artist,
+                                        text = "AUDIO PLAYING",
                                         color = MutedText,
-                                        fontSize = 14.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        fontSize = 11.sp,
+                                        letterSpacing = 1.4.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
 
-                                    Spacer(Modifier.height(18.dp))
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = currentTrack.title,
+                                            color = Color.White,
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = 0.1.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = currentTrack.artist,
+                                            color = MutedText,
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
 
                                     Slider(
                                         value = position.coerceIn(0f, 1f),
@@ -452,11 +477,11 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(18.dp),
+                                            .height(22.dp),
                                         colors = SliderDefaults.colors(
                                             thumbColor = Accent,
                                             activeTrackColor = Accent,
-                                            inactiveTrackColor = MutedText.copy(alpha = 0.38f)
+                                            inactiveTrackColor = Color(0xFF51445C)
                                         )
                                     )
 
@@ -469,7 +494,6 @@ class MainActivity : ComponentActivity() {
                                             color = MutedText,
                                             fontSize = 11.sp
                                         )
-
                                         Text(
                                             text = time(duration),
                                             color = MutedText,
@@ -477,28 +501,31 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    Spacer(Modifier.height(10.dp))
-
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(78.dp),
-                                        horizontalArrangement = Arrangement.SpaceAround,
+                                            .height(76.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Shuffle is first, matching the previous player layout.
-                                        TransportGlyph("⤨", 29, if (shufflePlayback) Accent else Accent.copy(alpha = 0.62f)) {
+                                        TransportGlyph(
+                                            "⤨", 25,
+                                            if (shufflePlayback) Accent else Accent.copy(alpha = 0.62f)
+                                        ) {
                                             shufflePlayback = !shufflePlayback
                                             exoPlayer.shuffleModeEnabled = shufflePlayback
                                         }
 
-                                        TransportGlyph("|◀", 25, Accent) { playAt(currentIndex - 1) }
+                                        TransportGlyph("|◀", 24, Accent) {
+                                            playAt(currentIndex - 1)
+                                        }
 
                                         Box(
                                             modifier = Modifier
-                                                .size(76.dp)
-                                                .border(2.dp, Accent, RoundedCornerShape(50))
-                                                .background(Color(0xFF100E09), RoundedCornerShape(50))
+                                                .size(82.dp)
+                                                .clip(RoundedCornerShape(50))
+                                                .background(PanelRaised)
+                                                .border(1.5.dp, Accent.copy(alpha = 0.9f), RoundedCornerShape(50))
                                                 .clickable(interactionSource = null, indication = null) {
                                                     if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                                                     playing = exoPlayer.isPlaying
@@ -510,23 +537,27 @@ class MainActivity : ComponentActivity() {
                                                 color = Accent,
                                                 fontSize = 34.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.offset(x = if (playing) 0.dp else 2.dp, y = 0.dp)
+                                                modifier = Modifier.offset(x = if (playing) 0.dp else 2.dp)
                                             )
                                         }
 
-                                        TransportGlyph("▶|", 25, Accent) { playAt(currentIndex + 1) }
+                                        TransportGlyph("▶|", 24, Accent) {
+                                            playAt(currentIndex + 1)
+                                        }
 
-                                        // Repeat the complete playlist, not just the current track.
-                                        TransportGlyph("↻", 29, if (repeatPlaylist) Accent else Accent.copy(alpha = 0.62f)) {
+                                        TransportGlyph(
+                                            "↻", 25,
+                                            if (repeatPlaylist) Accent else Accent.copy(alpha = 0.62f)
+                                        ) {
                                             repeatPlaylist = !repeatPlaylist
-                                            exoPlayer.repeatMode = if (repeatPlaylist) androidx.media3.common.Player.REPEAT_MODE_ALL else androidx.media3.common.Player.REPEAT_MODE_OFF
+                                            exoPlayer.repeatMode = if (repeatPlaylist) {
+                                                androidx.media3.common.Player.REPEAT_MODE_ALL
+                                            } else {
+                                                androidx.media3.common.Player.REPEAT_MODE_OFF
+                                            }
                                         }
                                     }
                                 }
-
-                                Spacer(Modifier.height(18.dp))
-                                HorizontalDivider(color = Color(0xFF34302A))
-                                Spacer(Modifier.height(12.dp))
                             }
 
 
