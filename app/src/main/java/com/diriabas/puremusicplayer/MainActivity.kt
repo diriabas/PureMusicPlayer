@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -392,13 +393,13 @@ class MainActivity : ComponentActivity() {
                                             color = Panel,
                                             shape = RoundedCornerShape(26.dp)
                                         )
-                                        .padding(horizontal = 18.dp, vertical = 20.dp)
+                                        .padding(horizontal = 8.dp, vertical = 16.dp)
                                 ) {
                                     AlbumCover(albumId = currentTrack.albumId)
 
-                                    Spacer(Modifier.height(14.dp))
+                                    Spacer(Modifier.height(10.dp))
                                     PremiumSpectrum(isPlaying = playing)
-                                    Spacer(Modifier.height(24.dp))
+                                    Spacer(Modifier.height(18.dp))
 
                                     Text(
                                         text = currentTrack.title,
@@ -420,21 +421,42 @@ class MainActivity : ComponentActivity() {
 
                                     Spacer(Modifier.height(18.dp))
 
-                                    Slider(
-                                        value = position.coerceIn(0f, 1f),
-                                        onValueChange = { position = it },
-                                        onValueChangeFinished = {
-                                            if (duration > 0L) {
-                                                exoPlayer.seekTo(
-                                                    (position * duration).toLong()
-                                                )
-                                            }
-                                        },
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = Accent,
-                                            activeTrackColor = Accent
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(30.dp)
+                                            .border(
+                                                width = 1.dp,
+                                                color = Accent.copy(alpha = 0.55f),
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .background(
+                                                color = PanelRaised.copy(alpha = 0.55f),
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .padding(horizontal = 9.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Slider(
+                                            value = position.coerceIn(0f, 1f),
+                                            onValueChange = { position = it },
+                                            onValueChangeFinished = {
+                                                if (duration > 0L) {
+                                                    exoPlayer.seekTo(
+                                                        (position * duration).toLong()
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(24.dp),
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Accent,
+                                                activeTrackColor = Accent,
+                                                inactiveTrackColor = MutedText.copy(alpha = 0.42f)
+                                            )
                                         )
-                                    )
+                                    }
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -1450,25 +1472,25 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(42.dp)
+            .height(30.dp)
     ) {
-        val barCount = 36
-        val gap = 4.dp.toPx()
-        val barWidth = ((size.width - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
-        val maxHeight = size.height * 0.92f
+        val barCount = 54
+        val gap = 3.dp.toPx()
+        val barWidth = ((size.width - gap * (barCount - 1)) / barCount).coerceAtLeast(1.dp.toPx())
+        val maxHeight = size.height * 0.78f
 
         for (index in 0 until barCount) {
-            val wave = abs(sin(phase + index * 0.47f)).toFloat()
-            val detail = abs(sin(phase * 1.7f + index * 0.91f)).toFloat()
+            val wave = abs(sin(phase + index * 0.38f)).toFloat()
+            val detail = abs(sin(phase * 1.55f + index * 0.77f)).toFloat()
             val level = if (isPlaying) {
-                0.16f + wave * 0.58f + detail * 0.26f
+                0.10f + wave * 0.48f + detail * 0.20f
             } else {
-                0.12f + abs(sin(index * 0.63f)).toFloat() * 0.12f
+                0.10f + abs(sin(index * 0.63f)).toFloat() * 0.12f
             }
-            val barHeight = (maxHeight * level).coerceIn(4.dp.toPx(), maxHeight)
+            val barHeight = (maxHeight * level).coerceIn(2.dp.toPx(), maxHeight)
             val x = index * (barWidth + gap)
             val y = (size.height - barHeight) / 2f
-            val alpha = if (isPlaying) 0.55f + wave * 0.45f else 0.42f
+            val alpha = if (isPlaying) 0.48f + wave * 0.38f else 0.34f
 
             drawRoundRect(
                 color = Accent.copy(alpha = alpha),
