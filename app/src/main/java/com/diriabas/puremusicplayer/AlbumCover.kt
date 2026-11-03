@@ -1,97 +1,104 @@
 package com.diriabas.puremusicplayer
 
-import androidx.compose.foundation.Canvas
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.sin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-private val CoverGold = Color(0xFFD6A94F)
-private val CoverBlack = Color(0xFF080807)
+private val CoverGold = Color(0xFFD6B878)
+private val CoverBlack = Color(0xFF0B0C0E)
+private val CoverShape = RoundedCornerShape(20.dp)
 
-/** Full-width premium AV monogram artwork used on the Now Playing screen. */
 @Composable
-fun AlbumCover(albumId: Long) {
+private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
+    val context = LocalContext.current
+    return produceState<Bitmap?>(initialValue = null, key1 = albumId) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                val artworkUri = Uri.parse("content://media/external/audio/albumart/$albumId")
+                context.contentResolver.openInputStream(artworkUri)?.use { stream -> BitmapFactory.decodeStream(stream) }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }.value
+}
+
+/** Large square album cover with a fine champagne-gold frame. */
+@Composable
+fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
+    val bitmap = rememberAlbumArtwork(albumId)
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(330.dp)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF171006), CoverBlack, Color(0xFF100B04))
-                )
-            ),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(CoverShape)
+            .background(CoverBlack)
+            .border(1.5.dp, CoverGold, CoverShape),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            // Flowing champagne-gold light ribbons behind the monogram.
-            for (ribbon in 0..3) {
-                val baseY = h * (0.34f + ribbon * 0.16f)
-                val points = 90
-                val path = androidx.compose.ui.graphics.Path()
-                for (i in 0..points) {
-                    val x = w * i / points
-                    val wave = sin(i * 0.075f + ribbon * 1.15f) * h * 0.055f
-                    val y = baseY + wave
-                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-                drawPath(
-                    path = path,
-                    color = CoverGold.copy(alpha = if (ribbon == 1) 0.46f else 0.17f),
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = if (ribbon == 1) 2.2.dp.toPx() else 1.dp.toPx())
-                )
-            }
-            // Subtle warm glow in the center.
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(CoverGold.copy(alpha = 0.16f), Color.Transparent),
-                    center = Offset(w * 0.5f, h * 0.53f),
-                    radius = h * 0.62f
-                ),
-                radius = h * 0.62f,
-                center = Offset(w * 0.5f, h * 0.53f)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Обложка альбома",
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = "AV",
+                color = CoverGold.copy(alpha = 0.82f),
+                fontSize = 112.sp,
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.Light
             )
         }
-        Text(
-            text = "AV",
-            color = CoverGold.copy(alpha = 0.22f),
-            fontSize = 232.sp,
-            fontFamily = FontFamily.Cursive,
-            fontWeight = FontWeight.Light,
-            letterSpacing = (-15).sp,
-            maxLines = 1
-        )
     }
 }
 
-/** Small artwork used in album and track lists. */
+/** Compact artwork tile for album and track lists. */
 @Composable
 fun AlbumThumbnail(albumId: Long) {
+    val bitmap = rememberAlbumArtwork(albumId)
     Box(
-        modifier = Modifier.size(46.dp),
+        modifier = Modifier
+            .size(46.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(CoverBlack),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "AV",
-            color = CoverGold.copy(alpha = 0.75f),
-            fontSize = 19.sp,
-            fontFamily = FontFamily.Cursive
-        )
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Обложка альбома",
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text("AV", color = CoverGold, fontSize = 19.sp, fontFamily = FontFamily.Cursive)
+        }
     }
 }
