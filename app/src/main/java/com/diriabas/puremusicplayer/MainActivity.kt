@@ -10,6 +10,7 @@ import android.content.Intent
 import org.json.JSONArray
 import org.json.JSONObject
 import android.content.pm.PackageManager
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -160,6 +161,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         installCrashLogger()
 
         val sessionToken = SessionToken(
