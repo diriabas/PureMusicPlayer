@@ -4,6 +4,8 @@ package com.diriabas.puremusicplayer
 import android.Manifest
 import android.content.ContentUris
 import android.content.ComponentName
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import org.json.JSONArray
 import org.json.JSONObject
@@ -12,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -151,6 +154,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installCrashLogger()
 
         val sessionToken = SessionToken(
             this,
@@ -1028,6 +1032,26 @@ class MainActivity : ComponentActivity() {
                                             ) {
                                                 Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
                                             }
+                                            Spacer(Modifier.height(8.dp))
+                                            TextButton(
+                                                onClick = {
+                                                    val crashFile = java.io.File(filesDir, "last_crash.txt")
+                                                    if (crashFile.exists()) {
+                                                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                                                        clipboard.setPrimaryClip(
+                                                            ClipData.newPlainText("Pure Music Player crash log", crashFile.readText())
+                                                        )
+                                                        Toast.makeText(this@MainActivity, "Журнал сбоя скопирован. Вставь его в чат.", Toast.LENGTH_LONG).show()
+                                                    } else {
+                                                        Toast.makeText(this@MainActivity, "Сохранённых сбоев пока нет.", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(PanelRaised, RoundedCornerShape(14.dp))
+                                            ) {
+                                                Text("СКОПИРОВАТЬ ЖУРНАЛ СБОЯ", color = Accent)
+                                            }
                                             Spacer(Modifier.height(10.dp))
                                             Text(
                                                 text = "PURE MUSIC  ·  PREMIUM HI-FI",
@@ -1442,6 +1466,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+    private fun installCrashLogger() {
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            try {
+                val crashFile = java.io.File(filesDir, "last_crash.txt")
+                crashFile.writeText(
+                    "Pure Music Player crash log\n" +
+                        "Time: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())}\n" +
+                        "Thread: ${thread.name}\n\n" +
+                        error.stackTraceToString()
+                )
+            } catch (_: Exception) {
+                // Never prevent Android's normal crash handling if logging fails.
+            }
+            previousHandler?.uncaughtException(thread, error)
+        }
+    }
 
     private fun loadEqualizerEnabled(): Boolean =
         getSharedPreferences("pure_music_player", MODE_PRIVATE)
