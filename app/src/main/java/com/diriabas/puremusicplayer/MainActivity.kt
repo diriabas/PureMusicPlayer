@@ -391,29 +391,33 @@ class MainActivity : ComponentActivity() {
                         Column(
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 34.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "PURE MUSIC",
-                                    color = Accent,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 1.5.sp
-                                )
+                            if (selectedTab != 0) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 34.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "PURE MUSIC",
+                                        color = Accent,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 1.5.sp
+                                    )
 
-                                Text(
-                                    text = "AV",
-                                    color = Accent,
-                                    fontSize = 16.sp,
-                                    fontFamily = FontFamily.Serif,
-                                    fontWeight = FontWeight.Light,
-                                    letterSpacing = 0.3.sp
-                                )
+                                    Text(
+                                        text = "AV",
+                                        color = Accent,
+                                        fontSize = 16.sp,
+                                        fontFamily = FontFamily.Serif,
+                                        fontWeight = FontWeight.Light,
+                                        letterSpacing = 0.3.sp
+                                    )
+                                }
+                            } else {
+                                Spacer(Modifier.height(8.dp))
                             }
 
 
@@ -1078,6 +1082,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth(0.92f)
                                     .align(Alignment.CenterHorizontally)
+                                    .windowInsetsPadding(WindowInsets.navigationBars)
                                     .background(Color(0xFF101114), RoundedCornerShape(18.dp))
                                     .border(
                                         width = 1.dp,
@@ -1106,14 +1111,14 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(
                                             text = symbol,
-                                            color = if (selected) Accent else MutedText,
+                                            color = if (selected) Accent else Color(0xFFC1C1C5),
                                             fontSize = 21.sp,
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                         )
                                         Text(
                                             text = label,
-                                            color = if (selected) Accent else MutedText,
-                                            fontSize = 8.sp,
+                                            color = if (selected) Accent else Color(0xFFC1C1C5),
+                                            fontSize = 9.sp,
                                             maxLines = 1
                                         )
                                         if (selected) {
