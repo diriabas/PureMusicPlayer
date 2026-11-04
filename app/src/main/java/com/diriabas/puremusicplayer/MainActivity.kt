@@ -281,6 +281,33 @@ class MainActivity : ComponentActivity() {
 
                 val currentTrack = tracks.getOrNull(currentIndex)
 
+                // Prepare the first available track without starting playback.
+                // This gives the transport controls a valid media item on app launch.
+                LaunchedEffect(exoPlayer, tracks) {
+                    if (tracks.isNotEmpty() && exoPlayer.mediaItemCount == 0) {
+                        val initialMediaItems = tracks.map { track ->
+                            val metadata = MediaMetadata.Builder()
+                                .setTitle(track.title)
+                                .setArtist(track.artist)
+                                .setArtworkUri(
+                                    Uri.parse(
+                                        "content://media/external/audio/albumart/${track.albumId}"
+                                    )
+                                )
+                                .build()
+
+                            MediaItem.Builder()
+                                .setUri(track.uri)
+                                .setMediaMetadata(metadata)
+                                .build()
+                        }
+                        exoPlayer.setMediaItems(initialMediaItems, 0, 0L)
+                        exoPlayer.prepare()
+                        currentIndex = 0
+                        playing = false
+                    }
+                }
+
                 fun playAt(index: Int) {
                     if (index !in tracks.indices) return
 
