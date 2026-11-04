@@ -1,3 +1,4 @@
+
 package com.diriabas.puremusicplayer
 
 import android.Manifest
@@ -463,7 +464,9 @@ class MainActivity : ComponentActivity() {
                                     Spacer(Modifier.height(16.dp))
 
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .offset(y = (-6).dp),
                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -492,7 +495,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
-                                        Canvas(
+                                        Box(
                                             modifier = Modifier
                                                 .size(68.dp)
                                                 .clickable(
@@ -505,40 +508,42 @@ class MainActivity : ComponentActivity() {
                                                         exoPlayer.play()
                                                     }
                                                     playing = exoPlayer.isPlaying
-                                                }
+                                                },
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            // Fixed circular Play/Pause button; the Play triangle is
-                                            // drawn around its own centroid so it stays truly centered.
-                                            drawCircle(color = PanelRaised)
-                                            val cx = size.width / 2f
-                                            val cy = size.height / 2f
-                                            if (playing) {
-                                                val barWidth = 5.dp.toPx()
-                                                val barHeight = 22.dp.toPx()
-                                                val gap = 5.dp.toPx()
-                                                drawRoundRect(
-                                                    color = Accent,
-                                                    topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
-                                                    size = Size(barWidth, barHeight),
-                                                    cornerRadius = CornerRadius(1.5.dp.toPx())
-                                                )
-                                                drawRoundRect(
-                                                    color = Accent,
-                                                    topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
-                                                    size = Size(barWidth, barHeight),
-                                                    cornerRadius = CornerRadius(1.5.dp.toPx())
-                                                )
-                                            } else {
-                                                val halfHeight = 13.dp.toPx()
-                                                val left = 10.dp.toPx()
-                                                val right = 16.dp.toPx()
-                                                val triangle = androidx.compose.ui.graphics.Path().apply {
-                                                    moveTo(cx - left, cy - halfHeight)
-                                                    lineTo(cx - left, cy + halfHeight)
-                                                    lineTo(cx + right, cy)
-                                                    close()
+                                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                                // Fixed 68 dp circle; both icons are drawn from its exact center.
+                                                drawCircle(color = PanelRaised)
+                                                val cx = size.width / 2f
+                                                val cy = size.height / 2f
+                                                if (playing) {
+                                                    val barWidth = 5.dp.toPx()
+                                                    val barHeight = 22.dp.toPx()
+                                                    val gap = 5.dp.toPx()
+                                                    drawRoundRect(
+                                                        color = Accent,
+                                                        topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
+                                                        size = Size(barWidth, barHeight),
+                                                        cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                    )
+                                                    drawRoundRect(
+                                                        color = Accent,
+                                                        topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
+                                                        size = Size(barWidth, barHeight),
+                                                        cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                    )
+                                                } else {
+                                                    val halfHeight = 13.dp.toPx()
+                                                    val left = 10.dp.toPx()
+                                                    val right = 16.dp.toPx()
+                                                    val triangle = androidx.compose.ui.graphics.Path().apply {
+                                                        moveTo(cx - left, cy - halfHeight)
+                                                        lineTo(cx - left, cy + halfHeight)
+                                                        lineTo(cx + right, cy)
+                                                        close()
+                                                    }
+                                                    drawPath(path = triangle, color = Accent)
                                                 }
-                                                drawPath(path = triangle, color = Accent)
                                             }
                                         }
 
