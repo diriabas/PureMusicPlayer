@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -52,10 +51,35 @@ private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
     }.value
 }
 
+@Composable
+private fun rememberMonogramArtwork(): Bitmap? {
+    val context = LocalContext.current
+    return produceState<Bitmap?>(initialValue = null, key1 = context) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                // Resolve by name so Kotlin does not depend on a generated R reference.
+                val resourceId = context.resources.getIdentifier(
+                    "av_monogram",
+                    "drawable",
+                    context.packageName
+                )
+                if (resourceId != 0) {
+                    BitmapFactory.decodeResource(context.resources, resourceId)
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }.value
+}
+
 /** Large square cover used on the player screen and album cards. */
 @Composable
 fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
     val bitmap = rememberAlbumArtwork(albumId)
+    val monogram = rememberMonogramArtwork()
 
     Box(
         modifier = modifier
@@ -72,12 +96,20 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-        } else {
+        } else if (monogram != null) {
             Image(
-                painter = painterResource(id = R.drawable.av_monogram),
+                bitmap = monogram.asImageBitmap(),
                 contentDescription = "Золотой вензель AV",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
+            )
+        } else {
+            Text(
+                text = "AV",
+                color = CoverGold.copy(alpha = 0.82f),
+                fontSize = 112.sp,
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.Light
             )
         }
     }
