@@ -1,4 +1,3 @@
-
 package com.diriabas.puremusicplayer
 
 import android.Manifest
@@ -493,20 +492,13 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
-                                        Text(
-                                            text = if (playing) "Ⅱ" else "▶",
-                                            color = Accent,
-                                            fontSize = 36.sp,
+                                        Canvas(
                                             modifier = Modifier
-                                                .background(
-                                                    color = PanelRaised,
-                                                    shape = RoundedCornerShape(50)
-                                                )
-                                                .padding(horizontal = 25.dp, vertical = 10.dp)
+                                                .size(68.dp)
                                                 .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
                                                     if (exoPlayer.isPlaying) {
                                                         exoPlayer.pause()
                                                     } else {
@@ -514,7 +506,41 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     playing = exoPlayer.isPlaying
                                                 }
-                                        )
+                                        ) {
+                                            // Fixed circular Play/Pause button; the Play triangle is
+                                            // drawn around its own centroid so it stays truly centered.
+                                            drawCircle(color = PanelRaised)
+                                            val cx = size.width / 2f
+                                            val cy = size.height / 2f
+                                            if (playing) {
+                                                val barWidth = 5.dp.toPx()
+                                                val barHeight = 22.dp.toPx()
+                                                val gap = 5.dp.toPx()
+                                                drawRoundRect(
+                                                    color = Accent,
+                                                    topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
+                                                    size = Size(barWidth, barHeight),
+                                                    cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                )
+                                                drawRoundRect(
+                                                    color = Accent,
+                                                    topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
+                                                    size = Size(barWidth, barHeight),
+                                                    cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                )
+                                            } else {
+                                                val halfHeight = 13.dp.toPx()
+                                                val left = 10.dp.toPx()
+                                                val right = 16.dp.toPx()
+                                                val triangle = androidx.compose.ui.graphics.Path().apply {
+                                                    moveTo(cx - left, cy - halfHeight)
+                                                    lineTo(cx - left, cy + halfHeight)
+                                                    lineTo(cx + right, cy)
+                                                    close()
+                                                }
+                                                drawPath(path = triangle, color = Accent)
+                                            }
+                                        }
 
                                         Text(
                                             text = "▶",
