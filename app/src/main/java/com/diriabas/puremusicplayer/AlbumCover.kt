@@ -8,8 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -39,8 +38,12 @@ private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
     return produceState<Bitmap?>(initialValue = null, key1 = albumId) {
         value = withContext(Dispatchers.IO) {
             try {
-                val artworkUri = Uri.parse("content://media/external/audio/albumart/$albumId")
-                context.contentResolver.openInputStream(artworkUri)?.use { stream -> BitmapFactory.decodeStream(stream) }
+                val artworkUri = Uri.parse(
+                    "content://media/external/audio/albumart/$albumId"
+                )
+                context.contentResolver.openInputStream(artworkUri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
             } catch (_: Exception) {
                 null
             }
@@ -48,10 +51,11 @@ private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
     }.value
 }
 
-/** Large square album cover with a fine champagne-gold frame. */
+/** Large square cover used on the player screen and album cards. */
 @Composable
 fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
     val bitmap = rememberAlbumArtwork(albumId)
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -64,7 +68,7 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "Обложка альбома",
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
@@ -79,10 +83,11 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
     }
 }
 
-/** Compact artwork tile for album and track lists. */
+/** Compact 46 dp thumbnail used in track and album rows. */
 @Composable
 fun AlbumThumbnail(albumId: Long) {
     val bitmap = rememberAlbumArtwork(albumId)
+
     Box(
         modifier = Modifier
             .size(46.dp)
@@ -94,11 +99,16 @@ fun AlbumThumbnail(albumId: Long) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "Обложка альбома",
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
-            Text("AV", color = CoverGold, fontSize = 19.sp, fontFamily = FontFamily.Cursive)
+            Text(
+                text = "AV",
+                color = CoverGold,
+                fontSize = 19.sp,
+                fontFamily = FontFamily.Cursive
+            )
         }
     }
 }
