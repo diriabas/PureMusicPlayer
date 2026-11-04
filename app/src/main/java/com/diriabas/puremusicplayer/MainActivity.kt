@@ -19,6 +19,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
@@ -212,6 +214,8 @@ class MainActivity : ComponentActivity() {
                 var tracks by remember { mutableStateOf(loadTracks()) }
                 var currentIndex by remember { mutableIntStateOf(-1) }
                 var playing by remember { mutableStateOf(false) }
+                var shuffleEnabled by remember { mutableStateOf(exoPlayer.shuffleModeEnabled) }
+                var repeatMode by remember { mutableIntStateOf(exoPlayer.repeatMode) }
                 var position by remember { mutableFloatStateOf(0f) }
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
@@ -314,6 +318,8 @@ class MainActivity : ComponentActivity() {
                         }
 
                         playing = exoPlayer.isPlaying
+                        shuffleEnabled = exoPlayer.shuffleModeEnabled
+                        repeatMode = exoPlayer.repeatMode
                         duration = exoPlayer.duration.takeIf { it > 0 } ?: 0L
 
                         position = if (duration > 0L) {
@@ -463,11 +469,27 @@ class MainActivity : ComponentActivity() {
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
+                                            text = "⤨",
+                                            color = if (shuffleEnabled) Accent else MutedText,
+                                            fontSize = 24.sp,
+                                            modifier = Modifier.clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
+                                                shuffleEnabled = exoPlayer.shuffleModeEnabled
+                                            }
+                                        )
+
+                                        Text(
                                             text = "◀",
                                             color = Accent,
                                             fontSize = 25.sp,
-                                            modifier = Modifier.clickable {
-                                                playAt(currentIndex - 1)
+                                            modifier = Modifier.clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                exoPlayer.seekToPreviousMediaItem()
                                             }
                                         )
 
@@ -481,22 +503,50 @@ class MainActivity : ComponentActivity() {
                                                     shape = RoundedCornerShape(50)
                                                 )
                                                 .padding(horizontal = 25.dp, vertical = 10.dp)
-                                                .clickable {
-                                                if (exoPlayer.isPlaying) {
-                                                    exoPlayer.pause()
-                                                } else {
-                                                    exoPlayer.play()
+                                                .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                    if (exoPlayer.isPlaying) {
+                                                        exoPlayer.pause()
+                                                    } else {
+                                                        exoPlayer.play()
+                                                    }
+                                                    playing = exoPlayer.isPlaying
                                                 }
-                                                playing = exoPlayer.isPlaying
-                                            }
                                         )
 
                                         Text(
                                             text = "▶",
                                             color = Accent,
                                             fontSize = 25.sp,
-                                            modifier = Modifier.clickable {
-                                                playAt(currentIndex + 1)
+                                            modifier = Modifier.clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                exoPlayer.seekToNextMediaItem()
+                                            }
+                                        )
+
+                                        Text(
+                                            text = when (repeatMode) {
+                                                Player.REPEAT_MODE_ONE -> "1↻"
+                                                Player.REPEAT_MODE_ALL -> "↻"
+                                                else -> "↻"
+                                            },
+                                            color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
+                                            fontSize = 24.sp,
+                                            modifier = Modifier.clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                val nextMode = when (exoPlayer.repeatMode) {
+                                                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                                    else -> Player.REPEAT_MODE_OFF
+                                                }
+                                                exoPlayer.repeatMode = nextMode
+                                                repeatMode = nextMode
                                             }
                                         )
                                     }
