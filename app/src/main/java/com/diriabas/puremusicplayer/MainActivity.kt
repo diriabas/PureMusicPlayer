@@ -213,6 +213,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 var tracks by remember { mutableStateOf(loadTracks()) }
                 var currentIndex by remember { mutableIntStateOf(-1) }
+                var playbackQueue by remember { mutableStateOf(tracks) }
                 var playing by remember { mutableStateOf(false) }
                 var shuffleEnabled by remember { mutableStateOf(exoPlayer.shuffleModeEnabled) }
                 var repeatMode by remember { mutableIntStateOf(exoPlayer.repeatMode) }
@@ -301,6 +302,7 @@ class MainActivity : ComponentActivity() {
                                 .setMediaMetadata(metadata)
                                 .build()
                         }
+                        playbackQueue = tracks
                         exoPlayer.setMediaItems(initialMediaItems, 0, 0L)
                         exoPlayer.prepare()
                         currentIndex = 0
@@ -308,29 +310,32 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                fun playAt(index: Int) {
-                    if (index !in tracks.indices) return
+                fun playAt(track: Track, queue: List<Track> = tracks) {
+                    val queueIndex = queue.indexOfFirst { it.id == track.id }
+                    if (queueIndex < 0) return
 
-                    currentIndex = index
+                    playbackQueue = queue
+                    currentIndex = tracks.indexOfFirst { it.id == track.id }
 
-                    val mediaItems = tracks.map { track ->
+                    val mediaItems = queue.map { queueTrack ->
                         val metadata = MediaMetadata.Builder()
-                            .setTitle(track.title)
-                            .setArtist(track.artist)
+                            .setTitle(queueTrack.title)
+                            .setArtist(queueTrack.artist)
                             .setArtworkUri(
                                 Uri.parse(
-                                    "content://media/external/audio/albumart/${track.albumId}"
+                                    "content://media/external/audio/albumart/${queueTrack.albumId}"
                                 )
                             )
                             .build()
 
                         MediaItem.Builder()
-                            .setUri(track.uri)
+                            .setMediaId(queueTrack.id.toString())
+                            .setUri(queueTrack.uri)
                             .setMediaMetadata(metadata)
                             .build()
                     }
 
-                    exoPlayer.setMediaItems(mediaItems, index, 0L)
+                    exoPlayer.setMediaItems(mediaItems, queueIndex, 0L)
                     exoPlayer.prepare()
                     exoPlayer.play()
                     playing = true
@@ -340,8 +345,9 @@ class MainActivity : ComponentActivity() {
                     while (true) {
                         val serviceIndex = exoPlayer.currentMediaItemIndex
 
-                        if (serviceIndex >= 0 && serviceIndex in tracks.indices) {
-                            currentIndex = serviceIndex
+                        val activeTrack = playbackQueue.getOrNull(serviceIndex)
+                        if (activeTrack != null) {
+                            currentIndex = tracks.indexOfFirst { it.id == activeTrack.id }
                         }
 
                         playing = exoPlayer.isPlaying
@@ -777,9 +783,6 @@ class MainActivity : ComponentActivity() {
                                     verticalArrangement = Arrangement.spacedBy(7.dp)
                                 ) {
                                     visibleTracks.forEach { track ->
-                                        val trackIndex =
-                                            tracks.indexOfFirst { it.id == track.id }
-
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -792,7 +795,7 @@ class MainActivity : ComponentActivity() {
                                                     shape = RoundedCornerShape(13.dp)
                                                 )
                                                 .clickable {
-                                                    playAt(trackIndex)
+                                                    playAt(track, visibleTracks)
                                                 }
                                                 .padding(10.dp),
                                             verticalAlignment = Alignment.CenterVertically
