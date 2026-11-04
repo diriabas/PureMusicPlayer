@@ -376,7 +376,7 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(horizontal = 18.dp, vertical = 8.dp),
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
@@ -390,17 +390,11 @@ class MainActivity : ComponentActivity() {
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            color = Panel,
-                                            shape = RoundedCornerShape(26.dp)
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 16.dp)
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     AlbumCover(albumId = currentTrack.albumId)
 
-                                    Spacer(Modifier.height(10.dp))
+                                    Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
                                     Spacer(Modifier.height(18.dp))
 
@@ -424,42 +418,25 @@ class MainActivity : ComponentActivity() {
 
                                     Spacer(Modifier.height(18.dp))
 
-                                    Box(
+                                    Slider(
+                                        value = position.coerceIn(0f, 1f),
+                                        onValueChange = { position = it },
+                                        onValueChangeFinished = {
+                                            if (duration > 0L) {
+                                                exoPlayer.seekTo(
+                                                    (position * duration).toLong()
+                                                )
+                                            }
+                                        },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(30.dp)
-                                            .border(
-                                                width = 1.dp,
-                                                color = Accent.copy(alpha = 0.55f),
-                                                shape = RoundedCornerShape(50)
-                                            )
-                                            .background(
-                                                color = PanelRaised.copy(alpha = 0.55f),
-                                                shape = RoundedCornerShape(50)
-                                            )
-                                            .padding(horizontal = 9.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Slider(
-                                            value = position.coerceIn(0f, 1f),
-                                            onValueChange = { position = it },
-                                            onValueChangeFinished = {
-                                                if (duration > 0L) {
-                                                    exoPlayer.seekTo(
-                                                        (position * duration).toLong()
-                                                    )
-                                                }
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(24.dp),
-                                            colors = SliderDefaults.colors(
-                                                thumbColor = Accent,
-                                                activeTrackColor = Accent,
-                                                inactiveTrackColor = MutedText.copy(alpha = 0.42f)
-                                            )
+                                            .height(18.dp),
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Accent,
+                                            activeTrackColor = Accent,
+                                            inactiveTrackColor = MutedText.copy(alpha = 0.38f)
                                         )
-                                    }
+                                    )
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
