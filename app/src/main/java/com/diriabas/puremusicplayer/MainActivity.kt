@@ -149,7 +149,13 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) {
-            // Permission result is applied immediately.
+            // Reload the UI and music library after the permission flow.
+            // Notifications are optional; the audio library must load either way.
+            if (ContextCompat.checkSelfPermission(this, permission) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                recreate()
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
