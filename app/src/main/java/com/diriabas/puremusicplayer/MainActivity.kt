@@ -41,6 +41,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -389,7 +390,9 @@ class MainActivity : ComponentActivity() {
                         color = Background
                     ) {
                         Column(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .navigationBarsPadding()
                         ) {
                             Row(
                                 modifier = Modifier
@@ -481,7 +484,8 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(18.dp),
+                                            .height(18.dp)
+                                            .graphicsLayer { scaleY = 0.65f },
                                         colors = SliderDefaults.colors(
                                             thumbColor = Accent,
                                             activeTrackColor = Accent,
@@ -511,7 +515,7 @@ class MainActivity : ComponentActivity() {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .offset(y = (-6).dp),
+                                            .offset(y = (-12).dp),
                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
