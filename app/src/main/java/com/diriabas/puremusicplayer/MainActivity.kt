@@ -1773,7 +1773,10 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
             } else {
                 0.10f + abs(sin(index * 0.63f)).toFloat() * 0.12f
             }
-            val barHeight = (maxHeight * level).coerceIn(2.dp.toPx(), maxHeight)
+            // During rotation Compose can briefly measure this Canvas at 0 px height.
+            // Keep the clamp bounds valid even when maxHeight is smaller than 2.dp.
+            val minBarHeight = minOf(2.dp.toPx(), maxHeight)
+            val barHeight = (maxHeight * level).coerceIn(minBarHeight, maxHeight)
             val x = index * (barWidth + gap)
             val y = (size.height - barHeight) / 2f
             val alpha = if (isPlaying) 0.48f + wave * 0.38f else 0.34f
