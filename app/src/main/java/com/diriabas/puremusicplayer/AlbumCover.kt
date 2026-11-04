@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
@@ -43,9 +42,9 @@ fun AlbumCover(albumId: Long) {
 
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.88f)
+            .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(CoverPanel),
         contentAlignment = Alignment.Center
     ) {
@@ -87,7 +86,7 @@ fun AlbumThumbnail(albumId: Long) {
 
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .aspectRatio(1f)
             .clip(RoundedCornerShape(9.dp))
             .background(CoverPanel),
         contentAlignment = Alignment.Center
