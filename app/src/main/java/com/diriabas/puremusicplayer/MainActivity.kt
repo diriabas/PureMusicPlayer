@@ -18,6 +18,7 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -235,6 +236,12 @@ class MainActivity : ComponentActivity() {
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
                 var libraryMode by remember { mutableStateOf("Композиции") }
                 var selectedTab by remember { mutableIntStateOf(0) }
+
+                // The Android system Back button returns to the Home tab
+                // instead of leaving the player while another tab is open.
+                BackHandler(enabled = selectedTab != 0) {
+                    selectedTab = 0
+                }
                 var createPlaylistDialogOpen by remember { mutableStateOf(false) }
                 var playlistNameInput by remember { mutableStateOf("") }
                 var selectedAlbumId by remember { mutableStateOf<Long?>(null) }
@@ -440,7 +447,7 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(top = 3.dp, bottom = 16.dp)
+                                                    .padding(top = 26.dp, bottom = 16.dp)
                                             )
                             if (currentTrack != null) {
                                 Column(
