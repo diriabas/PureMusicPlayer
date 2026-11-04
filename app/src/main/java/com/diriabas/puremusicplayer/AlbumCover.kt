@@ -119,6 +119,7 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
 @Composable
 fun AlbumThumbnail(albumId: Long) {
     val bitmap = rememberAlbumArtwork(albumId)
+    val monogram = rememberMonogramArtwork()
 
     Box(
         modifier = Modifier
@@ -127,20 +128,31 @@ fun AlbumThumbnail(albumId: Long) {
             .background(CoverBlack),
         contentAlignment = Alignment.Center
     ) {
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Обложка альбома",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Text(
-                text = "AV",
-                color = CoverGold,
-                fontSize = 19.sp,
-                fontFamily = FontFamily.Cursive
-            )
+        when {
+            bitmap != null -> {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Обложка альбома",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            monogram != null -> {
+                Image(
+                    bitmap = monogram.asImageBitmap(),
+                    contentDescription = "Золотой круглый вензель AV",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
+            else -> {
+                Text(
+                    text = "AV",
+                    color = CoverGold,
+                    fontSize = 19.sp,
+                    fontFamily = FontFamily.Cursive
+                )
+            }
         }
     }
 }
