@@ -41,7 +41,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -390,9 +389,7 @@ class MainActivity : ComponentActivity() {
                         color = Background
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .navigationBarsPadding()
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             Row(
                                 modifier = Modifier
@@ -455,9 +452,9 @@ class MainActivity : ComponentActivity() {
                                     Text(
                                         text = currentTrack.title,
                                         color = Color.White,
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.1.sp,
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 0.05.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -484,8 +481,7 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(18.dp)
-                                            .graphicsLayer { scaleY = 0.65f },
+                                            .height(18.dp),
                                         colors = SliderDefaults.colors(
                                             thumbColor = Accent,
                                             activeTrackColor = Accent,
@@ -515,14 +511,14 @@ class MainActivity : ComponentActivity() {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .offset(y = (-12).dp),
+                                            .offset(y = (-6).dp),
                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = "⤨",
-                                            color = if (shuffleEnabled) Accent else MutedText,
-                                            fontSize = 24.sp,
+                                            color = if (shuffleEnabled) Accent else Color(0xFFD0D0D0),
+                                            fontSize = 30.sp,
                                             modifier = Modifier.clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null
@@ -534,8 +530,8 @@ class MainActivity : ComponentActivity() {
 
                                         Text(
                                             text = "◀",
-                                            color = Accent,
-                                            fontSize = 25.sp,
+                                            color = Color(0xFFE5C982),
+                                            fontSize = 30.sp,
                                             modifier = Modifier.clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null
@@ -598,8 +594,8 @@ class MainActivity : ComponentActivity() {
 
                                         Text(
                                             text = "▶",
-                                            color = Accent,
-                                            fontSize = 25.sp,
+                                            color = Color(0xFFE5C982),
+                                            fontSize = 30.sp,
                                             modifier = Modifier.clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null
@@ -614,8 +610,8 @@ class MainActivity : ComponentActivity() {
                                                 Player.REPEAT_MODE_ALL -> "↻"
                                                 else -> "↻"
                                             },
-                                            color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
-                                            fontSize = 24.sp,
+                                            color = if (repeatMode == Player.REPEAT_MODE_OFF) Color(0xFFD0D0D0) else Accent,
+                                            fontSize = 30.sp,
                                             modifier = Modifier.clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null
