@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -20,8 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -69,11 +72,12 @@ fun AlbumCover(albumId: Long, modifier: Modifier = Modifier) {
                 contentScale = ContentScale.Crop
             )
         } else {
-            Image(
-                painter = painterResource(id = R.drawable.av_monogram),
-                contentDescription = "Золотой вензель AV",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+            Text(
+                text = "AV",
+                color = CoverGold.copy(alpha = 0.82f),
+                fontSize = 112.sp,
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.Light
             )
         }
     }
@@ -99,11 +103,11 @@ fun AlbumThumbnail(albumId: Long) {
                 contentScale = ContentScale.Crop
             )
         } else {
-            Image(
-                painter = painterResource(id = R.drawable.av_monogram),
-                contentDescription = "Золотой вензель AV",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+            Text(
+                text = "AV",
+                color = CoverGold,
+                fontSize = 19.sp,
+                fontFamily = FontFamily.Cursive
             )
         }
     }
