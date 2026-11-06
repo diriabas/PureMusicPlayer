@@ -3,20 +3,18 @@ package com.diriabas.puremusicplayer
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
-import android.media.audiofx.BassBoost
-import android.media.audiofx.Equalizer
-import android.media.audiofx.Virtualizer
 import android.os.Bundle
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.google.common.collect.ImmutableList
-import kotlin.math.abs
 
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
@@ -29,29 +27,42 @@ class PlaybackService : MediaSessionService() {
         const val EXTRA_BASS_STRENGTH = "bass_strength"
         const val EXTRA_VIRTUALIZER_STRENGTH = "virtualizer_strength"
 
-        private val EQ_FREQUENCIES_HZ = intArrayOf(
-            31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000
-        )
     }
 
     private var exoPlayer: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
 
-    private var equalizer: Equalizer? = null
-    private var bassBoost: BassBoost? = null
-    private var virtualizer: Virtualizer? = null
+    private val softwareEqualizer = SoftwareEqualizerAudioProcessor()
 
     override fun onCreate() {
         super.onCreate()
 
-        val player = ExoPlayer.Builder(this).build()
-        exoPlayer = player
-        player.addListener(object : Player.Listener {
-            override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                initializeAudioEffects(audioSessionId)
+        val preferences = getSharedPreferences("pure_music_player", MODE_PRIVATE)
+        val initialLevels = preferences.getString("eq_levels", null)
+            ?.split(",")?.mapNotNull { it.toIntOrNull() }?.takeIf { it.size == 10 }
+            ?.toIntArray() ?: IntArray(10)
+        softwareEqualizer.updateSettings(
+            preferences.getBoolean("eq_enabled", true),
+            initialLevels,
+            preferences.getInt("eq_bass", 0),
+            preferences.getInt("eq_virtualizer", 0)
+        )
+
+        val renderersFactory = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: android.content.Context,
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean
+            ): AudioSink? {
+                return DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(false)
+                    .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+                    .setAudioProcessors(arrayOf(softwareEqualizer))
+                    .build()
             }
-        })
-        initializeAudioEffects(player.audioSessionId)
+        }
+        val player = ExoPlayer.Builder(this, renderersFactory).build()
+        exoPlayer = player
 
         val activityIntent = Intent(this, MainActivity::class.java)
 
@@ -134,89 +145,13 @@ class PlaybackService : MediaSessionService() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private fun initializeAudioEffects(sessionId: Int) {
-        if (sessionId <= 0) return
-
-        try {
-            equalizer?.release()
-            equalizer = Equalizer(0, sessionId)
-        } catch (_: Exception) {
-            equalizer = null
-        }
-
-        try {
-            bassBoost?.release()
-            bassBoost = BassBoost(0, sessionId)
-        } catch (_: Exception) {
-            bassBoost = null
-        }
-
-        try {
-            virtualizer?.release()
-            virtualizer = Virtualizer(0, sessionId)
-        } catch (_: Exception) {
-            virtualizer = null
-        }
-
-        val preferences = getSharedPreferences("pure_music_player", MODE_PRIVATE)
-        val enabled = preferences.getBoolean("eq_enabled", true)
-        val levels = preferences.getString("eq_levels", null)
-            ?.split(",")
-            ?.mapNotNull { it.toIntOrNull() }
-            ?.takeIf { it.size == 10 }
-            ?.toIntArray() ?: IntArray(10)
-        applyAudioSettings(
-            enabled,
-            levels,
-            preferences.getInt("eq_bass", 0),
-            preferences.getInt("eq_virtualizer", 0)
-        )
-    }
-
     private fun applyAudioSettings(
         enabled: Boolean,
         levels: IntArray,
         bass: Int,
         virtual: Int
     ) {
-        try {
-            val effect = equalizer
-            if (effect != null) {
-                val range = effect.bandLevelRange
-                val minLevel = range[0].toInt()
-                val maxLevel = range[1].toInt()
-                val bandCount = effect.numberOfBands.toInt()
-
-                for (band in 0 until bandCount) {
-                    val centerHz = effect.getCenterFreq(band.toShort()).toInt() / 1000
-                    val nearestIndex = EQ_FREQUENCIES_HZ.indices.minByOrNull {
-                        abs(EQ_FREQUENCIES_HZ[it] - centerHz)
-                    } ?: 0
-                    val requestedMb = levels.getOrElse(nearestIndex) { 0 } * 100
-                    val clampedMb = requestedMb.coerceIn(minLevel, maxLevel)
-                    effect.setBandLevel(band.toShort(), clampedMb.toShort())
-                }
-                effect.setEnabled(enabled)
-            }
-        } catch (_: Exception) {
-            // Some device audio-effect implementations reject individual bands.
-        }
-
-        try {
-            bassBoost?.let {
-                it.setStrength((bass.coerceIn(0, 100) * 10).toShort())
-                it.setEnabled(enabled && bass > 0)
-            }
-        } catch (_: Exception) {
-        }
-
-        try {
-            virtualizer?.let {
-                it.setStrength((virtual.coerceIn(0, 100) * 10).toShort())
-                it.setEnabled(enabled && virtual > 0)
-            }
-        } catch (_: Exception) {
-        }
+        softwareEqualizer.updateSettings(enabled, levels, bass, virtual)
     }
 
     override fun onGetSession(
@@ -224,16 +159,6 @@ class PlaybackService : MediaSessionService() {
     ): MediaSession? = mediaSession
 
     override fun onDestroy() {
-        try {
-            equalizer?.release()
-            bassBoost?.release()
-            virtualizer?.release()
-        } catch (_: Exception) {
-        }
-        equalizer = null
-        bassBoost = null
-        virtualizer = null
-
         mediaSession?.release()
         mediaSession = null
 
