@@ -18,7 +18,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     data class Settings(
         val enabled: Boolean = true,
         val levelsDb: List<Int> = List(10) { 0 },
-        val bass: Int = 0,
+        val bass: Int = 0, // Диапазон от -12 до +12 дБ (0 — без изменений)
         val virtualizer: Int = 0
     )
 
@@ -38,8 +38,12 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private var pcmFloat = false
 
     fun updateSettings(enabled: Boolean, levels: IntArray, bass: Int, virtualizer: Int) {
-        settings.set(Settings(enabled, (0 until 10).map { levels.getOrElse(it) { 0 }.coerceIn(-12, 12) },
-            bass.coerceIn(0, 100), virtualizer.coerceIn(0, 100)))
+        settings.set(Settings(
+            enabled = enabled,
+            levelsDb = (0 until 10).map { levels.getOrElse(it) { 0 }.coerceIn(-12, 12) },
+            bass = bass.coerceIn(-12, 12), // Разрешаем регулировку баса от -12 до +12 дБ
+            virtualizer = virtualizer.coerceIn(0, 100)
+        ))
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -97,10 +101,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                 frame[1] = mid - side
             }
             for (channel in 0 until channels) {
-                // Soft limiter engages only near digital full scale. Unlike the old
-                // preamp, it does not attenuate the entire signal when bass is raised.
-                // TEMPORARY TEST: bypass the soft limiter to check whether it is
-                // suppressing the bass boost. Hard PCM bounds remain as a safety guard.
                 val safe = frame[channel].coerceIn(-1.0, 0.999969)
                 if (pcmFloat) {
                     output.putFloat(safe.toFloat())
@@ -111,7 +111,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
             }
             offset += frameBytes
         }
-        // Preserve any incomplete trailing bytes unchanged (normally none for PCM frames).
         while (source.hasRemaining()) output.put(source.get())
         inputBuffer.position(inputBuffer.limit())
         output.flip()
@@ -120,8 +119,11 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private fun rebuildFilters(value: Settings) {
         val gains = if (value.enabled) value.levelsDb else List(10) { 0 }
         val built = ArrayList<Coefficients>(11)
-        // TEMPORARY TEST: force +12 dB low shelf while EQ is enabled.
-        built += lowShelf(140.0, 0.707, if (value.enabled) 12.0 else 0.0)
+        
+        // Применяем текущий уровень баса в децибелах (отрицательные значения уменьшают бас, положительные — усиливают)
+        val bassGain = if (value.enabled) value.bass.toDouble() else 0.0
+        built += lowShelf(140.0, 0.707, bassGain)
+
         for (i in frequencies.indices) {
             val f = frequencies[i].coerceAtMost(sampleRate * 0.45)
             built += peaking(f, 1.0, gains[i].toDouble())
@@ -129,14 +131,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         coefficients = built.toTypedArray()
         filterStates = Array(channels) { Array(coefficients.size) { State() } }
         appliedSettings = value
-    }
-
-    private fun softLimit(value: Double): Double {
-        val magnitude = kotlin.math.abs(value)
-        if (magnitude <= 0.97) return value
-        val excess = magnitude - 0.97
-        val limited = 0.97 + 0.03 * (excess / (excess + 0.03))
-        return if (value < 0.0) -limited else limited
     }
 
     private fun lowShelf(frequency: Double, slope: Double, gainDb: Double): Coefficients {
