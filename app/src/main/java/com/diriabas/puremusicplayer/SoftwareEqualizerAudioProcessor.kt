@@ -120,7 +120,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         val gains = if (value.enabled) value.levelsDb else List(10) { 0 }
         val built = ArrayList<Coefficients>(11)
         // Dedicated low-shelf control boosts the low-frequency range smoothly.
-        built += lowShelf(140.0, 0.707, if (value.enabled) value.bass / 100.0 * 9.0 else 0.0)
+        built += lowShelf(140.0, 0.707, if (value.enabled) 12.0 else 0.0)
         for (i in frequencies.indices) {
             val f = frequencies[i].coerceAtMost(sampleRate * 0.45)
             built += peaking(f, 1.0, gains[i].toDouble())
