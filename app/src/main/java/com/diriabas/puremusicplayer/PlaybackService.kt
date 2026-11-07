@@ -26,13 +26,18 @@ class PlaybackService : MediaSessionService() {
         const val EXTRA_EQ_LEVELS = "eq_levels"
         const val EXTRA_BASS_STRENGTH = "bass_strength"
         const val EXTRA_VIRTUALIZER_STRENGTH = "virtualizer_strength"
-
+        const val ACTION_START_SLEEP_TIMER = "com.diriabas.puremusicplayer.START_SLEEP_TIMER"
+        const val ACTION_CANCEL_SLEEP_TIMER = "com.diriabas.puremusicplayer.CANCEL_SLEEP_TIMER"
+        const val EXTRA_SLEEP_TIMER_MINUTES = "sleep_timer_minutes"
     }
 
     private var exoPlayer: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
 
     private val softwareEqualizer = SoftwareEqualizerAudioProcessor()
+    private val sleepTimerHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var sleepTimerRunnable: Runnable? = null
+    private var sleepTimerOriginalVolume = 1f
 
     override fun onCreate() {
         super.onCreate()
@@ -132,7 +137,13 @@ class PlaybackService : MediaSessionService() {
         flags: Int,
         startId: Int
     ): Int {
-        if (intent?.action == ACTION_UPDATE_EQUALIZER) {
+        when (intent?.action) {
+            ACTION_START_SLEEP_TIMER -> {
+                val minutes = intent.getIntExtra(EXTRA_SLEEP_TIMER_MINUTES, 0)
+                startSleepTimer(minutes)
+            }
+            ACTION_CANCEL_SLEEP_TIMER -> cancelSleepTimer()
+            ACTION_UPDATE_EQUALIZER -> {
             val enabled = intent.getBooleanExtra(EXTRA_EQ_ENABLED, true)
             val levels = intent.getIntArrayExtra(EXTRA_EQ_LEVELS)
                 ?: IntArray(10)
@@ -140,8 +151,43 @@ class PlaybackService : MediaSessionService() {
             val virtual = intent.getIntExtra(EXTRA_VIRTUALIZER_STRENGTH, 0)
 
             applyAudioSettings(enabled, levels, bass, virtual)
+            }
         }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+
+    private fun startSleepTimer(minutes: Int) {
+        cancelSleepTimer()
+        if (minutes <= 0) return
+        val player = exoPlayer ?: return
+        sleepTimerOriginalVolume = player.volume
+        val totalMs = minutes * 60_000L
+        val fadeMs = 30_000L.coerceAtMost(totalMs)
+        val stopAt = android.os.SystemClock.elapsedRealtime() + totalMs
+        val tick = object : Runnable {
+            override fun run() {
+                val remaining = (stopAt - android.os.SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                if (remaining <= 0L) {
+                    player.pause()
+                    player.volume = sleepTimerOriginalVolume
+                    sleepTimerRunnable = null
+                    return
+                }
+                if (remaining <= fadeMs) {
+                    player.volume = sleepTimerOriginalVolume * (remaining.toFloat() / fadeMs.toFloat())
+                }
+                sleepTimerHandler.postDelayed(this, 1_000L)
+            }
+        }
+        sleepTimerRunnable = tick
+        sleepTimerHandler.post(tick)
+    }
+
+    private fun cancelSleepTimer() {
+        sleepTimerRunnable?.let { sleepTimerHandler.removeCallbacks(it) }
+        sleepTimerRunnable = null
+        exoPlayer?.volume = sleepTimerOriginalVolume
     }
 
     private fun applyAudioSettings(
@@ -158,6 +204,8 @@ class PlaybackService : MediaSessionService() {
     ): MediaSession? = mediaSession
 
     override fun onDestroy() {
+        cancelSleepTimer()
+        sleepTimerHandler.removeCallbacksAndMessages(null)
         mediaSession?.release()
         mediaSession = null
 
