@@ -86,6 +86,9 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                         sample = y
                     }
                 }
+                // TEMPORARY DIAGNOSTIC: reduce every processed sample by 90%.
+                // If playback volume does not change, this processor is not on the active PCM path.
+                sample *= 0.1
                 frame[channel] = sample
             }
             if (current.enabled && channels >= 2 && current.virtualizer > 0) {
