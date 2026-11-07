@@ -234,8 +234,22 @@ class MainActivity : ComponentActivity() {
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
-                var libraryMode by remember { mutableStateOf("Композиции") }
-                var selectedTab by remember { mutableIntStateOf(0) }
+                val playerPreferences = remember {
+                    getSharedPreferences("pure_music_player", MODE_PRIVATE)
+                }
+                var libraryMode by remember {
+                    mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
+                }
+                var selectedTab by remember {
+                    mutableIntStateOf(playerPreferences.getInt("selected_tab", 0).coerceIn(0, 3))
+                }
+
+                LaunchedEffect(libraryMode) {
+                    playerPreferences.edit().putString("library_mode", libraryMode).apply()
+                }
+                LaunchedEffect(selectedTab) {
+                    playerPreferences.edit().putInt("selected_tab", selectedTab).apply()
+                }
 
                 // The Android system Back button returns to the Home tab
                 // instead of leaving the player while another tab is open.
@@ -263,6 +277,23 @@ class MainActivity : ComponentActivity() {
                 var saveProfileDialogOpen by remember { mutableStateOf(false) }
                 var profileName by remember { mutableStateOf("") }
                 var customProfiles by remember { mutableStateOf(loadEqualizerProfiles()) }
+                var sleepTimerDialogOpen by remember { mutableStateOf(false) }
+                var sleepTimerMinutes by remember { mutableIntStateOf(0) }
+                var sleepTimerRemaining by remember { mutableLongStateOf(0L) }
+
+                LaunchedEffect(sleepTimerMinutes) {
+                    if (sleepTimerMinutes > 0) {
+                        sleepTimerRemaining = sleepTimerMinutes * 60_000L
+                        while (sleepTimerRemaining > 0L) {
+                            delay(1_000L)
+                            sleepTimerRemaining = (sleepTimerRemaining - 1_000L).coerceAtLeast(0L)
+                        }
+                        sleepTimerMinutes = 0
+                        Toast.makeText(this@MainActivity, "Таймер сна: воспроизведение остановлено", Toast.LENGTH_SHORT).show()
+                    } else {
+                        sleepTimerRemaining = 0L
+                    }
+                }
 
                 val visibleTracks = remember(
                     tracks, playlists, selectedPlaylist, sortMode,
@@ -1043,6 +1074,38 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                             Spacer(Modifier.height(10.dp))
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(Panel, RoundedCornerShape(14.dp))
+                                                    .padding(16.dp)
+                                            ) {
+                                                Text("Таймер сна", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                Text(
+                                                    if (sleepTimerMinutes > 0) {
+                                                        val mins = (sleepTimerRemaining / 60_000L).toInt()
+                                                        val secs = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                                        "Остановка через %02d:%02d".format(mins, secs)
+                                                    } else "Автоматическая остановка музыки",
+                                                    color = MutedText,
+                                                    fontSize = 12.sp
+                                                )
+                                                Spacer(Modifier.height(8.dp))
+                                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    TextButton(onClick = { sleepTimerDialogOpen = true }) {
+                                                        Text("УСТАНОВИТЬ", color = Accent)
+                                                    }
+                                                    if (sleepTimerMinutes > 0) {
+                                                        TextButton(onClick = {
+                                                            sleepTimerMinutes = 0
+                                                            startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
+                                                        }) {
+                                                            Text("ОТМЕНИТЬ", color = MutedText)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Spacer(Modifier.height(10.dp))
                                             TextButton(
                                                 onClick = { tracks = loadTracks() },
                                                 modifier = Modifier
@@ -1175,6 +1238,39 @@ class MainActivity : ComponentActivity() {
                                             Text("Отмена")
                                         }
                                     }
+                                )
+                            }
+
+                            if (sleepTimerDialogOpen) {
+                                AlertDialog(
+                                    onDismissRequest = { sleepTimerDialogOpen = false },
+                                    title = { Text("Таймер сна", color = Color.White) },
+                                    text = {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            listOf(15, 30, 45, 60, 90).forEach { minutes ->
+                                                TextButton(
+                                                    onClick = {
+                                                        sleepTimerMinutes = minutes
+                                                        startService(
+                                                            Intent(this@MainActivity, PlaybackService::class.java)
+                                                                .setAction(PlaybackService.ACTION_START_SLEEP_TIMER)
+                                                                .putExtra(PlaybackService.EXTRA_SLEEP_TIMER_MINUTES, minutes)
+                                                        )
+                                                        sleepTimerDialogOpen = false
+                                                    },
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text("$minutes минут", color = Accent)
+                                                }
+                                            }
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = { sleepTimerDialogOpen = false }) {
+                                            Text("ЗАКРЫТЬ", color = MutedText)
+                                        }
+                                    },
+                                    containerColor = Panel
                                 )
                             }
 
