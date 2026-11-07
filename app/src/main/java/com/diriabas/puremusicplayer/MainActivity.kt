@@ -332,31 +332,40 @@ class MainActivity : ComponentActivity() {
 
                 val currentTrack = tracks.getOrNull(currentIndex)
 
-                // Prepare the first available track without starting playback.
-                // This gives the transport controls a valid media item on app launch.
+                // Restore the previous queue and playback position after process restart.
                 LaunchedEffect(exoPlayer, tracks) {
                     if (tracks.isNotEmpty() && exoPlayer.mediaItemCount == 0) {
-                        val initialMediaItems = tracks.map { track ->
+                        val savedIds = playerPreferences.getString("last_queue_ids", null)
+                            ?.split(",")?.mapNotNull { it.toLongOrNull() }.orEmpty()
+                        val restoredQueue = savedIds.mapNotNull { id -> tracks.find { it.id == id } }
+                        val queueToRestore = restoredQueue.ifEmpty { tracks }
+                        val savedTrackId = playerPreferences.getLong("last_track_id", -1L)
+                        val restoredIndex = queueToRestore.indexOfFirst { it.id == savedTrackId }
+                            .takeIf { it >= 0 } ?: playerPreferences.getInt("last_queue_index", 0)
+                                .coerceIn(0, queueToRestore.lastIndex)
+                        val savedPosition = playerPreferences.getLong("last_position_ms", 0L)
+                            .coerceAtLeast(0L)
+                        val shouldResume = playerPreferences.getBoolean("was_playing", false)
+                        val mediaItems = queueToRestore.map { track ->
                             val metadata = MediaMetadata.Builder()
                                 .setTitle(track.title)
                                 .setArtist(track.artist)
-                                .setArtworkUri(
-                                    Uri.parse(
-                                        "content://media/external/audio/albumart/${track.albumId}"
-                                    )
-                                )
+                                .setArtworkUri(Uri.parse(
+                                    "content://media/external/audio/albumart/${track.albumId}"
+                                ))
                                 .build()
-
                             MediaItem.Builder()
+                                .setMediaId(track.id.toString())
                                 .setUri(track.uri)
                                 .setMediaMetadata(metadata)
                                 .build()
                         }
-                        playbackQueue = tracks
-                        exoPlayer.setMediaItems(initialMediaItems, 0, 0L)
+                        playbackQueue = queueToRestore
+                        exoPlayer.setMediaItems(mediaItems, restoredIndex, savedPosition)
                         exoPlayer.prepare()
-                        currentIndex = 0
-                        playing = false
+                        currentIndex = tracks.indexOfFirst { it.id == queueToRestore[restoredIndex].id }
+                        if (shouldResume) exoPlayer.play()
+                        playing = shouldResume
                     }
                 }
 
@@ -366,6 +375,13 @@ class MainActivity : ComponentActivity() {
 
                     playbackQueue = queue
                     currentIndex = tracks.indexOfFirst { it.id == track.id }
+                    playerPreferences.edit()
+                        .putString("last_queue_ids", queue.joinToString(",") { it.id.toString() })
+                        .putInt("last_queue_index", queueIndex)
+                        .putLong("last_track_id", track.id)
+                        .putLong("last_position_ms", 0L)
+                        .putBoolean("was_playing", true)
+                        .apply()
 
                     val mediaItems = queue.map { queueTrack ->
                         val metadata = MediaMetadata.Builder()
@@ -401,6 +417,15 @@ class MainActivity : ComponentActivity() {
                         }
 
                         playing = exoPlayer.isPlaying
+                        if (activeTrack != null) {
+                            playerPreferences.edit()
+                                .putString("last_queue_ids", playbackQueue.joinToString(",") { it.id.toString() })
+                                .putInt("last_queue_index", serviceIndex.coerceAtLeast(0))
+                                .putLong("last_track_id", activeTrack.id)
+                                .putLong("last_position_ms", exoPlayer.currentPosition.coerceAtLeast(0L))
+                                .putBoolean("was_playing", exoPlayer.isPlaying)
+                                .apply()
+                        }
                         shuffleEnabled = exoPlayer.shuffleModeEnabled
                         repeatMode = exoPlayer.repeatMode
                         duration = exoPlayer.duration.takeIf { it > 0 } ?: 0L
