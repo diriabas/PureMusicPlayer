@@ -114,6 +114,15 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         appliedSettings = value
     }
 
+
+    private fun softLimit(value: Double): Double {
+        val magnitude = kotlin.math.abs(value)
+        if (magnitude <= 0.92) return value
+        val excess = magnitude - 0.92
+        val limited = 0.92 + 0.08 * (excess / (excess + 0.08))
+        return if (value < 0.0) -limited else limited
+    }
+
     private fun peaking(frequency: Double, q: Double, gainDb: Double): Coefficients {
         if (gainDb == 0.0) return Coefficients(1.0, 0.0, 0.0, 0.0, 0.0)
         val a = 10.0.pow(gainDb / 40.0)
