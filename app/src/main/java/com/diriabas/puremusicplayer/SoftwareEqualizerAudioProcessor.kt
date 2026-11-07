@@ -86,9 +86,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                         sample = y
                     }
                 }
-                // TEMPORARY DIAGNOSTIC: reduce every processed sample by 90%.
-                // If playback volume does not change, this processor is not on the active PCM path.
-                sample *= 0.1
                 frame[channel] = sample
             }
             if (current.enabled && channels >= 2 && current.virtualizer > 0) {
@@ -102,8 +99,9 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
             for (channel in 0 until channels) {
                 // Soft limiter engages only near digital full scale. Unlike the old
                 // preamp, it does not attenuate the entire signal when bass is raised.
-                val limited = softLimit(frame[channel])
-                val safe = limited.coerceIn(-1.0, 0.999969)
+                // TEMPORARY TEST: bypass the soft limiter to check whether it is
+                // suppressing the bass boost. Hard PCM bounds remain as a safety guard.
+                val safe = frame[channel].coerceIn(-1.0, 0.999969)
                 if (pcmFloat) {
                     output.putFloat(safe.toFloat())
                 } else {
@@ -122,7 +120,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private fun rebuildFilters(value: Settings) {
         val gains = if (value.enabled) value.levelsDb else List(10) { 0 }
         val built = ArrayList<Coefficients>(11)
-        // Dedicated low-shelf control boosts the low-frequency range smoothly.
+        // TEMPORARY TEST: force +12 dB low shelf while EQ is enabled.
         built += lowShelf(140.0, 0.707, if (value.enabled) 12.0 else 0.0)
         for (i in frequencies.indices) {
             val f = frequencies[i].coerceAtMost(sampleRate * 0.45)
