@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 import android.content.pm.PackageManager
@@ -119,6 +120,37 @@ class MainActivity : ComponentActivity() {
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private val controllerState = mutableStateOf<MediaController?>(null)
+    private var pendingTagTitle = ""
+    private var pendingTagArtist = ""
+    private var pendingTagAlbum = ""
+    private var pendingTagYear = ""
+
+    private val chooseMp3ForTagEditing =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                val result = writeMp3Tags(uri, pendingTagTitle, pendingTagArtist, pendingTagAlbum, pendingTagYear)
+                Toast.makeText(this, if (result) "ID3-теги MP3 сохранены" else "Не удалось изменить теги. Проверьте права записи и формат MP3.", Toast.LENGTH_LONG).show()
+            }
+        }
+
+    private fun writeMp3Tags(sourceUri: Uri, title: String, artist: String, album: String, year: String): Boolean {
+        val inputFile = File(cacheDir, "tag_edit_input.mp3")
+        val outputFile = File(cacheDir, "tag_edit_output.mp3")
+        return try {
+            contentResolver.openInputStream(sourceUri)?.use { input -> inputFile.outputStream().use { input.copyTo(it) } } ?: return false
+            val mp3 = com.mpatric.mp3agic.Mp3File(inputFile.absolutePath)
+            if (!mp3.hasId3v2Tag()) mp3.id3v2Tag = com.mpatric.mp3agic.ID3v24Tag()
+            mp3.id3v2Tag.setTitle(title)
+            mp3.id3v2Tag.setArtist(artist)
+            mp3.id3v2Tag.setAlbum(album)
+            mp3.id3v2Tag.setYear(year)
+            mp3.save(outputFile.absolutePath)
+            contentResolver.openOutputStream(sourceUri, "wt")?.use { output -> outputFile.inputStream().use { it.copyTo(output) } } ?: return false
+            true
+        } catch (e: Exception) {
+            android.util.Log.e("PureMusicPlayer", "MP3 tag edit failed", e); false
+        } finally { inputFile.delete(); outputFile.delete() }
+    }
 
     private val permission: String
         get() = if (Build.VERSION.SDK_INT >= 33) {
@@ -280,6 +312,11 @@ class MainActivity : ComponentActivity() {
                 var sleepTimerDialogOpen by remember { mutableStateOf(false) }
                 var sleepTimerMinutes by remember { mutableIntStateOf(0) }
                 var sleepTimerRemaining by remember { mutableLongStateOf(0L) }
+                var tagEditorTrack by remember { mutableStateOf<Track?>(null) }
+                var tagTitle by remember { mutableStateOf("") }
+                var tagArtist by remember { mutableStateOf("") }
+                var tagAlbum by remember { mutableStateOf("") }
+                var tagYear by remember { mutableStateOf("") }
 
                 LaunchedEffect(sleepTimerMinutes) {
                     if (sleepTimerMinutes > 0) {
@@ -918,6 +955,13 @@ class MainActivity : ComponentActivity() {
                                             )
 
                                             Text(
+                                                text = "✎", color = Accent, fontSize = 19.sp,
+                                                modifier = Modifier.clickable {
+                                                    tagEditorTrack = track; tagTitle = track.title
+                                                    tagArtist = track.artist; tagAlbum = track.album; tagYear = ""
+                                                }.padding(horizontal = 7.dp, vertical = 4.dp)
+                                            )
+                                            Text(
                                                 text = if (track.id in favoriteIds) "★" else "☆",
                                                 color = Accent,
                                                 fontSize = 21.sp,
@@ -1263,6 +1307,30 @@ class MainActivity : ComponentActivity() {
                                             Text("Отмена")
                                         }
                                     }
+                                )
+                            }
+
+                            if (tagEditorTrack != null) {
+                                AlertDialog(
+                                    onDismissRequest = { tagEditorTrack = null },
+                                    title = { Text("Редактор тегов MP3", color = Color.White) },
+                                    text = {
+                                        Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                                            Text("На следующем шаге выберите MP3-файл. Будут изменены встроенные ID3v2-теги.", color = MutedText, fontSize = 12.sp)
+                                            OutlinedTextField(tagTitle, { tagTitle = it }, label = { Text("Название") }, singleLine = true)
+                                            OutlinedTextField(tagArtist, { tagArtist = it }, label = { Text("Исполнитель") }, singleLine = true)
+                                            OutlinedTextField(tagAlbum, { tagAlbum = it }, label = { Text("Альбом") }, singleLine = true)
+                                            OutlinedTextField(tagYear, { tagYear = it.filter(Char::isDigit).take(4) }, label = { Text("Год") }, singleLine = true)
+                                        }
+                                    },
+                                    confirmButton = { TextButton(onClick = {
+                                        pendingTagTitle = tagTitle; pendingTagArtist = tagArtist
+                                        pendingTagAlbum = tagAlbum; pendingTagYear = tagYear
+                                        tagEditorTrack = null
+                                        chooseMp3ForTagEditing.launch(arrayOf("audio/mpeg", "audio/mp3", "audio/*"))
+                                    }) { Text("ВЫБРАТЬ MP3 И СОХРАНИТЬ", color = Accent) } },
+                                    dismissButton = { TextButton(onClick = { tagEditorTrack = null }) { Text("Отмена", color = MutedText) } },
+                                    containerColor = Panel
                                 )
                             }
 
