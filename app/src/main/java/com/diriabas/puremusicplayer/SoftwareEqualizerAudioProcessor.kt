@@ -66,8 +66,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
             for (channel in 0 until channels) {
                 var sample = source.getShort().toDouble() / 32768.0
                 if (current.enabled) {
-                    // Reserve headroom for positive EQ/bass gains to prevent digital clipping.
-                    sample *= preampGain(current)
                     for (filter in coefficients.indices) {
                         val c = coefficients[filter]
                         val state = filterStates[channel][filter]
@@ -88,8 +86,11 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                 frame[1] = mid - side
             }
             for (channel in 0 until channels) {
-                val clipped = (frame[channel].coerceIn(-1.0, 0.999969) * 32768.0).toInt()
-                output.putShort(clipped.toShort())
+                // Soft limiter engages only near digital full scale. Unlike the old
+                // preamp, it does not attenuate the entire signal when bass is raised.
+                val limited = softLimit(frame[channel])
+                val pcm = (limited.coerceIn(-1.0, 0.999969) * 32768.0).toInt()
+                output.putShort(pcm.toShort())
             }
             offset += frameBytes
         }
@@ -102,9 +103,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private fun rebuildFilters(value: Settings) {
         val gains = if (value.enabled) value.levelsDb else List(10) { 0 }
         val built = ArrayList<Coefficients>(11)
-        // Bass control is a low shelf, so it lifts the whole bass region rather than
-        // creating a narrow resonance around one frequency.
-        built += lowShelf(140.0, if (value.enabled) value.bass / 100.0 * 8.0 else 0.0)
+        // Bass control is a broad low-frequency bell, followed by the ten graphic EQ bands.
+        built += peaking(85.0, 0.9, if (value.enabled) value.bass / 100.0 * 9.0 else 0.0)
         for (i in frequencies.indices) {
             val f = frequencies[i].coerceAtMost(sampleRate * 0.45)
             built += peaking(f, 1.0, gains[i].toDouble())
@@ -112,31 +112,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         coefficients = built.toTypedArray()
         filterStates = Array(channels) { Array(coefficients.size) { State() } }
         appliedSettings = value
-    }
-
-    private fun preampGain(value: Settings): Double {
-        val bassBoost = if (value.enabled) value.bass / 100.0 * 8.0 else 0.0
-        val graphicBoost = if (value.enabled) value.levelsDb.maxOrNull()?.coerceAtLeast(0) ?: 0 else 0
-        // 1 dB safety margin; attenuation is released when boosts are reduced.
-        return 10.0.pow(-(bassBoost + graphicBoost + 1.0) / 20.0)
-    }
-
-    private fun lowShelf(frequency: Double, gainDb: Double): Coefficients {
-        if (gainDb == 0.0) return Coefficients(1.0, 0.0, 0.0, 0.0, 0.0)
-        val a = 10.0.pow(gainDb / 40.0)
-        val w0 = 2.0 * PI * frequency / sampleRate
-        val cosW = cos(w0)
-        val sinW = sin(w0)
-        val alpha = sinW / 2.0 * kotlin.math.sqrt(2.0)
-        val twoSqrtAAlpha = 2.0 * kotlin.math.sqrt(a) * alpha
-        val a0 = (a + 1.0) + (a - 1.0) * cosW + twoSqrtAAlpha
-        return Coefficients(
-            (a * ((a + 1.0) - (a - 1.0) * cosW + twoSqrtAAlpha)) / a0,
-            (2.0 * a * ((a - 1.0) - (a + 1.0) * cosW)) / a0,
-            (a * ((a + 1.0) - (a - 1.0) * cosW - twoSqrtAAlpha)) / a0,
-            (-2.0 * ((a - 1.0) + (a + 1.0) * cosW)) / a0,
-            ((a + 1.0) + (a - 1.0) * cosW - twoSqrtAAlpha) / a0
-        )
     }
 
     private fun peaking(frequency: Double, q: Double, gainDb: Double): Coefficients {
