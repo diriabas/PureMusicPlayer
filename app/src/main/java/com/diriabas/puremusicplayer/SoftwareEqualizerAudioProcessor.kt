@@ -36,7 +36,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private var channels = 2
     private var bytesPerSample = 2
     private var pcmFloat = false
-    private var preGain = 1.0
 
     fun updateSettings(enabled: Boolean, levels: IntArray, bass: Int, virtualizer: Int) {
         settings.set(Settings(enabled, (0 until 10).map { levels.getOrElse(it) { 0 }.coerceIn(-12, 12) },
@@ -78,9 +77,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                     source.getShort().toDouble() / 32768.0
                 }
                 if (current.enabled) {
-                    // Reserve headroom for the combined EQ/bass response before filtering.
-                    // This prevents boosted presets from driving PCM samples into clipping.
-                    sample *= preGain
                     for (filter in coefficients.indices) {
                         val c = coefficients[filter]
                         val state = filterStates[channel][filter]
@@ -130,53 +126,15 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
             built += peaking(f, 1.0, gains[i].toDouble())
         }
         coefficients = built.toTypedArray()
-        preGain = calculateHeadroom(coefficients, value.virtualizer)
         filterStates = Array(channels) { Array(coefficients.size) { State() } }
         appliedSettings = value
     }
 
-    /**
-     * Measures the cascaded filter's peak frequency-response gain and applies
-     * matching pre-attenuation. This preserves the EQ curve while providing
-     * digital headroom, instead of letting bass/EQ boosts clip the output.
-     */
-    private fun calculateHeadroom(filters: Array<Coefficients>, virtualizer: Int): Double {
-        var peakDb = 0.0
-        val maxFrequency = (sampleRate * 0.48).coerceAtLeast(20.0)
-        val minFrequency = 20.0
-        val points = 512
-        for (i in 0 until points) {
-            val fraction = i.toDouble() / (points - 1)
-            val frequency = minFrequency * (maxFrequency / minFrequency).pow(fraction)
-            val w = 2.0 * PI * frequency / sampleRate
-            val cosW = cos(w)
-            val sinW = sin(w)
-            var totalMagnitude = 1.0
-            for (c in filters) {
-                val numReal = c.b0 + c.b1 * cosW + c.b2 * cos(2.0 * w)
-                val numImag = -c.b1 * sinW - c.b2 * sin(2.0 * w)
-                val denReal = 1.0 + c.a1 * cosW + c.a2 * cos(2.0 * w)
-                val denImag = -c.a1 * sinW - c.a2 * sin(2.0 * w)
-                val numerator = kotlin.math.sqrt(numReal * numReal + numImag * numImag)
-                val denominator = kotlin.math.sqrt(denReal * denReal + denImag * denImag)
-                    .coerceAtLeast(1e-12)
-                totalMagnitude *= numerator / denominator
-            }
-            val gainDb = 20.0 * kotlin.math.log10(totalMagnitude.coerceAtLeast(1e-12))
-            if (gainDb > peakDb) peakDb = gainDb
-        }
-        // Stereo widening can also raise peaks when the side signal is strong.
-        val width = 1.0 + (virtualizer / 100.0) * 0.65
-        val widthHeadroomDb = if (virtualizer > 0) 20.0 * kotlin.math.log10(width) else 0.0
-        val requiredDb = (peakDb + widthHeadroomDb).coerceAtLeast(0.0)
-        return 10.0.pow(-requiredDb / 20.0)
-    }
-
     private fun softLimit(value: Double): Double {
         val magnitude = kotlin.math.abs(value)
-        if (magnitude <= 0.92) return value
-        val excess = magnitude - 0.92
-        val limited = 0.92 + 0.08 * (excess / (excess + 0.08))
+        if (magnitude <= 0.97) return value
+        val excess = magnitude - 0.97
+        val limited = 0.97 + 0.03 * (excess / (excess + 0.03))
         return if (value < 0.0) -limited else limited
     }
 
