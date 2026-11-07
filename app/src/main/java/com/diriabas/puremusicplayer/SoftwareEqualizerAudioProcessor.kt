@@ -3,7 +3,6 @@ package com.diriabas.puremusicplayer
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
-import android.util.Log
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
@@ -35,8 +34,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private var filterStates = emptyArray<Array<State>>()
     private var sampleRate = 44100
     private var channels = 2
-    private var inputEncoding = C.ENCODING_INVALID
-    private var loggedFirstBuffer = false
+    private var bytesPerSample = 2
+    private var pcmFloat = false
 
     fun updateSettings(enabled: Boolean, levels: IntArray, bass: Int, virtualizer: Int) {
         settings.set(Settings(enabled, (0 until 10).map { levels.getOrElse(it) { 0 }.coerceIn(-12, 12) },
@@ -44,16 +43,15 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        inputEncoding = inputAudioFormat.encoding
-        if (inputEncoding != C.ENCODING_PCM_16BIT && inputEncoding != C.ENCODING_PCM_FLOAT) {
-            Log.w(TAG, "Unsupported PCM encoding=$inputEncoding; EQ bypassed")
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT &&
+            inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT) {
             return AudioProcessor.AudioFormat.NOT_SET
         }
+        pcmFloat = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        bytesPerSample = if (pcmFloat) 4 else 2
         sampleRate = inputAudioFormat.sampleRate
         channels = inputAudioFormat.channelCount
-        loggedFirstBuffer = false
         rebuildFilters(settings.get())
-        Log.i(TAG, "Configured: rate=$sampleRate channels=$channels encoding=$inputEncoding")
         return inputAudioFormat
     }
 
@@ -65,21 +63,16 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
 
         val output = replaceOutputBuffer(inputBytes).order(ByteOrder.nativeOrder())
         val source = inputBuffer.order(ByteOrder.nativeOrder())
-        val bytesPerSample = if (inputEncoding == C.ENCODING_PCM_FLOAT) 4 else 2
         val frameBytes = channels * bytesPerSample
         val usableBytes = inputBytes - (inputBytes % frameBytes)
-        if (!loggedFirstBuffer) {
-            Log.i(TAG, "Processing started: bytes=$inputBytes encoding=$inputEncoding enabled=${current.enabled} bass=${current.bass} eq=${current.levelsDb}")
-            loggedFirstBuffer = true
-        }
         val width = 1.0 + (if (current.enabled) current.virtualizer / 100.0 else 0.0) * 0.65
 
         val frame = DoubleArray(channels)
         var offset = 0
         while (offset < usableBytes) {
             for (channel in 0 until channels) {
-                var sample = if (inputEncoding == C.ENCODING_PCM_FLOAT) {
-                    source.getFloat().toDouble()
+                var sample = if (pcmFloat) {
+                    source.getFloat().toDouble().coerceIn(-1.0, 1.0)
                 } else {
                     source.getShort().toDouble() / 32768.0
                 }
@@ -108,7 +101,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                 // preamp, it does not attenuate the entire signal when bass is raised.
                 val limited = softLimit(frame[channel])
                 val safe = limited.coerceIn(-1.0, 0.999969)
-                if (inputEncoding == C.ENCODING_PCM_FLOAT) {
+                if (pcmFloat) {
                     output.putFloat(safe.toFloat())
                 } else {
                     val pcm = (safe * 32768.0).toInt()
@@ -126,8 +119,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private fun rebuildFilters(value: Settings) {
         val gains = if (value.enabled) value.levelsDb else List(10) { 0 }
         val built = ArrayList<Coefficients>(11)
-        // Dedicated low-shelf bass control, followed by the ten graphic EQ bands.
-        built += lowShelf(110.0, 0.707, if (value.enabled) value.bass / 100.0 * 9.0 else 0.0)
+        // Dedicated low-shelf control boosts the low-frequency range smoothly.
+        built += lowShelf(140.0, 0.707, if (value.enabled) value.bass / 100.0 * 9.0 else 0.0)
         for (i in frequencies.indices) {
             val f = frequencies[i].coerceAtMost(sampleRate * 0.45)
             built += peaking(f, 1.0, gains[i].toDouble())
@@ -149,10 +142,12 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private fun lowShelf(frequency: Double, slope: Double, gainDb: Double): Coefficients {
         if (gainDb == 0.0) return Coefficients(1.0, 0.0, 0.0, 0.0, 0.0)
         val a = 10.0.pow(gainDb / 40.0)
-        val w0 = 2.0 * PI * frequency / sampleRate
+        val w0 = 2.0 * PI * frequency.coerceAtMost(sampleRate * 0.40) / sampleRate
         val cosW = cos(w0)
         val sinW = sin(w0)
-        val alpha = sinW / 2.0 * kotlin.math.sqrt((a + 1.0 / a) * (1.0 / slope - 1.0) + 2.0)
+        val alpha = sinW / 2.0 * kotlin.math.sqrt(
+            (a + 1.0 / a) * (1.0 / slope - 1.0) + 2.0
+        )
         val beta = 2.0 * kotlin.math.sqrt(a) * alpha
         val a0 = (a + 1.0) + (a - 1.0) * cosW + beta
         return Coefficients(
@@ -179,5 +174,4 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
             (1.0 - alpha / a) / a0
         )
     }
-    private companion object { const val TAG = "PureMusicEQ" }
 }
