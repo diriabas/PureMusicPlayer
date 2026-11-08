@@ -101,7 +101,9 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                     source.getShort().toDouble() / 32768.0
                 }
 
-                if (current.enabled) {
+                // DIAGNOSTIC: apply the filter chain regardless of the UI enabled flag.
+                // This isolates whether the low-shelf filter itself changes the PCM signal.
+                run {
                     for (filter in coefficients.indices) {
                         val c = coefficients[filter]
                         val state = filterStates[channel][filter]
@@ -111,6 +113,9 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                         state.z2 = c.b2 * sample - c.a2 * y
                         sample = y
                     }
+                    // Fixed 12 dB headroom for this diagnostic so the boosted bass
+                    // is not hidden by digital clipping. Mids will be quieter by design.
+                    sample *= 0.25
                 }
                 frame[channel] = sample
             }
@@ -149,7 +154,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         val built = ArrayList<Coefficients>(11)
 
         // Convert the UI's 0..100 slider to 0..+12 dB.
-        val bassGainDb = if (value.enabled) value.bass / 100.0 * 12.0 else 0.0
+        // DIAGNOSTIC: force +12 dB independently of the UI setting.
+        val bassGainDb = 12.0
         built += lowShelf(140.0, 0.707, bassGainDb)
 
         for (i in frequencies.indices) {
