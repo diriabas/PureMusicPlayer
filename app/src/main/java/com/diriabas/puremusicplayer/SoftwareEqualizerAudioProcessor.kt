@@ -20,7 +20,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     data class Settings(
         val enabled: Boolean = true,
         val levelsDb: List<Int> = List(10) { 0 },
-        // UI sends 0..100. 0 = no bass boost, 100 = +12 dB.
+        // UI scale: 0..100. 0 = no bass boost, 100 = +12 dB.
         val bass: Int = 0,
         val virtualizer: Int = 0
     )
@@ -49,7 +49,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private var bytesPerSample = 2
     private var pcmFloat = false
 
-    /** bass must remain on the same 0..100 scale as the MainActivity slider. */
+    /** Keep bass on the same 0..100 scale as the MainActivity slider. */
     fun updateSettings(enabled: Boolean, levels: IntArray, bass: Int, virtualizer: Int) {
         settings.set(
             Settings(
@@ -89,7 +89,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         val source = inputBuffer.order(ByteOrder.nativeOrder())
         val frameBytes = channels * bytesPerSample
         val usableBytes = inputBytes - (inputBytes % frameBytes)
-        val width = 1.0 + (if (current.enabled) current.virtualizer / 100.0 else 0.0) * 0.65
+        val width = 1.0 + (current.virtualizer / 100.0) * 0.65
         val frame = DoubleArray(channels)
 
         var offset = 0
@@ -101,9 +101,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                     source.getShort().toDouble() / 32768.0
                 }
 
-                // DIAGNOSTIC: apply the filter chain regardless of the UI enabled flag.
-                // This isolates whether the low-shelf filter itself changes the PCM signal.
-                run {
+                // Apply EQ only when enabled. When disabled, PCM passes through unchanged.
+                if (current.enabled) {
                     for (filter in coefficients.indices) {
                         val c = coefficients[filter]
                         val state = filterStates[channel][filter]
@@ -113,10 +112,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                         state.z2 = c.b2 * sample - c.a2 * y
                         sample = y
                     }
-                    // Fixed 12 dB headroom for this diagnostic so the boosted bass
-                    // is not hidden by digital clipping. Mids will be quieter by design.
-                    sample *= 0.25
                 }
+
                 frame[channel] = sample
             }
 
@@ -130,8 +127,13 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
             }
 
             for (channel in 0 until channels) {
-                // Limit only peaks; do not apply global attenuation to the whole signal.
-                val safe = softLimit(frame[channel]).coerceIn(-1.0, 0.999969)
+                // Soft limiting controls peaks created by EQ boosts without fixed global attenuation.
+                val safe = if (current.enabled) {
+                    softLimit(frame[channel]).coerceIn(-1.0, 0.999969)
+                } else {
+                    frame[channel].coerceIn(-1.0, 0.999969)
+                }
+
                 if (pcmFloat) {
                     output.putFloat(safe.toFloat())
                 } else {
@@ -150,17 +152,17 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     }
 
     private fun rebuildFilters(value: Settings) {
-        val gains = if (value.enabled) value.levelsDb else List(10) { 0 }
         val built = ArrayList<Coefficients>(11)
 
-        // Convert the UI's 0..100 slider to 0..+12 dB.
-        // DIAGNOSTIC: force +12 dB independently of the UI setting.
-        val bassGainDb = 12.0
-        built += lowShelf(140.0, 0.707, bassGainDb)
+        if (value.enabled) {
+            // Map the UI's 0..100 bass slider to 0..+12 dB.
+            val bassGainDb = value.bass / 100.0 * 12.0
+            built += lowShelf(140.0, 0.707, bassGainDb)
 
-        for (i in frequencies.indices) {
-            val frequency = frequencies[i].coerceAtMost(sampleRate * 0.45)
-            built += peaking(frequency, 1.0, gains[i].toDouble())
+            for (i in frequencies.indices) {
+                val frequency = frequencies[i].coerceAtMost(sampleRate * 0.45)
+                built += peaking(frequency, 1.0, value.levelsDb[i].toDouble())
+            }
         }
 
         coefficients = built.toTypedArray()
