@@ -243,6 +243,10 @@ class MainActivity : ComponentActivity() {
                 var sortMode by remember { mutableStateOf("По названию") }
                 var sortMenuExpanded by remember { mutableStateOf(false) }
                 var playlistMenuExpanded by remember { mutableStateOf(false) }
+                var playlistMenuName by remember { mutableStateOf<String?>(null) }
+                var playlistToRename by remember { mutableStateOf<String?>(null) }
+                var renamePlaylistInput by remember { mutableStateOf("") }
+                var playlistToDelete by remember { mutableStateOf<String?>(null) }
                 var pendingTrack by remember { mutableStateOf<Track?>(null) }
                 var newPlaylistName by remember { mutableStateOf("") }
                 var searchQuery by remember { mutableStateOf("") }
@@ -742,15 +746,23 @@ class MainActivity : ComponentActivity() {
 
 
 
-                            if (selectedAlbumId != null || selectedArtist != null) {
+                            if (selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null) {
                                 TextButton(
                                     onClick = {
-                                        libraryMode = if (selectedAlbumId != null) "Альбомы" else "Исполнители"
+                                        if (selectedPlaylist != null) {
+                                            selectedPlaylist = null
+                                            libraryMode = "Композиции"
+                                        } else {
+                                            libraryMode = if (selectedAlbumId != null) "Альбомы" else "Исполнители"
+                                        }
                                         selectedAlbumId = null
                                         selectedArtist = null
                                     }
                                 ) {
-                                    Text("← Назад к библиотеке", color = Accent)
+                                    Text(
+                                        if (selectedPlaylist != null) "← Все композиции" else "← Назад к библиотеке",
+                                        color = Accent
+                                    )
                                 }
                             }
 
@@ -884,17 +896,24 @@ class MainActivity : ComponentActivity() {
                                             }
 
                                             Text(
-                                                text = "＋",
+                                                text = if (selectedPlaylist != null) "−" else "＋",
                                                 color = Accent,
                                                 fontSize = 23.sp,
                                                 modifier = Modifier
                                                     .clickable {
-                                                        pendingTrack = track
+                                                        val playlistName = selectedPlaylist
+                                                        if (playlistName != null) {
+                                                            val updated = playlists.toMutableMap()
+                                                            updated[playlistName] = updated[playlistName]
+                                                                .orEmpty()
+                                                                .filterNot { it == track.id }
+                                                            playlists = updated
+                                                            savePlaylists(updated)
+                                                        } else {
+                                                            pendingTrack = track
+                                                        }
                                                     }
-                                                    .padding(
-                                                        horizontal = 8.dp,
-                                                        vertical = 4.dp
-                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
                                             )
                                             Text(
                                                 text = if (track.id in favoriteIds) "★" else "☆",
@@ -974,6 +993,7 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             } else {
                                                 playlists.toSortedMap().forEach { (name, ids) ->
+                                                    val playlistTracks = tracks.filter { it.id in ids }
                                                     Row(
                                                         modifier = Modifier
                                                             .fillMaxWidth()
@@ -983,16 +1003,63 @@ class MainActivity : ComponentActivity() {
                                                                 selectedPlaylist = name
                                                                 selectedTab = 1
                                                             }
-                                                            .padding(16.dp),
+                                                            .padding(horizontal = 14.dp, vertical = 12.dp),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Text("♫", color = Accent, fontSize = 24.sp)
-                                                        Spacer(Modifier.width(14.dp))
+                                                        Spacer(Modifier.width(12.dp))
                                                         Column(Modifier.weight(1f)) {
                                                             Text(name, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                                            Text("${ids.size} композиций", color = MutedText, fontSize = 12.sp)
+                                                            Text("${playlistTracks.size} композиций", color = MutedText, fontSize = 12.sp)
                                                         }
-                                                        Text("›", color = Accent, fontSize = 26.sp)
+                                                        if (playlistTracks.isNotEmpty()) {
+                                                            Text(
+                                                                "▶",
+                                                                color = Accent,
+                                                                fontSize = 18.sp,
+                                                                modifier = Modifier
+                                                                    .clickable { playAt(playlistTracks.first(), playlistTracks) }
+                                                                    .padding(horizontal = 9.dp, vertical = 8.dp)
+                                                            )
+                                                        }
+                                                        Box {
+                                                            Text(
+                                                                "⋮",
+                                                                color = Accent,
+                                                                fontSize = 23.sp,
+                                                                modifier = Modifier
+                                                                    .clickable {
+                                                                        playlistMenuName = name
+                                                                        playlistMenuExpanded = true
+                                                                    }
+                                                                    .padding(horizontal = 7.dp, vertical = 5.dp)
+                                                            )
+                                                            DropdownMenu(
+                                                                expanded = playlistMenuExpanded && playlistMenuName == name,
+                                                                onDismissRequest = {
+                                                                    playlistMenuExpanded = false
+                                                                    playlistMenuName = null
+                                                                }
+                                                            ) {
+                                                                DropdownMenuItem(
+                                                                    text = { Text("Переименовать") },
+                                                                    onClick = {
+                                                                        renamePlaylistInput = name
+                                                                        playlistToRename = name
+                                                                        playlistMenuExpanded = false
+                                                                        playlistMenuName = null
+                                                                    }
+                                                                )
+                                                                DropdownMenuItem(
+                                                                    text = { Text("Удалить плейлист") },
+                                                                    onClick = {
+                                                                        playlistToDelete = name
+                                                                        playlistMenuExpanded = false
+                                                                        playlistMenuName = null
+                                                                    }
+                                                                )
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1207,6 +1274,82 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
+                            if (playlistToRename != null) {
+                                AlertDialog(
+                                    onDismissRequest = { playlistToRename = null },
+                                    title = { Text("Переименовать плейлист", color = Color.White) },
+                                    text = {
+                                        OutlinedTextField(
+                                            value = renamePlaylistInput,
+                                            onValueChange = { renamePlaylistInput = it },
+                                            singleLine = true,
+                                            label = { Text("Новое название") }
+                                        )
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            val oldName = playlistToRename
+                                            val newName = renamePlaylistInput.trim()
+                                            if (oldName != null && newName.isNotEmpty()) {
+                                                if (newName == oldName || !playlists.containsKey(newName)) {
+                                                    val updated = playlists.toMutableMap()
+                                                    val ids = updated.remove(oldName).orEmpty()
+                                                    updated[newName] = ids
+                                                    playlists = updated
+                                                    savePlaylists(updated)
+                                                    if (selectedPlaylist == oldName) selectedPlaylist = newName
+                                                } else {
+                                                    Toast.makeText(
+                                                        this@MainActivity,
+                                                        "Плейлист с таким названием уже существует",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                            playlistToRename = null
+                                        }) {
+                                            Text("Сохранить", color = Accent)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { playlistToRename = null }) {
+                                            Text("Отмена")
+                                        }
+                                    }
+                                )
+                            }
+
+                            if (playlistToDelete != null) {
+                                val nameToDelete = playlistToDelete
+                                AlertDialog(
+                                    onDismissRequest = { playlistToDelete = null },
+                                    title = { Text("Удалить плейлист?", color = Color.White) },
+                                    text = { Text("Плейлист «$nameToDelete» будет удалён. Музыкальные файлы останутся в библиотеке.") },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            if (nameToDelete != null) {
+                                                val updated = playlists.toMutableMap()
+                                                updated.remove(nameToDelete)
+                                                playlists = updated
+                                                savePlaylists(updated)
+                                                if (selectedPlaylist == nameToDelete) {
+                                                    selectedPlaylist = null
+                                                    libraryMode = "Композиции"
+                                                }
+                                            }
+                                            playlistToDelete = null
+                                        }) {
+                                            Text("Удалить", color = Color(0xFFFF6B6B))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { playlistToDelete = null }) {
+                                            Text("Отмена")
+                                        }
+                                    }
+                                )
+                            }
+
                             if (createPlaylistDialogOpen) {
                                 AlertDialog(
                                     onDismissRequest = { createPlaylistDialogOpen = false },
