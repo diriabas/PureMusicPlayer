@@ -48,6 +48,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
     private var channels = 2
     private var bytesPerSample = 2
     private var pcmFloat = false
+    private var limiterGain = 1.0
 
     /** Keep bass on the same 0..100 scale as the MainActivity slider. */
     fun updateSettings(enabled: Boolean, levels: IntArray, bass: Int, virtualizer: Int) {
@@ -74,6 +75,7 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         bytesPerSample = if (pcmFloat) 4 else 2
         sampleRate = inputAudioFormat.sampleRate
         channels = inputAudioFormat.channelCount
+        limiterGain = 1.0
         rebuildFilters(settings.get())
         return inputAudioFormat
     }
@@ -91,6 +93,8 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         val usableBytes = inputBytes - (inputBytes % frameBytes)
         val width = 1.0 + (current.virtualizer / 100.0) * 0.65
         val frame = DoubleArray(channels)
+        val limiterCeiling = 0.94
+        val releaseCoefficient = kotlin.math.exp(-1.0 / (sampleRate * 0.08))
 
         var offset = 0
         while (offset < usableBytes) {
@@ -126,13 +130,23 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
                 frame[1] = mid - side
             }
 
+            // Use one linked gain value for all channels so stereo balance is preserved.
+            // Gain reduction is immediate; recovery is smoothed over approximately 80 ms.
+            val peak = if (current.enabled) {
+                frame.maxOf { abs(it) }
+            } else {
+                0.0
+            }
+            val targetGain = if (peak > limiterCeiling) limiterCeiling / peak else 1.0
+            limiterGain = if (targetGain < limiterGain) {
+                targetGain
+            } else {
+                targetGain + (limiterGain - targetGain) * releaseCoefficient
+            }
+
             for (channel in 0 until channels) {
-                // Soft limiting controls peaks created by EQ boosts without fixed global attenuation.
-                val safe = if (current.enabled) {
-                    softLimit(frame[channel]).coerceIn(-1.0, 0.999969)
-                } else {
-                    frame[channel].coerceIn(-1.0, 0.999969)
-                }
+                val limitedSample = if (current.enabled) frame[channel] * limiterGain else frame[channel]
+                val safe = limitedSample.coerceIn(-0.999969, 0.999969)
 
                 if (pcmFloat) {
                     output.putFloat(safe.toFloat())
@@ -168,15 +182,6 @@ class SoftwareEqualizerAudioProcessor : BaseAudioProcessor() {
         coefficients = built.toTypedArray()
         filterStates = Array(channels) { Array(coefficients.size) { State() } }
         appliedSettings = value
-    }
-
-    /** Soft-knee peak control. Values below 0.97 pass through unchanged. */
-    private fun softLimit(value: Double): Double {
-        val magnitude = abs(value)
-        if (magnitude <= 0.97) return value
-        val excess = magnitude - 0.97
-        val limited = 0.97 + 0.03 * (excess / (excess + 0.03))
-        return if (value < 0.0) -limited else limited
     }
 
     private fun lowShelf(frequency: Double, slope: Double, gainDb: Double): Coefficients {
