@@ -1,4 +1,4 @@
-
+\
 package com.diriabas.puremusicplayer
 
 import android.Manifest
@@ -24,6 +24,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +42,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -285,8 +288,10 @@ class MainActivity : ComponentActivity() {
                     selectedAlbumId, selectedArtist
                 ) {
                     val base = if (selectedPlaylist == null) tracks else {
-                        val ids = playlists[selectedPlaylist].orEmpty().toSet()
-                        tracks.filter { it.id in ids }
+                        // Playlist order is stored explicitly in its list of track IDs.
+                        playlists[selectedPlaylist].orEmpty().mapNotNull { id ->
+                            tracks.firstOrNull { it.id == id }
+                        }
                     }
 
                     val filtered = base.filter { track ->
@@ -305,12 +310,35 @@ class MainActivity : ComponentActivity() {
                         matchesSearch && matchesFavorites && matchesAlbum && matchesArtist
                     }
 
-                    when (sortMode) {
-                        "По исполнителю" -> filtered.sortedWith(
-                            compareBy<Track> { it.artist.lowercase() }
-                                .thenBy { it.title.lowercase() }
-                        )
-                        else -> filtered.sortedBy { it.title.lowercase() }
+                    if (selectedPlaylist != null) {
+                        // Manual playlist order takes precedence over library sorting.
+                        filtered
+                    } else {
+                        when (sortMode) {
+                            "По исполнителю" -> filtered.sortedWith(
+                                compareBy<Track> { it.artist.lowercase() }
+                                    .thenBy { it.title.lowercase() }
+                            )
+                            else -> filtered.sortedBy { it.title.lowercase() }
+                        }
+                    }
+                }
+
+                val dragThresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
+                val movePlaylistTrack: (Long, Int) -> Unit = { trackId, direction ->
+                    val playlistName = selectedPlaylist
+                    if (playlistName != null) {
+                        val orderedIds = playlists[playlistName].orEmpty().toMutableList()
+                        val fromIndex = orderedIds.indexOf(trackId)
+                        val toIndex = fromIndex + direction
+                        if (fromIndex >= 0 && toIndex in orderedIds.indices) {
+                            val movedId = orderedIds.removeAt(fromIndex)
+                            orderedIds.add(toIndex, movedId)
+                            val updated = playlists.toMutableMap()
+                            updated[playlistName] = orderedIds
+                            playlists = updated
+                            savePlaylists(updated)
+                        }
                     }
                 }
 
@@ -840,6 +868,105 @@ class MainActivity : ComponentActivity() {
                                         }
                                         Spacer(Modifier.height(7.dp))
                                     }
+                            } else if (selectedPlaylist != null) {
+                                Text(
+                                    "Чтобы изменить порядок, удерживай значок ⠿ и перетаскивай песню",
+                                    color = MutedText,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                if (visibleTracks.isEmpty()) {
+                                    Text("В этом плейлисте пока нет песен.", color = Color.LightGray)
+                                } else {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(7.dp)
+                                    ) {
+                                        visibleTracks.forEach { track ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(
+                                                        color = if (track.id == currentTrack?.id) Color(0xFF302A20) else Panel,
+                                                        shape = RoundedCornerShape(13.dp)
+                                                    )
+                                                    .clickable { playAt(track, visibleTracks) }
+                                                    .padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                AlbumThumbnail(albumId = track.albumId)
+                                                Spacer(Modifier.width(10.dp))
+                                                Text(
+                                                    "⠿",
+                                                    color = Accent,
+                                                    fontSize = 24.sp,
+                                                    modifier = Modifier
+                                                        .pointerInput(track.id, selectedPlaylist, dragThresholdPx) {
+                                                            var accumulatedDrag = 0f
+                                                            detectDragGestures(
+                                                                onDrag = { change, dragAmount ->
+                                                                    change.consume()
+                                                                    accumulatedDrag += dragAmount.y
+                                                                    if (accumulatedDrag >= dragThresholdPx) {
+                                                                        movePlaylistTrack(track.id, 1)
+                                                                        accumulatedDrag -= dragThresholdPx
+                                                                    } else if (accumulatedDrag <= -dragThresholdPx) {
+                                                                        movePlaylistTrack(track.id, -1)
+                                                                        accumulatedDrag += dragThresholdPx
+                                                                    }
+                                                                }
+                                                            )
+                                                        }
+                                                        .padding(horizontal = 7.dp, vertical = 4.dp)
+                                                )
+                                                Column(Modifier.weight(1f)) {
+                                                    Text(
+                                                        track.title,
+                                                        color = Color.White,
+                                                        fontSize = 15.sp,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Text(
+                                                        track.artist,
+                                                        color = Color.LightGray,
+                                                        fontSize = 12.sp,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                                Text(
+                                                    "−",
+                                                    color = Accent,
+                                                    fontSize = 23.sp,
+                                                    modifier = Modifier
+                                                        .clickable {
+                                                            val name = selectedPlaylist
+                                                            if (name != null) {
+                                                                val updated = playlists.toMutableMap()
+                                                                updated[name] = updated[name].orEmpty().filterNot { it == track.id }
+                                                                playlists = updated
+                                                                savePlaylists(updated)
+                                                            }
+                                                        }
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                                Text(
+                                                    if (track.id in favoriteIds) "★" else "☆",
+                                                    color = Accent,
+                                                    fontSize = 21.sp,
+                                                    modifier = Modifier
+                                                        .clickable {
+                                                            val updated = favoriteIds.toMutableSet()
+                                                            if (track.id in updated) updated.remove(track.id) else updated.add(track.id)
+                                                            favoriteIds = updated
+                                                            saveFavorites(updated)
+                                                        }
+                                                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             } else if (visibleTracks.isEmpty()) {
                                 Text(
                                     text = if (selectedPlaylist == null) {
