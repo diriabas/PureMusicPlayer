@@ -7,7 +7,6 @@ import android.content.ComponentName
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 import android.content.pm.PackageManager
@@ -89,69 +88,18 @@ private val equalizerFrequencies = listOf(
 )
 
 private val equalizerPresets = listOf(
-    EqualizerPreset("Flat", listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
-    EqualizerPreset("Rock", listOf(5, 4, 3, 1, -1, 1, 3, 4, 5, 5)),
-    EqualizerPreset("Hard Rock", listOf(6, 5, 4, 2, -1, 2, 4, 5, 6, 6)),
-    EqualizerPreset("Metal", listOf(5, 4, 3, 1, -2, 2, 4, 5, 4, 3)),
-    EqualizerPreset("Heavy Metal", listOf(6, 5, 4, 1, -2, 2, 5, 6, 5, 4)),
-    EqualizerPreset("Pop", listOf(-1, 1, 3, 4, 2, 0, -1, -1, 1, 2)),
-    EqualizerPreset("Dance", listOf(5, 4, 2, 0, 1, 3, 4, 3, 2, 2)),
-    EqualizerPreset("Electronic", listOf(5, 4, 2, 1, -1, 2, 3, 4, 5, 5)),
-    EqualizerPreset("Techno", listOf(5, 4, 3, 1, 0, 2, 3, 4, 4, 4)),
-    EqualizerPreset("House", listOf(4, 3, 2, 0, 1, 2, 3, 3, 4, 4)),
-    EqualizerPreset("Hip-Hop", listOf(6, 5, 3, 1, -1, 1, 2, 2, 3, 4)),
-    EqualizerPreset("Rap", listOf(5, 4, 2, 1, 0, 1, 2, 2, 3, 3)),
-    EqualizerPreset("R&B", listOf(4, 3, 2, 1, 0, 1, 2, 3, 3, 3)),
-    EqualizerPreset("Jazz", listOf(4, 3, 1, 2, -1, 1, 2, 3, 4, 4)),
-    EqualizerPreset("Blues", listOf(3, 2, 1, 2, -1, 1, 2, 3, 3, 3)),
-    EqualizerPreset("Soul", listOf(3, 2, 2, 1, 0, 1, 2, 3, 3, 3)),
-    EqualizerPreset("Funk", listOf(4, 3, 1, 2, -1, 1, 3, 3, 3, 2)),
-    EqualizerPreset("Classical", listOf(4, 3, 2, 1, -1, -1, 0, 2, 3, 4)),
-    EqualizerPreset("Acoustic", listOf(3, 2, 1, 2, 0, 1, 2, 3, 3, 3)),
-    EqualizerPreset("Vocal", listOf(-2, -1, 0, 2, 4, 4, 3, 2, 0, -1)),
-    EqualizerPreset("Piano", listOf(2, 1, 0, 2, 3, 2, 1, 2, 3, 3)),
-    EqualizerPreset("Bass Boost", listOf(7, 6, 5, 3, 1, 0, 0, 0, 0, 0)),
-    EqualizerPreset("Deep Bass", listOf(8, 7, 5, 3, 1, 0, -1, -1, 0, 0)),
-    EqualizerPreset("Treble Boost", listOf(0, 0, -1, 0, 1, 2, 3, 5, 6, 6)),
-    EqualizerPreset("Loudness", listOf(4, 3, 1, 0, 0, 1, 2, 3, 3, 3))
+    EqualizerPreset("Стандарт", listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    EqualizerPreset("Бас", listOf(6, 5, 3, 1, 0, 0, 0, 0, 0, 0)),
+    EqualizerPreset("Бас+", listOf(8, 7, 5, 3, 1, 0, -1, -1, 0, 0)),
+    EqualizerPreset("Поп", listOf(-1, 1, 3, 4, 2, 0, -1, -1, 1, 2)),
+    EqualizerPreset("Рок", listOf(5, 4, 3, 1, -1, 1, 3, 4, 5, 5)),
+    EqualizerPreset("Классика", listOf(4, 3, 2, 1, -1, -1, 0, 2, 3, 4))
 )
 
 class MainActivity : ComponentActivity() {
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private val controllerState = mutableStateOf<MediaController?>(null)
-    private var pendingTagTitle = ""
-    private var pendingTagArtist = ""
-    private var pendingTagAlbum = ""
-    private var pendingTagYear = ""
-
-    private val chooseMp3ForTagEditing =
-        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
-                val result = writeMp3Tags(uri, pendingTagTitle, pendingTagArtist, pendingTagAlbum, pendingTagYear)
-                Toast.makeText(this, if (result) "ID3-теги MP3 сохранены" else "Не удалось изменить теги. Проверьте права записи и формат MP3.", Toast.LENGTH_LONG).show()
-            }
-        }
-
-    private fun writeMp3Tags(sourceUri: Uri, title: String, artist: String, album: String, year: String): Boolean {
-        val inputFile = File(cacheDir, "tag_edit_input.mp3")
-        val outputFile = File(cacheDir, "tag_edit_output.mp3")
-        return try {
-            contentResolver.openInputStream(sourceUri)?.use { input -> inputFile.outputStream().use { input.copyTo(it) } } ?: return false
-            val mp3 = com.mpatric.mp3agic.Mp3File(inputFile.absolutePath)
-            if (!mp3.hasId3v2Tag()) mp3.id3v2Tag = com.mpatric.mp3agic.ID3v24Tag()
-            mp3.id3v2Tag.setTitle(title)
-            mp3.id3v2Tag.setArtist(artist)
-            mp3.id3v2Tag.setAlbum(album)
-            mp3.id3v2Tag.setYear(year)
-            mp3.save(outputFile.absolutePath)
-            contentResolver.openOutputStream(sourceUri, "wt")?.use { output -> outputFile.inputStream().use { it.copyTo(output) } } ?: return false
-            true
-        } catch (e: Exception) {
-            android.util.Log.e("PureMusicPlayer", "MP3 tag edit failed", e); false
-        } finally { inputFile.delete(); outputFile.delete() }
-    }
-
     private val permission: String
         get() = if (Build.VERSION.SDK_INT >= 33) {
             Manifest.permission.READ_MEDIA_AUDIO
@@ -312,11 +260,6 @@ class MainActivity : ComponentActivity() {
                 var sleepTimerDialogOpen by remember { mutableStateOf(false) }
                 var sleepTimerMinutes by remember { mutableIntStateOf(0) }
                 var sleepTimerRemaining by remember { mutableLongStateOf(0L) }
-                var tagEditorTrack by remember { mutableStateOf<Track?>(null) }
-                var tagTitle by remember { mutableStateOf("") }
-                var tagArtist by remember { mutableStateOf("") }
-                var tagAlbum by remember { mutableStateOf("") }
-                var tagYear by remember { mutableStateOf("") }
 
                 LaunchedEffect(sleepTimerMinutes) {
                     if (sleepTimerMinutes > 0) {
@@ -953,14 +896,6 @@ class MainActivity : ComponentActivity() {
                                                         vertical = 4.dp
                                                     )
                                             )
-
-                                            Text(
-                                                text = "✎", color = Accent, fontSize = 19.sp,
-                                                modifier = Modifier.clickable {
-                                                    tagEditorTrack = track; tagTitle = track.title
-                                                    tagArtist = track.artist; tagAlbum = track.album; tagYear = ""
-                                                }.padding(horizontal = 7.dp, vertical = 4.dp)
-                                            )
                                             Text(
                                                 text = if (track.id in favoriteIds) "★" else "☆",
                                                 color = Accent,
@@ -1090,7 +1025,7 @@ class MainActivity : ComponentActivity() {
                                                     .padding(16.dp)
                                             ) {
                                                 Text("Эквалайзер · 10 полос", color = Color.White, fontWeight = FontWeight.SemiBold)
-                                                Text("25 готовых пресетов и собственные профили", color = MutedText, fontSize = 12.sp)
+                                                Text("6 готовых пресетов и ручная настройка", color = MutedText, fontSize = 12.sp)
                                                 Spacer(Modifier.height(14.dp))
                                                 Text("Усиление баса", color = Color.White)
                                                 Text("${bassStrength} %", color = Accent, fontSize = 12.sp)
@@ -1307,30 +1242,6 @@ class MainActivity : ComponentActivity() {
                                             Text("Отмена")
                                         }
                                     }
-                                )
-                            }
-
-                            if (tagEditorTrack != null) {
-                                AlertDialog(
-                                    onDismissRequest = { tagEditorTrack = null },
-                                    title = { Text("Редактор тегов MP3", color = Color.White) },
-                                    text = {
-                                        Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                                            Text("На следующем шаге выберите MP3-файл. Будут изменены встроенные ID3v2-теги.", color = MutedText, fontSize = 12.sp)
-                                            OutlinedTextField(tagTitle, { tagTitle = it }, label = { Text("Название") }, singleLine = true)
-                                            OutlinedTextField(tagArtist, { tagArtist = it }, label = { Text("Исполнитель") }, singleLine = true)
-                                            OutlinedTextField(tagAlbum, { tagAlbum = it }, label = { Text("Альбом") }, singleLine = true)
-                                            OutlinedTextField(tagYear, { tagYear = it.filter(Char::isDigit).take(4) }, label = { Text("Год") }, singleLine = true)
-                                        }
-                                    },
-                                    confirmButton = { TextButton(onClick = {
-                                        pendingTagTitle = tagTitle; pendingTagArtist = tagArtist
-                                        pendingTagAlbum = tagAlbum; pendingTagYear = tagYear
-                                        tagEditorTrack = null
-                                        chooseMp3ForTagEditing.launch(arrayOf("audio/mpeg", "audio/mp3", "audio/*"))
-                                    }) { Text("ВЫБРАТЬ MP3 И СОХРАНИТЬ", color = Accent) } },
-                                    dismissButton = { TextButton(onClick = { tagEditorTrack = null }) { Text("Отмена", color = MutedText) } },
-                                    containerColor = Panel
                                 )
                             }
 
