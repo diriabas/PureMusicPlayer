@@ -1,4 +1,4 @@
-\
+
 package com.diriabas.puremusicplayer
 
 import android.Manifest
@@ -1904,13 +1904,12 @@ class MainActivity : ComponentActivity() {
             .putInt("eq_virtualizer", virtualizer)
             .apply()
 
-        val intent = Intent(this, PlaybackService::class.java).apply {
-            action = PlaybackService.ACTION_UPDATE_EQUALIZER
-            putExtra("eq_enabled", enabled)
-            putExtra("eq_levels", levels.toIntArray())
-            putExtra("bass_strength", bass)
-            putExtra("virtualizer_strength", virtualizer)
-        }
+        val intent = Intent(this, PlaybackService::class.java)
+        intent.action = PlaybackService.ACTION_UPDATE_EQUALIZER
+        intent.putExtra("eq_enabled", enabled)
+        intent.putExtra("eq_levels", levels.toIntArray())
+        intent.putExtra("bass_strength", bass)
+        intent.putExtra("virtualizer_strength", virtualizer)
         startService(intent)
     }
 
