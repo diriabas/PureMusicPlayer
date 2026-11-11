@@ -580,7 +580,7 @@ class MainActivity : ComponentActivity() {
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    AlbumCover(albumId = currentTrack.albumId)
+                                    AlbumCover(albumId = currentTrack.albumId, themeSurface = Panel)
 
                                     Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
@@ -937,7 +937,7 @@ class MainActivity : ComponentActivity() {
                                             .padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        AlbumThumbnail(albumId = sample.albumId)
+                                        AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel)
                                         Spacer(Modifier.width(12.dp))
                                         Column(Modifier.weight(1f)) {
                                             Text(sample.album, color = TextPrimary, fontWeight = FontWeight.SemiBold)
@@ -1002,7 +1002,7 @@ class MainActivity : ComponentActivity() {
                                                     .padding(10.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                AlbumThumbnail(albumId = track.albumId)
+                                                AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
                                                 Spacer(Modifier.width(10.dp))
                                                 Text(
                                                     "⠿",
@@ -1108,7 +1108,7 @@ class MainActivity : ComponentActivity() {
                                                 .padding(10.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            AlbumThumbnail(albumId = track.albumId)
+                                            AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
 
                                             Spacer(Modifier.width(12.dp))
 
@@ -1523,7 +1523,7 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        AlbumThumbnail(albumId = currentTrack.albumId)
+                                        AlbumThumbnail(albumId = currentTrack.albumId, themeSurface = Panel)
                                         Spacer(Modifier.width(10.dp))
                                         Column(
                                             modifier = Modifier
