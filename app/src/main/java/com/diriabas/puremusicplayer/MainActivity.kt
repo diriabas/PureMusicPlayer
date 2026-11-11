@@ -24,6 +24,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -1371,57 +1372,48 @@ class MainActivity : ComponentActivity() {
                                                 Text("Цвет оформления", color = TextPrimary, fontWeight = FontWeight.SemiBold)
                                                 Text("Выбери фон. Позолота и вензель AV остаются неизменными.", color = MutedText, fontSize = 12.sp)
                                                 Spacer(Modifier.height(12.dp))
-                                                playerThemes.chunked(2).forEach { themeRow ->
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                                    ) {
-                                                        themeRow.forEach { theme ->
-                                                            val selected = selectedThemeName == theme.name
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .horizontalScroll(rememberScrollState()),
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+                                                    playerThemes.forEach { theme ->
+                                                        val selected = selectedThemeName == theme.name
+                                                        Column(
+                                                            modifier = Modifier
+                                                                .size(112.dp)
+                                                                .background(theme.background, RoundedCornerShape(14.dp))
+                                                                .border(
+                                                                    width = if (selected) 2.dp else 1.dp,
+                                                                    color = if (selected) Accent else theme.panelRaised,
+                                                                    shape = RoundedCornerShape(14.dp)
+                                                                )
+                                                                .clickable {
+                                                                    selectedThemeName = theme.name
+                                                                    playerPreferences.edit().putString("player_theme", theme.name).apply()
+                                                                }
+                                                                .padding(8.dp),
+                                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                                            verticalArrangement = Arrangement.Center
+                                                        ) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .weight(1f)
-                                                                    .aspectRatio(1f)
-                                                                    .padding(3.dp)
-                                                                    .background(theme.background, RoundedCornerShape(12.dp))
-                                                                    .border(
-                                                                        width = if (selected) 2.dp else 1.dp,
-                                                                        color = if (selected) Accent else theme.panelRaised,
-                                                                        shape = RoundedCornerShape(12.dp)
-                                                                    )
-                                                                    .clickable {
-                                                                        selectedThemeName = theme.name
-                                                                        playerPreferences.edit().putString("player_theme", theme.name).apply()
-                                                                    }
-                                                                    .padding(8.dp),
-                                                                contentAlignment = Alignment.Center
-                                                            ) {
-                                                                Column(
-                                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                                    verticalArrangement = Arrangement.Center
-                                                                ) {
-                                                                    Box(
-                                                                        modifier = Modifier
-                                                                            .size(28.dp)
-                                                                            .background(theme.panelRaised, RoundedCornerShape(8.dp))
-                                                                            .border(1.dp, Accent.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
-                                                                    )
-                                                                    Spacer(Modifier.height(8.dp))
-                                                                    Text(
-                                                                        theme.name,
-                                                                        color = theme.textPrimary,
-                                                                        fontSize = 11.sp,
-                                                                        lineHeight = 13.sp,
-                                                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                                        maxLines = 2,
-                                                                        overflow = TextOverflow.Ellipsis
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                        if (themeRow.size == 1) {
-                                                            Spacer(Modifier.weight(1f))
+                                                                    .size(30.dp)
+                                                                    .background(theme.panelRaised, RoundedCornerShape(9.dp))
+                                                                    .border(1.dp, Accent.copy(alpha = 0.85f), RoundedCornerShape(9.dp))
+                                                            )
+                                                            Spacer(Modifier.height(8.dp))
+                                                            Text(
+                                                                theme.name,
+                                                                color = theme.textPrimary,
+                                                                fontSize = 11.sp,
+                                                                lineHeight = 13.sp,
+                                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                                maxLines = 2,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
                                                         }
                                                     }
                                                 }
