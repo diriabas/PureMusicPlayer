@@ -810,6 +810,51 @@ class MainActivity : ComponentActivity() {
                                     .padding(vertical = 8.dp)
                             )
 
+                            if (libraryMode == "Композиции" && selectedPlaylist == null) {
+                                Spacer(Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "Сортировка:",
+                                        color = MutedText,
+                                        fontSize = 13.sp
+                                    )
+                                    Box {
+                                        TextButton(onClick = { sortMenuExpanded = true }) {
+                                            Text(
+                                                sortMode,
+                                                color = Accent,
+                                                fontSize = 13.sp
+                                            )
+                                            Text(" ▾", color = Accent)
+                                        }
+                                        DropdownMenu(
+                                            expanded = sortMenuExpanded,
+                                            onDismissRequest = { sortMenuExpanded = false },
+                                            containerColor = Panel
+                                        ) {
+                                            listOf("По названию", "По исполнителю").forEach { option ->
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            option,
+                                                            color = if (sortMode == option) Accent else Color.White
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        sortMode = option
+                                                        sortMenuExpanded = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             if (libraryMode == "Альбомы" && selectedAlbumId == null) {
                                 val albums = visibleTracks.groupBy { it.albumId }
                                     .values
