@@ -75,11 +75,31 @@ private data class Track(
     val durationMs: Long
 )
 
-private val Accent = Color(0xFFD6B878) // Champagne gold
-private val Background = Color(0xFF0B0C0E)
-private val Panel = Color(0xFF17191D)
-private val PanelRaised = Color(0xFF202329)
-private val MutedText = Color(0xFFA7A9AE)
+// Тёплая светлая палитра с сохранением фирменной позолоты
+private val Accent = Color(0xFFD6B878) // Champagne gold — фирменный акцент
+private val Background = Color(0xFFFFF8EC) // Светлый сливочный фон
+private val Panel = Color(0xFFFFFDF8) // Почти белые карточки
+private val PanelRaised = Color(0xFFF3EBDD) // Тёплый оттенок для вложенных элементов
+private val MutedText = Color(0xFF8B7962) // Приглушённый тёплый текст
+private val TextPrimary = Color(0xFF493A2A) // Основной текст
+
+private data class PlayerTheme(
+    val name: String,
+    val background: Color,
+    val panel: Color,
+    val panelRaised: Color,
+    val mutedText: Color,
+    val textPrimary: Color
+)
+
+private val playerThemes = listOf(
+    PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
+    PlayerTheme("Нежно-серый", Color(0xFFF1F0EE), Color(0xFFFFFEFC), Color(0xFFE7E5E1), Color(0xFF77736D), Color(0xFF393733)),
+    PlayerTheme("Светло-серый", Color(0xFFE5E7E9), Color(0xFFF7F8F9), Color(0xFFD5D9DD), Color(0xFF68717A), Color(0xFF303840)),
+    PlayerTheme("Голубой", Color(0xFFEAF5FA), Color(0xFFF9FDFF), Color(0xFFD8EBF4), Color(0xFF668494), Color(0xFF294653)),
+    PlayerTheme("Синий", Color(0xFFE8EFFB), Color(0xFFF8FAFF), Color(0xFFD5E1F4), Color(0xFF657895), Color(0xFF263B5A)),
+    PlayerTheme("Зелёный", Color(0xFFEDF5EA), Color(0xFFFBFEF9), Color(0xFFDDEBD7), Color(0xFF6D8267), Color(0xFF344A30))
+)
 
 
 private data class EqualizerPreset(
@@ -187,7 +207,7 @@ class MainActivity : ComponentActivity() {
 
             if (exoPlayer == null) {
                 MaterialTheme(
-                    colorScheme = darkColorScheme(
+                    colorScheme = lightColorScheme(
                         primary = Accent,
                         background = Background,
                         surface = Panel
@@ -203,12 +223,23 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Text(
                                 "Подключение аудиоплеера…",
-                                color = Color.White
+                                color = TextPrimary
                             )
                         }
                     }
                 }
             } else {
+                var selectedThemeName by remember {
+                    mutableStateOf(playerPreferences.getString("player_theme", "Сливочный") ?: "Сливочный")
+                }
+                val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
+                val Accent = Color(0xFFD6B878)
+                val Background = currentTheme.background
+                val Panel = currentTheme.panel
+                val PanelRaised = currentTheme.panelRaised
+                val MutedText = currentTheme.mutedText
+                val TextPrimary = currentTheme.textPrimary
+
                 var tracks by remember { mutableStateOf(loadTracks()) }
                 var currentIndex by remember { mutableIntStateOf(-1) }
                 var playbackQueue by remember { mutableStateOf(tracks) }
@@ -471,7 +502,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 MaterialTheme(
-                    colorScheme = darkColorScheme(
+                    colorScheme = lightColorScheme(
                         primary = Accent,
                         background = Background,
                         surface = Panel
@@ -548,7 +579,7 @@ class MainActivity : ComponentActivity() {
 
                                     Text(
                                         text = currentTrack.title,
-                                        color = Color.White,
+                                        color = TextPrimary,
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Medium,
                                         letterSpacing = 0.05.sp,
@@ -614,7 +645,7 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(
                                             text = "⤨",
-                                            color = if (shuffleEnabled) Accent else Color(0xFFD0D0D0),
+                                            color = if (shuffleEnabled) Accent else MutedText,
                                             fontSize = 30.sp,
                                             modifier = Modifier.clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
@@ -707,7 +738,7 @@ class MainActivity : ComponentActivity() {
                                                 Player.REPEAT_MODE_ALL -> "↻"
                                                 else -> "↻"
                                             },
-                                            color = if (repeatMode == Player.REPEAT_MODE_OFF) Color(0xFFD0D0D0) else Accent,
+                                            color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
                                             fontSize = 30.sp,
                                             modifier = Modifier.clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
@@ -726,7 +757,7 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 Spacer(Modifier.height(18.dp))
-                                HorizontalDivider(color = Color(0xFF34302A))
+                                HorizontalDivider(color = Color(0xFFE5D7BD))
                                 Spacer(Modifier.height(12.dp))
                             }
 
@@ -750,7 +781,7 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Text(
                                                 text = "Музыка",
-                                                color = Color.White,
+                                                color = TextPrimary,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -768,7 +799,7 @@ class MainActivity : ComponentActivity() {
                                     val isSelected = libraryMode == mode
                                     Text(
                                         text = mode,
-                                        color = if (isSelected) Background else Accent,
+                                        color = if (isSelected) TextPrimary else Accent,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -866,7 +897,7 @@ class MainActivity : ComponentActivity() {
                                                     text = {
                                                         Text(
                                                             option,
-                                                            color = if (sortMode == option) Accent else Color.White
+                                                            color = if (sortMode == option) Accent else TextPrimary
                                                         )
                                                     },
                                                     onClick = {
@@ -901,8 +932,8 @@ class MainActivity : ComponentActivity() {
                                         AlbumThumbnail(albumId = sample.albumId)
                                         Spacer(Modifier.width(12.dp))
                                         Column(Modifier.weight(1f)) {
-                                            Text(sample.album, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                            Text(sample.artist, color = Color.LightGray, fontSize = 12.sp)
+                                            Text(sample.album, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            Text(sample.artist, color = MutedText, fontSize = 12.sp)
                                         }
                                         Text("${albumTracks.size} тр.", color = Accent, fontSize = 12.sp)
                                     }
@@ -933,7 +964,7 @@ class MainActivity : ComponentActivity() {
                                                 Text(artistName.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                                             }
                                             Spacer(Modifier.width(12.dp))
-                                            Text(artistName, color = Color.White, modifier = Modifier.weight(1f))
+                                            Text(artistName, color = TextPrimary, modifier = Modifier.weight(1f))
                                             Text("${artistTracks.size} тр.", color = Accent, fontSize = 12.sp)
                                         }
                                         Spacer(Modifier.height(7.dp))
@@ -946,7 +977,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
                                 if (visibleTracks.isEmpty()) {
-                                    Text("В этом плейлисте пока нет песен.", color = Color.LightGray)
+                                    Text("В этом плейлисте пока нет песен.", color = MutedText)
                                 } else {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -956,7 +987,7 @@ class MainActivity : ComponentActivity() {
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .background(
-                                                        color = if (track.id == currentTrack?.id) Color(0xFF302A20) else Panel,
+                                                        color = if (track.id == currentTrack?.id) Color(0xFFF1E4CC) else Panel,
                                                         shape = RoundedCornerShape(13.dp)
                                                     )
                                                     .clickable { playAt(track, visibleTracks) }
@@ -991,14 +1022,14 @@ class MainActivity : ComponentActivity() {
                                                 Column(Modifier.weight(1f)) {
                                                     Text(
                                                         track.title,
-                                                        color = Color.White,
+                                                        color = TextPrimary,
                                                         fontSize = 15.sp,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
                                                     )
                                                     Text(
                                                         track.artist,
-                                                        color = Color.LightGray,
+                                                        color = MutedText,
                                                         fontSize = 12.sp,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
@@ -1044,7 +1075,7 @@ class MainActivity : ComponentActivity() {
                                     } else {
                                         "В этом плейлисте пока нет песен."
                                     },
-                                    color = Color.LightGray
+                                    color = MutedText
                                 )
                             } else {
                                 Column(
@@ -1056,7 +1087,7 @@ class MainActivity : ComponentActivity() {
                                                 .fillMaxWidth()
                                                 .background(
                                                     color = if (track.id == currentTrack?.id) {
-                                                        Color(0xFF302A20)
+                                                        Color(0xFFF1E4CC)
                                                     } else {
                                                         Panel
                                                     },
@@ -1077,7 +1108,7 @@ class MainActivity : ComponentActivity() {
                                             ) {
                                                 Text(
                                                     text = track.title,
-                                                    color = Color.White,
+                                                    color = TextPrimary,
                                                     fontSize = 15.sp,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
@@ -1085,7 +1116,7 @@ class MainActivity : ComponentActivity() {
 
                                                 Text(
                                                     text = track.artist,
-                                                    color = Color.LightGray,
+                                                    color = MutedText,
                                                     fontSize = 12.sp,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
@@ -1160,7 +1191,7 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Text(
                                                 text = "Плейлисты",
-                                                color = Color.White,
+                                                color = TextPrimary,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -1206,7 +1237,7 @@ class MainActivity : ComponentActivity() {
                                                         Text("♫", color = Accent, fontSize = 24.sp)
                                                         Spacer(Modifier.width(12.dp))
                                                         Column(Modifier.weight(1f)) {
-                                                            Text(name, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                            Text(name, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                                                             Text("${playlistTracks.size} композиций", color = MutedText, fontSize = 12.sp)
                                                         }
                                                         if (playlistTracks.isNotEmpty()) {
@@ -1272,7 +1303,7 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Text(
                                                 text = "Звук",
-                                                color = Color.White,
+                                                color = TextPrimary,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -1288,13 +1319,13 @@ class MainActivity : ComponentActivity() {
                                                     .background(Panel, RoundedCornerShape(18.dp))
                                                     .padding(16.dp)
                                             ) {
-                                                Text("Эквалайзер · 10 полос", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                Text("Эквалайзер · 10 полос", color = TextPrimary, fontWeight = FontWeight.SemiBold)
                                                 Text("6 готовых пресетов и ручная настройка", color = MutedText, fontSize = 12.sp)
                                                 Spacer(Modifier.height(14.dp))
-                                                Text("Усиление баса", color = Color.White)
+                                                Text("Усиление баса", color = TextPrimary)
                                                 Text("${bassStrength} %", color = Accent, fontSize = 12.sp)
                                                 Spacer(Modifier.height(8.dp))
-                                                Text("Объёмное звучание", color = Color.White)
+                                                Text("Объёмное звучание", color = TextPrimary)
                                                 Text("${virtualizerStrength} %", color = Accent, fontSize = 12.sp)
                                                 Spacer(Modifier.height(16.dp))
                                                 Button(
@@ -1317,7 +1348,7 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Text(
                                                 text = "Настройки",
-                                                color = Color.White,
+                                                color = TextPrimary,
                                                 fontSize = 27.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -1327,6 +1358,60 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
                                             )
+
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(Panel, RoundedCornerShape(14.dp))
+                                                    .padding(16.dp)
+                                            ) {
+                                                Text("Цвет оформления", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                                Text("Выбери фон. Позолота и вензель AV остаются неизменными.", color = MutedText, fontSize = 12.sp)
+                                                Spacer(Modifier.height(12.dp))
+                                                playerThemes.chunked(2).forEach { themeRow ->
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                    ) {
+                                                        themeRow.forEach { theme ->
+                                                            val selected = selectedThemeName == theme.name
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .weight(1f)
+                                                                    .padding(vertical = 4.dp)
+                                                                    .background(theme.background, RoundedCornerShape(10.dp))
+                                                                    .border(
+                                                                        width = if (selected) 2.dp else 1.dp,
+                                                                        color = if (selected) Accent else theme.panelRaised,
+                                                                        shape = RoundedCornerShape(10.dp)
+                                                                    )
+                                                                    .clickable {
+                                                                        selectedThemeName = theme.name
+                                                                        playerPreferences.edit().putString("player_theme", theme.name).apply()
+                                                                    }
+                                                                    .padding(horizontal = 10.dp, vertical = 12.dp),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(20.dp)
+                                                                        .background(theme.panelRaised, RoundedCornerShape(6.dp))
+                                                                        .border(1.dp, Accent, RoundedCornerShape(6.dp))
+                                                                )
+                                                                Spacer(Modifier.width(8.dp))
+                                                                Text(
+                                                                    theme.name,
+                                                                    color = theme.textPrimary,
+                                                                    fontSize = 12.sp,
+                                                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                                                                )
+                                                            }
+                                                        }
+                                                        if (themeRow.size == 1) Spacer(Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                            Spacer(Modifier.height(10.dp))
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -1337,7 +1422,7 @@ class MainActivity : ComponentActivity() {
                                                 Text("♫", color = Accent, fontSize = 24.sp)
                                                 Spacer(Modifier.width(14.dp))
                                                 Column(Modifier.weight(1f)) {
-                                                    Text("Музыкальная библиотека", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                    Text("Музыкальная библиотека", color = TextPrimary, fontWeight = FontWeight.SemiBold)
                                                     Text("${tracks.size} аудиофайлов найдено", color = MutedText, fontSize = 12.sp)
                                                 }
                                             }
@@ -1348,7 +1433,7 @@ class MainActivity : ComponentActivity() {
                                                     .background(Panel, RoundedCornerShape(14.dp))
                                                     .padding(16.dp)
                                             ) {
-                                                Text("Таймер сна", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                                Text("Таймер сна", color = TextPrimary, fontWeight = FontWeight.SemiBold)
                                                 Text(
                                                     if (sleepTimerMinutes > 0) {
                                                         val mins = (sleepTimerRemaining / 60_000L).toInt()
@@ -1421,10 +1506,10 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxWidth(0.92f)
                                     .align(Alignment.CenterHorizontally)
                                     .windowInsetsPadding(WindowInsets.navigationBars)
-                                    .background(Color(0xFF101114), RoundedCornerShape(18.dp))
+                                    .background(Color(0xFFFFF8EC), RoundedCornerShape(18.dp))
                                     .border(
                                         width = 1.dp,
-                                        color = Color(0xFF302A20),
+                                        color = Color(0xFFF1E4CC),
                                         shape = RoundedCornerShape(18.dp)
                                     )
                                     .padding(top = 5.dp, bottom = 6.dp),
@@ -1449,13 +1534,13 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         Text(
                                             text = symbol,
-                                            color = if (selected) Accent else Color(0xFFC1C1C5),
+                                            color = if (selected) Accent else MutedText,
                                             fontSize = 21.sp,
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                         )
                                         Text(
                                             text = label,
-                                            color = if (selected) Accent else Color(0xFFC1C1C5),
+                                            color = if (selected) Accent else MutedText,
                                             fontSize = 9.sp,
                                             maxLines = 1
                                         )
@@ -1474,7 +1559,7 @@ class MainActivity : ComponentActivity() {
                             if (playlistToRename != null) {
                                 AlertDialog(
                                     onDismissRequest = { playlistToRename = null },
-                                    title = { Text("Переименовать плейлист", color = Color.White) },
+                                    title = { Text("Переименовать плейлист", color = TextPrimary) },
                                     text = {
                                         OutlinedTextField(
                                             value = renamePlaylistInput,
@@ -1520,7 +1605,7 @@ class MainActivity : ComponentActivity() {
                                 val nameToDelete = playlistToDelete
                                 AlertDialog(
                                     onDismissRequest = { playlistToDelete = null },
-                                    title = { Text("Удалить плейлист?", color = Color.White) },
+                                    title = { Text("Удалить плейлист?", color = TextPrimary) },
                                     text = { Text("Плейлист «$nameToDelete» будет удалён. Музыкальные файлы останутся в библиотеке.") },
                                     confirmButton = {
                                         TextButton(onClick = {
@@ -1550,7 +1635,7 @@ class MainActivity : ComponentActivity() {
                             if (createPlaylistDialogOpen) {
                                 AlertDialog(
                                     onDismissRequest = { createPlaylistDialogOpen = false },
-                                    title = { Text("Новый плейлист", color = Color.White) },
+                                    title = { Text("Новый плейлист", color = TextPrimary) },
                                     text = {
                                         OutlinedTextField(
                                             value = playlistNameInput,
@@ -1588,7 +1673,7 @@ class MainActivity : ComponentActivity() {
                             if (sleepTimerDialogOpen) {
                                 AlertDialog(
                                     onDismissRequest = { sleepTimerDialogOpen = false },
-                                    title = { Text("Таймер сна", color = Color.White) },
+                                    title = { Text("Таймер сна", color = TextPrimary) },
                                     text = {
                                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                             listOf(15, 30, 45, 60, 90).forEach { minutes ->
@@ -1621,7 +1706,7 @@ class MainActivity : ComponentActivity() {
                             if (equalizerDialogOpen) {
                                 AlertDialog(
                                     onDismissRequest = { equalizerDialogOpen = false },
-                                    title = { Text("Эквалайзер", color = Color.White) },
+                                    title = { Text("Эквалайзер", color = TextPrimary) },
                                     text = {
                                         Column(
                                             modifier = Modifier
@@ -1634,7 +1719,7 @@ class MainActivity : ComponentActivity() {
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text("Эквалайзер включён", color = Color.White)
+                                                Text("Эквалайзер включён", color = TextPrimary)
                                                 Switch(
                                                     checked = equalizerEnabled,
                                                     onCheckedChange = {
@@ -1685,7 +1770,7 @@ class MainActivity : ComponentActivity() {
 
                                             Text(
                                                 "Частотные полосы · от −12 до +12 дБ",
-                                                color = Color.LightGray,
+                                                color = MutedText,
                                                 fontSize = 12.sp
                                             )
 
@@ -1695,7 +1780,7 @@ class MainActivity : ComponentActivity() {
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween
                                                     ) {
-                                                        Text(label, color = Color.White, fontSize = 12.sp)
+                                                        Text(label, color = TextPrimary, fontSize = 12.sp)
                                                         Text(
                                                             "${equalizerLevels[index]} дБ",
                                                             color = Accent,
@@ -1727,7 +1812,7 @@ class MainActivity : ComponentActivity() {
                                             }
 
                                             HorizontalDivider(color = Panel)
-                                            Text("Усиление баса", color = Color.White)
+                                            Text("Усиление баса", color = TextPrimary)
                                             Slider(
                                                 value = bassStrength.toFloat(),
                                                 onValueChange = { bassStrength = it.toInt() },
@@ -1744,9 +1829,9 @@ class MainActivity : ComponentActivity() {
                                                     activeTrackColor = Accent
                                                 )
                                             )
-                                            Text("$bassStrength %", color = Color.LightGray, fontSize = 12.sp)
+                                            Text("$bassStrength %", color = MutedText, fontSize = 12.sp)
 
-                                            Text("Объёмное звучание", color = Color.White)
+                                            Text("Объёмное звучание", color = TextPrimary)
                                             Slider(
                                                 value = virtualizerStrength.toFloat(),
                                                 onValueChange = { virtualizerStrength = it.toInt() },
@@ -1763,7 +1848,7 @@ class MainActivity : ComponentActivity() {
                                                     activeTrackColor = Accent
                                                 )
                                             )
-                                            Text("$virtualizerStrength %", color = Color.LightGray, fontSize = 12.sp)
+                                            Text("$virtualizerStrength %", color = MutedText, fontSize = 12.sp)
 
                                             TextButton(onClick = {
                                                 equalizerLevels = List(10) { 0 }
