@@ -996,9 +996,11 @@ class MainActivity : ComponentActivity() {
                                             ) {
                                                 AlbumThumbnail(albumId = track.albumId)
                                                 Spacer(Modifier.width(10.dp))
-                                                Box(
+                                                Text(
+                                                    "⠿",
+                                                    color = Accent,
+                                                    fontSize = 24.sp,
                                                     modifier = Modifier
-                                                        .size(width = 36.dp, height = 44.dp)
                                                         .pointerInput(track.id, selectedPlaylist, dragThresholdPx) {
                                                             var accumulatedDrag = 0f
                                                             detectDragGestures(
@@ -1014,11 +1016,9 @@ class MainActivity : ComponentActivity() {
                                                                     }
                                                                 }
                                                             )
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text("⠿", color = Accent, fontSize = 24.sp)
-                                                }
+                                                        }
+                                                        .padding(horizontal = 7.dp, vertical = 4.dp)
+                                                )
                                                 Column(Modifier.weight(1f)) {
                                                     Text(
                                                         track.title,
@@ -1035,44 +1035,35 @@ class MainActivity : ComponentActivity() {
                                                         overflow = TextOverflow.Ellipsis
                                                     )
                                                 }
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(40.dp)
-                                                            .clickable {
-                                                                val name = selectedPlaylist
-                                                                if (name != null) {
-                                                                    val updated = playlists.toMutableMap()
-                                                                    updated[name] = updated[name].orEmpty().filterNot { it == track.id }
-                                                                    playlists = updated
-                                                                    savePlaylists(updated)
-                                                                }
-                                                            },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text("−", color = Accent, fontSize = 23.sp)
-                                                    }
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(40.dp)
-                                                            .clickable {
-                                                                val updated = favoriteIds.toMutableSet()
-                                                                if (track.id in updated) updated.remove(track.id) else updated.add(track.id)
-                                                                favoriteIds = updated
-                                                                saveFavorites(updated)
-                                                            },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(
-                                                            if (track.id in favoriteIds) "★" else "☆",
-                                                            color = Accent,
-                                                            fontSize = 21.sp
-                                                        )
-                                                    }
-                                                }
+                                                Text(
+                                                    "−",
+                                                    color = Accent,
+                                                    fontSize = 23.sp,
+                                                    modifier = Modifier
+                                                        .clickable {
+                                                            val name = selectedPlaylist
+                                                            if (name != null) {
+                                                                val updated = playlists.toMutableMap()
+                                                                updated[name] = updated[name].orEmpty().filterNot { it == track.id }
+                                                                playlists = updated
+                                                                savePlaylists(updated)
+                                                            }
+                                                        }
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                                Text(
+                                                    if (track.id in favoriteIds) "★" else "☆",
+                                                    color = Accent,
+                                                    fontSize = 21.sp,
+                                                    modifier = Modifier
+                                                        .clickable {
+                                                            val updated = favoriteIds.toMutableSet()
+                                                            if (track.id in updated) updated.remove(track.id) else updated.add(track.id)
+                                                            favoriteIds = updated
+                                                            saveFavorites(updated)
+                                                        }
+                                                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -1132,62 +1123,55 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
 
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(40.dp)
-                                                        .clickable {
-                                                            val playlistName = selectedPlaylist
-                                                            if (playlistName != null) {
-                                                                val updated = playlists.toMutableMap()
-                                                                updated[playlistName] = updated[playlistName]
-                                                                    .orEmpty()
-                                                                    .filterNot { it == track.id }
-                                                                playlists = updated
-                                                                savePlaylists(updated)
-                                                            } else {
-                                                                pendingTrack = track
-                                                            }
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        if (selectedPlaylist != null) "−" else "＋",
-                                                        color = Accent,
-                                                        fontSize = 23.sp
+                                            Text(
+                                                text = if (selectedPlaylist != null) "−" else "＋",
+                                                color = Accent,
+                                                fontSize = 23.sp,
+                                                modifier = Modifier
+                                                    .clickable {
+                                                        val playlistName = selectedPlaylist
+                                                        if (playlistName != null) {
+                                                            val updated = playlists.toMutableMap()
+                                                            updated[playlistName] = updated[playlistName]
+                                                                .orEmpty()
+                                                                .filterNot { it == track.id }
+                                                            playlists = updated
+                                                            savePlaylists(updated)
+                                                        } else {
+                                                            pendingTrack = track
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                            Text(
+                                                text = if (track.id in favoriteIds) "★" else "☆",
+                                                color = Accent,
+                                                fontSize = 21.sp,
+                                                modifier = Modifier
+                                                    .clickable {
+                                                        val updated =
+                                                            favoriteIds.toMutableSet()
+
+                                                        if (!updated.add(track.id)) {
+                                                            updated.remove(track.id)
+                                                        }
+
+                                                        favoriteIds = updated
+                                                        saveFavorites(updated)
+                                                    }
+                                                    .padding(
+                                                        horizontal = 7.dp,
+                                                        vertical = 4.dp
                                                     )
-                                                }
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(40.dp)
-                                                        .clickable {
-                                                            val updated = favoriteIds.toMutableSet()
-                                                            if (!updated.add(track.id)) updated.remove(track.id)
-                                                            favoriteIds = updated
-                                                            saveFavorites(updated)
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        if (track.id in favoriteIds) "★" else "☆",
-                                                        color = Accent,
-                                                        fontSize = 21.sp
-                                                    )
-                                                }
-                                                Box(
-                                                    modifier = Modifier.size(40.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        if (track.id == currentTrack?.id && playing) "Ⅱ" else "▶",
-                                                        color = Accent,
-                                                        fontSize = 19.sp
-                                                    )
-                                                }
-                                            }
+                                            )
+
+                                            Text(
+                                                text = if (
+                                                    track.id == currentTrack?.id && playing
+                                                ) "Ⅱ" else "▶",
+                                                color = Accent,
+                                                fontSize = 19.sp
+                                            )
                                         }
                                     }
                                 }
@@ -1513,6 +1497,94 @@ class MainActivity : ComponentActivity() {
                                             )
                                             Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
                                         }
+                                    }
+                                }
+                            }
+
+                            if (selectedTab != 0 && currentTrack != null) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.92f)
+                                        .align(Alignment.CenterHorizontally)
+                                        .padding(bottom = 8.dp)
+                                        .background(Panel, RoundedCornerShape(16.dp))
+                                        .border(1.dp, Accent.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+                                        .clickable { selectedTab = 0 }
+                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AlbumThumbnail(albumId = currentTrack.albumId)
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clickable { selectedTab = 0 }
+                                        ) {
+                                            Text(
+                                                currentTrack.title,
+                                                color = TextPrimary,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                currentTrack.artist,
+                                                color = MutedText,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clickable { exoPlayer.seekToPreviousMediaItem() },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("◀", color = Accent, fontSize = 17.sp)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .background(PanelRaised, RoundedCornerShape(20.dp))
+                                                .clickable {
+                                                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                    playing = exoPlayer.isPlaying
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                if (playing) "Ⅱ" else "▶",
+                                                color = Accent,
+                                                fontSize = 17.sp
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clickable { exoPlayer.seekToNextMediaItem() },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("▶", color = Accent, fontSize = 17.sp)
+                                        }
+                                    }
+                                    Spacer(Modifier.height(7.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(3.dp)
+                                            .background(PanelRaised, RoundedCornerShape(2.dp))
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(position.coerceIn(0f, 1f))
+                                                .fillMaxHeight()
+                                                .background(Accent, RoundedCornerShape(2.dp))
+                                        )
                                     }
                                 }
                             }
