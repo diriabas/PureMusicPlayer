@@ -693,8 +693,7 @@ class MainActivity : ComponentActivity() {
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Canvas(modifier = Modifier.fillMaxSize()) {
-                                                // Fixed 68 dp circle; both icons are drawn from its exact center.
-                                                drawCircle(color = PanelRaised)
+                                                // Play/pause glyph stays centered; no decorative circle behind it.
                                                 val cx = size.width / 2f
                                                 val cy = size.height / 2f
                                                 if (playing) {
@@ -1043,12 +1042,12 @@ class MainActivity : ComponentActivity() {
                                                         overflow = TextOverflow.Ellipsis
                                                     )
                                                 }
-                                                Text(
-                                                    "−",
-                                                    color = Accent,
-                                                    fontSize = 23.sp,
-                                                    modifier = Modifier
-                                                        .clickable {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier.size(40.dp).clickable {
                                                             val name = selectedPlaylist
                                                             if (name != null) {
                                                                 val updated = playlists.toMutableMap()
@@ -1056,22 +1055,23 @@ class MainActivity : ComponentActivity() {
                                                                 playlists = updated
                                                                 savePlaylists(updated)
                                                             }
-                                                        }
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                )
-                                                Text(
-                                                    if (track.id in favoriteIds) "★" else "☆",
-                                                    color = Accent,
-                                                    fontSize = 21.sp,
-                                                    modifier = Modifier
-                                                        .clickable {
+                                                        },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text("−", color = Accent, fontSize = 23.sp)
+                                                    }
+                                                    Box(
+                                                        modifier = Modifier.size(40.dp).clickable {
                                                             val updated = favoriteIds.toMutableSet()
                                                             if (track.id in updated) updated.remove(track.id) else updated.add(track.id)
                                                             favoriteIds = updated
                                                             saveFavorites(updated)
-                                                        }
-                                                        .padding(horizontal = 4.dp, vertical = 4.dp)
-                                                )
+                                                        },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(if (track.id in favoriteIds) "★" else "☆", color = Accent, fontSize = 21.sp)
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1131,12 +1131,12 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
 
-                                            Text(
-                                                text = if (selectedPlaylist != null) "−" else "＋",
-                                                color = Accent,
-                                                fontSize = 23.sp,
-                                                modifier = Modifier
-                                                    .clickable {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.size(40.dp).clickable {
                                                         val playlistName = selectedPlaylist
                                                         if (playlistName != null) {
                                                             val updated = playlists.toMutableMap()
@@ -1148,38 +1148,33 @@ class MainActivity : ComponentActivity() {
                                                         } else {
                                                             pendingTrack = track
                                                         }
-                                                    }
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                            Text(
-                                                text = if (track.id in favoriteIds) "★" else "☆",
-                                                color = Accent,
-                                                fontSize = 21.sp,
-                                                modifier = Modifier
-                                                    .clickable {
-                                                        val updated =
-                                                            favoriteIds.toMutableSet()
-
-                                                        if (!updated.add(track.id)) {
-                                                            updated.remove(track.id)
-                                                        }
-
+                                                    },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(if (selectedPlaylist != null) "−" else "＋", color = Accent, fontSize = 23.sp)
+                                                }
+                                                Box(
+                                                    modifier = Modifier.size(40.dp).clickable {
+                                                        val updated = favoriteIds.toMutableSet()
+                                                        if (!updated.add(track.id)) updated.remove(track.id)
                                                         favoriteIds = updated
                                                         saveFavorites(updated)
-                                                    }
-                                                    .padding(
-                                                        horizontal = 7.dp,
-                                                        vertical = 4.dp
+                                                    },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(if (track.id in favoriteIds) "★" else "☆", color = Accent, fontSize = 21.sp)
+                                                }
+                                                Box(
+                                                    modifier = Modifier.size(40.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        if (track.id == currentTrack?.id && playing) "Ⅱ" else "▶",
+                                                        color = Accent,
+                                                        fontSize = 19.sp
                                                     )
-                                            )
-
-                                            Text(
-                                                text = if (
-                                                    track.id == currentTrack?.id && playing
-                                                ) "Ⅱ" else "▶",
-                                                color = Accent,
-                                                fontSize = 19.sp
-                                            )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1383,39 +1378,51 @@ class MainActivity : ComponentActivity() {
                                                     ) {
                                                         themeRow.forEach { theme ->
                                                             val selected = selectedThemeName == theme.name
-                                                            Row(
+                                                            Box(
                                                                 modifier = Modifier
                                                                     .weight(1f)
-                                                                    .padding(vertical = 4.dp)
-                                                                    .background(theme.background, RoundedCornerShape(10.dp))
+                                                                    .aspectRatio(1f)
+                                                                    .padding(3.dp)
+                                                                    .background(theme.background, RoundedCornerShape(12.dp))
                                                                     .border(
                                                                         width = if (selected) 2.dp else 1.dp,
                                                                         color = if (selected) Accent else theme.panelRaised,
-                                                                        shape = RoundedCornerShape(10.dp)
+                                                                        shape = RoundedCornerShape(12.dp)
                                                                     )
                                                                     .clickable {
                                                                         selectedThemeName = theme.name
                                                                         playerPreferences.edit().putString("player_theme", theme.name).apply()
                                                                     }
-                                                                    .padding(horizontal = 10.dp, vertical = 12.dp),
-                                                                verticalAlignment = Alignment.CenterVertically
+                                                                    .padding(8.dp),
+                                                                contentAlignment = Alignment.Center
                                                             ) {
-                                                                Box(
-                                                                    modifier = Modifier
-                                                                        .size(20.dp)
-                                                                        .background(theme.panelRaised, RoundedCornerShape(6.dp))
-                                                                        .border(1.dp, Accent, RoundedCornerShape(6.dp))
-                                                                )
-                                                                Spacer(Modifier.width(8.dp))
-                                                                Text(
-                                                                    theme.name,
-                                                                    color = theme.textPrimary,
-                                                                    fontSize = 12.sp,
-                                                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-                                                                )
+                                                                Column(
+                                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                                    verticalArrangement = Arrangement.Center
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .size(28.dp)
+                                                                            .background(theme.panelRaised, RoundedCornerShape(8.dp))
+                                                                            .border(1.dp, Accent.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                                                                    )
+                                                                    Spacer(Modifier.height(8.dp))
+                                                                    Text(
+                                                                        theme.name,
+                                                                        color = theme.textPrimary,
+                                                                        fontSize = 11.sp,
+                                                                        lineHeight = 13.sp,
+                                                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                                        maxLines = 2,
+                                                                        overflow = TextOverflow.Ellipsis
+                                                                    )
+                                                                }
                                                             }
                                                         }
-                                                        if (themeRow.size == 1) Spacer(Modifier.weight(1f))
+                                                        if (themeRow.size == 1) {
+                                                            Spacer(Modifier.weight(1f))
+                                                        }
                                                     }
                                                 }
                                             }
