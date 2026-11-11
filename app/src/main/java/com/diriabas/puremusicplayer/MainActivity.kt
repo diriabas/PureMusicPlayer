@@ -229,17 +229,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                var selectedThemeName by remember {
-                    mutableStateOf(playerPreferences.getString("player_theme", "Сливочный") ?: "Сливочный")
-                }
-                val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
-                val Accent = Color(0xFFD6B878)
-                val Background = currentTheme.background
-                val Panel = currentTheme.panel
-                val PanelRaised = currentTheme.panelRaised
-                val MutedText = currentTheme.mutedText
-                val TextPrimary = currentTheme.textPrimary
-
                 var tracks by remember { mutableStateOf(loadTracks()) }
                 var currentIndex by remember { mutableIntStateOf(-1) }
                 var playbackQueue by remember { mutableStateOf(tracks) }
@@ -253,6 +242,17 @@ class MainActivity : ComponentActivity() {
                 val playerPreferences = remember {
                     getSharedPreferences("pure_music_player", MODE_PRIVATE)
                 }
+                var selectedThemeName by remember {
+                    mutableStateOf(playerPreferences.getString("player_theme", "Сливочный") ?: "Сливочный")
+                }
+                val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
+                val Accent = Color(0xFFD6B878)
+                val Background = currentTheme.background
+                val Panel = currentTheme.panel
+                val PanelRaised = currentTheme.panelRaised
+                val MutedText = currentTheme.mutedText
+                val TextPrimary = currentTheme.textPrimary
+
                 var libraryMode by remember {
                     mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
                 }
