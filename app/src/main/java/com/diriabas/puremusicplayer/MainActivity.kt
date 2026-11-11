@@ -70,7 +70,9 @@ private data class Track(
     val artist: String,
     val uri: Uri,
     val albumId: Long,
-    val album: String
+    val album: String,
+    val dateAdded: Long,
+    val durationMs: Long
 )
 
 private val Accent = Color(0xFFD6B878) // Champagne gold
@@ -317,6 +319,22 @@ class MainActivity : ComponentActivity() {
                         when (sortMode) {
                             "По исполнителю" -> filtered.sortedWith(
                                 compareBy<Track> { it.artist.lowercase() }
+                                    .thenBy { it.title.lowercase() }
+                            )
+                            "Сначала новые" -> filtered.sortedWith(
+                                compareByDescending<Track> { it.dateAdded }
+                                    .thenBy { it.title.lowercase() }
+                            )
+                            "Сначала старые" -> filtered.sortedWith(
+                                compareBy<Track> { it.dateAdded }
+                                    .thenBy { it.title.lowercase() }
+                            )
+                            "По длительности ↑" -> filtered.sortedWith(
+                                compareBy<Track> { it.durationMs }
+                                    .thenBy { it.title.lowercase() }
+                            )
+                            "По длительности ↓" -> filtered.sortedWith(
+                                compareByDescending<Track> { it.durationMs }
                                     .thenBy { it.title.lowercase() }
                             )
                             else -> filtered.sortedBy { it.title.lowercase() }
@@ -836,7 +854,14 @@ class MainActivity : ComponentActivity() {
                                             onDismissRequest = { sortMenuExpanded = false },
                                             containerColor = Panel
                                         ) {
-                                            listOf("По названию", "По исполнителю").forEach { option ->
+                                            listOf(
+                                                "По названию",
+                                                "По исполнителю",
+                                                "Сначала новые",
+                                                "Сначала старые",
+                                                "По длительности ↑",
+                                                "По длительности ↓"
+                                            ).forEach { option ->
                                                 DropdownMenuItem(
                                                     text = {
                                                         Text(
@@ -2082,7 +2107,9 @@ class MainActivity : ComponentActivity() {
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM_ID
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.DATE_ADDED,
+            MediaStore.Audio.Media.DURATION
         )
 
         try {
@@ -2097,6 +2124,8 @@ class MainActivity : ComponentActivity() {
                 val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
                 val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
                 val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
@@ -2112,7 +2141,9 @@ class MainActivity : ComponentActivity() {
                         artist = artist,
                         uri = ContentUris.withAppendedId(collection, id),
                         albumId = cursor.getLong(albumColumn),
-                        album = "Неизвестный альбом"
+                        album = "Неизвестный альбом",
+                        dateAdded = cursor.getLong(dateAddedColumn),
+                        durationMs = cursor.getLong(durationColumn).coerceAtLeast(0L)
                     )
                 }
             }
