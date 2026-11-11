@@ -2435,4 +2435,3 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
         }
     }
 }
-
