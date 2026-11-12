@@ -102,6 +102,10 @@ private data class PlayerTheme(
 )
 
 private val playerThemes = listOf(
+    // Glass вынесена первой, чтобы карточка была видна сразу без горизонтальной прокрутки.
+    // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
+    PlayerTheme("Стеклянная", Color(0xFF101722), Color(0xB8223040), Color(0xD12D4054), Color(0xFFB7C7D8), Color(0xFFF1F6FC))
+
     // Светлые темы
     PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
     PlayerTheme("Нежно-серый", Color(0xFFF1F0EE), Color(0xFFFFFEFC), Color(0xFFE7E5E1), Color(0xFF77736D), Color(0xFF393733)),
@@ -116,8 +120,6 @@ private val playerThemes = listOf(
     PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF12312F), Color(0xFF1D4542), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
     PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF898E94), Color(0xFF686D73), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
     PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF34383E), Color(0xFF454A51), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
-    // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
-    PlayerTheme("Стеклянная", Color(0xFF101722), Color(0xB8223040), Color(0xD12D4054), Color(0xFFB7C7D8), Color(0xFFF1F6FC))
 )
 
 
