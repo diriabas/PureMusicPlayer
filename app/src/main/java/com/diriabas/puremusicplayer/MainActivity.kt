@@ -395,7 +395,6 @@ class MainActivity : ComponentActivity() {
                 var searchQuery by remember { mutableStateOf("") }
                 var favoritesOnly by remember { mutableStateOf(false) }
                 var favoriteIds by remember { mutableStateOf(loadFavorites()) }
-                var equalizerDialogOpen by remember { mutableStateOf(false) }
                 var equalizerEnabled by remember { mutableStateOf(loadEqualizerEnabled()) }
                 var equalizerLevels by remember { mutableStateOf(loadEqualizerLevels()) }
                 var bassStrength by remember { mutableIntStateOf(loadEffectStrength("bass", 0)) }
@@ -680,6 +679,40 @@ class MainActivity : ComponentActivity() {
                                                     .fillMaxWidth()
                                                     .padding(top = 26.dp, bottom = 16.dp)
                                             )
+                                            if (sleepTimerMinutes > 0) {
+                                                val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
+                                                val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(bottom = 12.dp)
+                                                        .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("◷", color = Accent, fontSize = 19.sp)
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Column(Modifier.weight(1f)) {
+                                                        Text("Таймер сна", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                                        Text("Остановка через %02d:%02d".format(timerMinutes, timerSeconds), color = MutedText, fontSize = 11.sp)
+                                                    }
+                                                    TextButton(
+                                                        onClick = { sleepTimerDialogOpen = true },
+                                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 1.dp)
+                                                    ) {
+                                                        Text("ИЗМЕНИТЬ", color = Accent, fontSize = 10.sp)
+                                                    }
+                                                    TextButton(
+                                                        onClick = {
+                                                            sleepTimerMinutes = 0
+                                                            startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 1.dp)
+                                                    ) {
+                                                        Text("×", color = MutedText, fontSize = 17.sp)
+                                                    }
+                                                }
+                                            }
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -904,6 +937,18 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
                                             )
+                                            TextButton(
+                                                onClick = {
+                                                    playlistNameInput = ""
+                                                    createPlaylistDialogOpen = true
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
+                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)
+                                            ) {
+                                                Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
+                                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -1294,18 +1339,6 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
                                             )
-                                            TextButton(
-                                                onClick = {
-                                                    playlistNameInput = ""
-                                                    createPlaylistDialogOpen = true
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
-                                            ) {
-                                                Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
-                                            }
-                                            Spacer(Modifier.height(12.dp))
                                             if (playlists.isEmpty()) {
                                                 Text(
                                                     text = "Пока нет плейлистов. Создай первую подборку или добавляй песни в плейлист из раздела «Музыка».",
@@ -1405,29 +1438,167 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
                                             )
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
-                                                    .padding(16.dp)
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
+                                                .padding(16.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text("Эквалайзер · 10 полос", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                Text("6 готовых пресетов и ручная настройка", color = MutedText, fontSize = 12.sp)
-                                                Spacer(Modifier.height(14.dp))
-                                                Text("Усиление баса", color = TextPrimary)
-                                                Text("${bassStrength} %", color = Accent, fontSize = 12.sp)
-                                                Spacer(Modifier.height(8.dp))
-                                                Text("Объёмное звучание", color = TextPrimary)
-                                                Text("${virtualizerStrength} %", color = Accent, fontSize = 12.sp)
-                                                Spacer(Modifier.height(16.dp))
-                                                Button(
-                                                    onClick = { equalizerDialogOpen = true },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Background)
+                                                Text("Эквалайзер включён", color = TextPrimary)
+                                                Switch(
+                                                    checked = equalizerEnabled,
+                                                    onCheckedChange = {
+                                                        equalizerEnabled = it
+                                                        sendEqualizerSettings(
+                                                            it, equalizerLevels, bassStrength, virtualizerStrength
+                                                        )
+                                                    }
+                                                )
+                                            }
+
+                                            Box {
+                                                TextButton(onClick = { presetMenuExpanded = true }) {
+                                                    Text("ПРЕСЕТЫ ▾", color = Accent)
+                                                }
+                                                DropdownMenu(
+                                                    expanded = presetMenuExpanded,
+                                                    onDismissRequest = { presetMenuExpanded = false },
+                                                    containerColor = Panel
                                                 ) {
-                                                    Text("ОТКРЫТЬ ЭКВАЛАЙЗЕР")
+                                                    equalizerPresets.forEach { preset ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(preset.name) },
+                                                            onClick = {
+                                                                equalizerLevels = preset.levels
+                                                                presetMenuExpanded = false
+                                                                sendEqualizerSettings(
+                                                                    equalizerEnabled, equalizerLevels,
+                                                                    bassStrength, virtualizerStrength
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+                                                    customProfiles.toSortedMap().forEach { (name, values) ->
+                                                        DropdownMenuItem(
+                                                            text = { Text("★ $name") },
+                                                            onClick = {
+                                                                equalizerLevels = values
+                                                                presetMenuExpanded = false
+                                                                sendEqualizerSettings(
+                                                                    equalizerEnabled, equalizerLevels,
+                                                                    bassStrength, virtualizerStrength
+                                                                )
+                                                            }
+                                                        )
+                                                    }
                                                 }
                                             }
+
+                                            Text(
+                                                "Частотные полосы · от −12 до +12 дБ",
+                                                color = MutedText,
+                                                fontSize = 12.sp
+                                            )
+
+                                            equalizerFrequencies.forEachIndexed { index, label ->
+                                                Column {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Text(label, color = TextPrimary, fontSize = 12.sp)
+                                                        Text(
+                                                            "${equalizerLevels[index]} дБ",
+                                                            color = Accent,
+                                                            fontSize = 12.sp
+                                                        )
+                                                    }
+                                                    Slider(
+                                                        value = equalizerLevels[index].toFloat(),
+                                                        onValueChange = { value ->
+                                                            equalizerLevels = equalizerLevels.toMutableList().also {
+                                                                it[index] = value.toInt()
+                                                            }
+                                                        },
+                                                        onValueChangeFinished = {
+                                                            sendEqualizerSettings(
+                                                                equalizerEnabled, equalizerLevels,
+                                                                bassStrength, virtualizerStrength
+                                                            )
+                                                        },
+                                                        valueRange = -12f..12f,
+                                                        steps = 23,
+                                                        enabled = equalizerEnabled,
+                                                        colors = SliderDefaults.colors(
+                                                            thumbColor = Accent,
+                                                            activeTrackColor = Accent
+                                                        )
+                                                    )
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = Panel)
+                                            Text("Усиление баса", color = TextPrimary)
+                                            Slider(
+                                                value = bassStrength.toFloat(),
+                                                onValueChange = { bassStrength = it.toInt() },
+                                                onValueChangeFinished = {
+                                                    sendEqualizerSettings(
+                                                        equalizerEnabled, equalizerLevels,
+                                                        bassStrength, virtualizerStrength
+                                                    )
+                                                },
+                                                valueRange = 0f..100f,
+                                                enabled = equalizerEnabled,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Accent,
+                                                    activeTrackColor = Accent
+                                                )
+                                            )
+                                            Text("$bassStrength %", color = MutedText, fontSize = 12.sp)
+
+                                            Text("Объёмное звучание", color = TextPrimary)
+                                            Slider(
+                                                value = virtualizerStrength.toFloat(),
+                                                onValueChange = { virtualizerStrength = it.toInt() },
+                                                onValueChangeFinished = {
+                                                    sendEqualizerSettings(
+                                                        equalizerEnabled, equalizerLevels,
+                                                        bassStrength, virtualizerStrength
+                                                    )
+                                                },
+                                                valueRange = 0f..100f,
+                                                enabled = equalizerEnabled,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Accent,
+                                                    activeTrackColor = Accent
+                                                )
+                                            )
+                                            Text("$virtualizerStrength %", color = MutedText, fontSize = 12.sp)
+
+                                            TextButton(onClick = {
+                                                equalizerLevels = List(10) { 0 }
+                                                bassStrength = 0
+                                                virtualizerStrength = 0
+                                                equalizerEnabled = true
+                                                sendEqualizerSettings(
+                                                    true, equalizerLevels, bassStrength, virtualizerStrength
+                                                )
+                                            }) {
+                                                Text("СБРОСИТЬ НАСТРОЙКИ", color = Accent)
+                                            }
+                                            TextButton(onClick = {
+                                                profileName = ""
+                                                saveProfileDialogOpen = true
+                                            }) {
+                                                Text("СОХРАНИТЬ СВОЙ ПРОФИЛЬ", color = Accent)
+                                            }
+                                        }
                                         }
                                     }
 
@@ -1464,14 +1635,17 @@ class MainActivity : ComponentActivity() {
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .horizontalScroll(rememberScrollState()),
-                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                    horizontalArrangement = Arrangement.spacedBy(7.dp)
                                                 ) {
                                                     playerThemes.forEach { theme ->
                                                         val selected = selectedThemeName == theme.name
                                                         Column(
                                                             modifier = Modifier
-                                                                .size(112.dp)
-                                                                .background(theme.background, RoundedCornerShape(14.dp))
+                                                                .size(width = 88.dp, height = 82.dp)
+                                                                .background(
+                                                                    Brush.linearGradient(listOf(theme.background, theme.panel, theme.panelRaised)),
+                                                                    RoundedCornerShape(12.dp)
+                                                                )
                                                                 .border(
                                                                     width = if (selected) 2.dp else 1.dp,
                                                                     color = if (selected) Accent else theme.panelRaised,
@@ -1481,22 +1655,25 @@ class MainActivity : ComponentActivity() {
                                                                     selectedThemeName = theme.name
                                                                     playerPreferences.edit().putString("player_theme", theme.name).apply()
                                                                 }
-                                                                .padding(8.dp),
+                                                                .padding(6.dp),
                                                             horizontalAlignment = Alignment.CenterHorizontally,
                                                             verticalArrangement = Arrangement.Center
                                                         ) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .size(30.dp)
-                                                                    .background(theme.panelRaised, RoundedCornerShape(9.dp))
+                                                                    .size(20.dp)
+                                                                    .background(
+                                                                        Brush.linearGradient(listOf(theme.panel, theme.panelRaised, theme.background)),
+                                                                        RoundedCornerShape(7.dp)
+                                                                    )
                                                                     .border(1.dp, Accent.copy(alpha = 0.85f), RoundedCornerShape(9.dp))
                                                             )
-                                                            Spacer(Modifier.height(8.dp))
+                                                            Spacer(Modifier.height(5.dp))
                                                             Text(
                                                                 theme.name,
                                                                 color = theme.textPrimary,
-                                                                fontSize = 11.sp,
-                                                                lineHeight = 13.sp,
+                                                                fontSize = 10.sp,
+                                                                lineHeight = 11.sp,
                                                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                                                 maxLines = 2,
@@ -1540,15 +1717,21 @@ class MainActivity : ComponentActivity() {
                                                 )
                                                 Spacer(Modifier.height(8.dp))
                                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    TextButton(onClick = { sleepTimerDialogOpen = true }) {
-                                                        Text("УСТАНОВИТЬ", color = Accent)
+                                                    TextButton(
+                                                        onClick = { sleepTimerDialogOpen = true },
+                                                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text("ТАЙМЕР", color = Accent, fontSize = 11.sp)
                                                     }
                                                     if (sleepTimerMinutes > 0) {
-                                                        TextButton(onClick = {
-                                                            sleepTimerMinutes = 0
-                                                            startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
-                                                        }) {
-                                                            Text("ОТМЕНИТЬ", color = MutedText)
+                                                        TextButton(
+                                                            onClick = {
+                                                                sleepTimerMinutes = 0
+                                                                startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 2.dp)
+                                                        ) {
+                                                            Text("ОТМЕНИТЬ", color = MutedText, fontSize = 11.sp)
                                                         }
                                                     }
                                                 }
@@ -1794,180 +1977,6 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     containerColor = Panel
-                                )
-                            }
-
-                            if (equalizerDialogOpen) {
-                                AlertDialog(
-                                    onDismissRequest = { equalizerDialogOpen = false },
-                                    title = { Text("Эквалайзер", color = TextPrimary) },
-                                    text = {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .heightIn(max = 520.dp)
-                                                .verticalScroll(rememberScrollState())
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text("Эквалайзер включён", color = TextPrimary)
-                                                Switch(
-                                                    checked = equalizerEnabled,
-                                                    onCheckedChange = {
-                                                        equalizerEnabled = it
-                                                        sendEqualizerSettings(
-                                                            it, equalizerLevels, bassStrength, virtualizerStrength
-                                                        )
-                                                    }
-                                                )
-                                            }
-
-                                            Box {
-                                                TextButton(onClick = { presetMenuExpanded = true }) {
-                                                    Text("ПРЕСЕТЫ ▾", color = Accent)
-                                                }
-                                                DropdownMenu(
-                                                    expanded = presetMenuExpanded,
-                                                    onDismissRequest = { presetMenuExpanded = false }
-                                                ) {
-                                                    equalizerPresets.forEach { preset ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(preset.name) },
-                                                            onClick = {
-                                                                equalizerLevels = preset.levels
-                                                                presetMenuExpanded = false
-                                                                sendEqualizerSettings(
-                                                                    equalizerEnabled, equalizerLevels,
-                                                                    bassStrength, virtualizerStrength
-                                                                )
-                                                            }
-                                                        )
-                                                    }
-                                                    customProfiles.toSortedMap().forEach { (name, values) ->
-                                                        DropdownMenuItem(
-                                                            text = { Text("★ $name") },
-                                                            onClick = {
-                                                                equalizerLevels = values
-                                                                presetMenuExpanded = false
-                                                                sendEqualizerSettings(
-                                                                    equalizerEnabled, equalizerLevels,
-                                                                    bassStrength, virtualizerStrength
-                                                                )
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            Text(
-                                                "Частотные полосы · от −12 до +12 дБ",
-                                                color = MutedText,
-                                                fontSize = 12.sp
-                                            )
-
-                                            equalizerFrequencies.forEachIndexed { index, label ->
-                                                Column {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween
-                                                    ) {
-                                                        Text(label, color = TextPrimary, fontSize = 12.sp)
-                                                        Text(
-                                                            "${equalizerLevels[index]} дБ",
-                                                            color = Accent,
-                                                            fontSize = 12.sp
-                                                        )
-                                                    }
-                                                    Slider(
-                                                        value = equalizerLevels[index].toFloat(),
-                                                        onValueChange = { value ->
-                                                            equalizerLevels = equalizerLevels.toMutableList().also {
-                                                                it[index] = value.toInt()
-                                                            }
-                                                        },
-                                                        onValueChangeFinished = {
-                                                            sendEqualizerSettings(
-                                                                equalizerEnabled, equalizerLevels,
-                                                                bassStrength, virtualizerStrength
-                                                            )
-                                                        },
-                                                        valueRange = -12f..12f,
-                                                        steps = 23,
-                                                        enabled = equalizerEnabled,
-                                                        colors = SliderDefaults.colors(
-                                                            thumbColor = Accent,
-                                                            activeTrackColor = Accent
-                                                        )
-                                                    )
-                                                }
-                                            }
-
-                                            HorizontalDivider(color = Panel)
-                                            Text("Усиление баса", color = TextPrimary)
-                                            Slider(
-                                                value = bassStrength.toFloat(),
-                                                onValueChange = { bassStrength = it.toInt() },
-                                                onValueChangeFinished = {
-                                                    sendEqualizerSettings(
-                                                        equalizerEnabled, equalizerLevels,
-                                                        bassStrength, virtualizerStrength
-                                                    )
-                                                },
-                                                valueRange = 0f..100f,
-                                                enabled = equalizerEnabled,
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Accent,
-                                                    activeTrackColor = Accent
-                                                )
-                                            )
-                                            Text("$bassStrength %", color = MutedText, fontSize = 12.sp)
-
-                                            Text("Объёмное звучание", color = TextPrimary)
-                                            Slider(
-                                                value = virtualizerStrength.toFloat(),
-                                                onValueChange = { virtualizerStrength = it.toInt() },
-                                                onValueChangeFinished = {
-                                                    sendEqualizerSettings(
-                                                        equalizerEnabled, equalizerLevels,
-                                                        bassStrength, virtualizerStrength
-                                                    )
-                                                },
-                                                valueRange = 0f..100f,
-                                                enabled = equalizerEnabled,
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Accent,
-                                                    activeTrackColor = Accent
-                                                )
-                                            )
-                                            Text("$virtualizerStrength %", color = MutedText, fontSize = 12.sp)
-
-                                            TextButton(onClick = {
-                                                equalizerLevels = List(10) { 0 }
-                                                bassStrength = 0
-                                                virtualizerStrength = 0
-                                                equalizerEnabled = true
-                                                sendEqualizerSettings(
-                                                    true, equalizerLevels, bassStrength, virtualizerStrength
-                                                )
-                                            }) {
-                                                Text("СБРОСИТЬ НАСТРОЙКИ", color = Accent)
-                                            }
-                                            TextButton(onClick = {
-                                                profileName = ""
-                                                saveProfileDialogOpen = true
-                                            }) {
-                                                Text("СОХРАНИТЬ СВОЙ ПРОФИЛЬ", color = Accent)
-                                            }
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(onClick = { equalizerDialogOpen = false }) {
-                                            Text("Готово", color = Accent)
-                                        }
-                                    }
                                 )
                             }
 
