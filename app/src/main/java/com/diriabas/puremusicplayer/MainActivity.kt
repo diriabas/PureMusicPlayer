@@ -679,40 +679,6 @@ class MainActivity : ComponentActivity() {
                                                     .fillMaxWidth()
                                                     .padding(top = 26.dp, bottom = 16.dp)
                                             )
-                                            if (sleepTimerMinutes > 0) {
-                                                val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
-                                                val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(bottom = 12.dp)
-                                                        .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
-                                                        .padding(horizontal = 12.dp, vertical = 7.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text("◷", color = Accent, fontSize = 19.sp)
-                                                    Spacer(Modifier.width(8.dp))
-                                                    Column(Modifier.weight(1f)) {
-                                                        Text("Таймер сна", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                                        Text("Остановка через %02d:%02d".format(timerMinutes, timerSeconds), color = MutedText, fontSize = 11.sp)
-                                                    }
-                                                    TextButton(
-                                                        onClick = { sleepTimerDialogOpen = true },
-                                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 1.dp)
-                                                    ) {
-                                                        Text("ИЗМЕНИТЬ", color = Accent, fontSize = 10.sp)
-                                                    }
-                                                    TextButton(
-                                                        onClick = {
-                                                            sleepTimerMinutes = 0
-                                                            startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
-                                                        },
-                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 1.dp)
-                                                    ) {
-                                                        Text("×", color = MutedText, fontSize = 17.sp)
-                                                    }
-                                                }
-                                            }
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -899,6 +865,34 @@ class MainActivity : ComponentActivity() {
                                                 repeatMode = nextMode
                                             }
                                         )
+
+                                        Column(
+                                            modifier = Modifier
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) { sleepTimerDialogOpen = true }
+                                                .padding(horizontal = 2.dp, vertical = 4.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "◷",
+                                                color = if (sleepTimerMinutes > 0) Accent else MutedText,
+                                                fontSize = 25.sp
+                                            )
+                                            if (sleepTimerMinutes > 0) {
+                                                val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
+                                                val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                                Text(
+                                                    text = "%02d:%02d".format(timerMinutes, timerSeconds),
+                                                    color = Accent,
+                                                    fontSize = 8.sp,
+                                                    maxLines = 1
+                                                )
+                                            } else {
+                                                Text("ТАЙМЕР", color = MutedText, fontSize = 8.sp, maxLines = 1)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -937,18 +931,24 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
                                             )
-                                            TextButton(
-                                                onClick = {
-                                                    playlistNameInput = ""
-                                                    createPlaylistDialogOpen = true
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
-                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End
                                             ) {
-                                                Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
+                                                TextButton(
+                                                    onClick = {
+                                                        playlistNameInput = ""
+                                                        createPlaylistDialogOpen = true
+                                                    },
+                                                    modifier = Modifier
+                                                        .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme))
+                                                        .border(1.dp, Accent.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
+                                                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 5.dp)
+                                                ) {
+                                                    Text("＋  Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                                }
                                             }
+                                            Spacer(Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -1426,30 +1426,55 @@ class MainActivity : ComponentActivity() {
                                                 .verticalScroll(rememberScrollState())
                                                 .padding(horizontal = 18.dp, vertical = 12.dp)
                                         ) {
-                                            Text(
-                                                text = "Звук",
-                                                color = TextPrimary,
-                                                fontSize = 27.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Text(
-                                                text = "Настрой звучание под себя",
-                                                color = MutedText,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
-                                            )
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
-                                                .padding(16.dp)
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(bottom = 16.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(48.dp)
+                                                        .then(glassPanelModifier(PanelRaised, 15.dp, isGlassTheme)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text("♫", color = Accent, fontSize = 25.sp)
+                                                }
+                                                Spacer(Modifier.width(12.dp))
+                                                Column(Modifier.weight(1f)) {
+                                                    Text("Звук", color = TextPrimary, fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
+                                                    Text("Точная настройка звучания", color = MutedText, fontSize = 12.sp)
+                                                }
+                                                Text(
+                                                    "10 ПОЛОС",
+                                                    color = Accent,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier
+                                                        .background(PanelRaised, RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                                )
+                                            }
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(glassPanelModifier(Panel, 20.dp, isGlassTheme))
+                                                    .border(1.dp, Accent.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+                                                    .padding(horizontal = 17.dp, vertical = 15.dp)
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text("Эквалайзер включён", color = TextPrimary)
+                                                Column(Modifier.weight(1f)) {
+                                                    Text("Эквалайзер", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                                    Text(
+                                                        if (equalizerEnabled) "Обработка звука активна" else "Обработка отключена",
+                                                        color = MutedText,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
                                                 Switch(
                                                     checked = equalizerEnabled,
                                                     onCheckedChange = {
@@ -1462,8 +1487,14 @@ class MainActivity : ComponentActivity() {
                                             }
 
                                             Box {
-                                                TextButton(onClick = { presetMenuExpanded = true }) {
-                                                    Text("ПРЕСЕТЫ ▾", color = Accent)
+                                                TextButton(
+                                                    onClick = { presetMenuExpanded = true },
+                                                    modifier = Modifier
+                                                        .background(PanelRaised, RoundedCornerShape(10.dp))
+                                                        .border(1.dp, Accent.copy(alpha = 0.20f), RoundedCornerShape(10.dp)),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)
+                                                ) {
+                                                    Text("♫  Пресеты  ▾", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                                 }
                                                 DropdownMenu(
                                                     expanded = presetMenuExpanded,
@@ -1506,16 +1537,16 @@ class MainActivity : ComponentActivity() {
                                             )
 
                                             equalizerFrequencies.forEachIndexed { index, label ->
-                                                Column {
+                                                Column(modifier = Modifier.padding(top = 3.dp, bottom = 3.dp)) {
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween
                                                     ) {
-                                                        Text(label, color = TextPrimary, fontSize = 12.sp)
+                                                        Text(label, color = TextPrimary, fontSize = 11.sp)
                                                         Text(
                                                             "${equalizerLevels[index]} дБ",
                                                             color = Accent,
-                                                            fontSize = 12.sp
+                                                            fontSize = 11.sp
                                                         )
                                                     }
                                                     Slider(
