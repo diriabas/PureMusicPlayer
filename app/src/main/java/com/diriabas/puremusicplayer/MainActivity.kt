@@ -47,7 +47,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -55,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
@@ -66,6 +66,46 @@ import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.sin
+
+
+/**
+ * Glassmorphism panel treatment. This draws translucent layered gradients and
+ * a two-tone hairline highlight; it deliberately does not pretend to be a
+ * backdrop blur (Compose Modifier.blur only blurs the element itself).
+ */
+private fun glassPanelModifier(
+    color: Color,
+    radius: Dp,
+    enabled: Boolean
+): Modifier {
+    val shape = RoundedCornerShape(radius)
+    return if (enabled) {
+        Modifier
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.20f),
+                        color.copy(alpha = 0.58f),
+                        Color(0xFF78BFFF).copy(alpha = 0.12f)
+                    )
+                ),
+                shape = shape
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.58f),
+                        Color(0xFF9CCFFF).copy(alpha = 0.22f),
+                        Color.White.copy(alpha = 0.10f)
+                    )
+                ),
+                shape = shape
+            )
+    } else {
+        Modifier.background(color, shape)
+    }
+}
 
 private data class Track(
     val id: Long,
@@ -106,7 +146,7 @@ private data class PlayerTheme(
 private val playerThemes = listOf(
     // Glass вынесена первой, чтобы карточка была видна сразу без горизонтальной прокрутки.
     // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
-    PlayerTheme("Стеклянная", Color(0xFF101722), Color(0xB8223040), Color(0xD12D4054), Color(0xFFB7C7D8), Color(0xFFF1F6FC)),
+    PlayerTheme("Стеклянная", Color(0xFF101A29), Color(0x757D9AB8), Color(0xA04D6885), Color(0xFFB7C7D8), Color(0xFFF1F6FC)),
 
     // Светлые темы
     PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
@@ -269,7 +309,7 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(playerPreferences.getString("player_theme", "Сливочный") ?: "Сливочный")
                 }
                 val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
-                val isGlassTheme = selectedThemeName == "Стеклянная"
+                val isGlassTheme = currentTheme.name == "Стеклянная"
                 val Accent = Color(0xFFD6B878)
                 val Background = currentTheme.background
                 val Panel = currentTheme.panel
@@ -581,10 +621,24 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = Background
+                        color = if (isGlassTheme) Color.Transparent else Background
                     ) {
                         Column(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    if (isGlassTheme) {
+                                        Brush.linearGradient(
+                                            colors = listOf(
+                                                Color(0xFF101A29),
+                                                Color(0xFF1C3045),
+                                                Color(0xFF111B2A)
+                                            )
+                                        )
+                                    } else {
+                                        Brush.linearGradient(listOf(Background, Background))
+                                    }
+                                )
                         ) {
                             if (selectedTab != 0) {
                                 Row(
@@ -972,7 +1026,7 @@ class MainActivity : ComponentActivity() {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .glassSurface(Panel, RoundedCornerShape(13.dp), isGlassTheme)
+                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
                                             .clickable {
                                                 navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
                                             }
@@ -996,7 +1050,7 @@ class MainActivity : ComponentActivity() {
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .glassSurface(Panel, RoundedCornerShape(13.dp), isGlassTheme)
+                                                .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
                                                 .clickable {
                                                     navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
                                                 }
@@ -1006,7 +1060,7 @@ class MainActivity : ComponentActivity() {
                                             Box(
                                                 modifier = Modifier
                                                     .size(46.dp)
-                                                    .glassSurface(PanelRaised, RoundedCornerShape(12.dp), isGlassTheme),
+                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(artistName.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -1034,13 +1088,10 @@ class MainActivity : ComponentActivity() {
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .then(
-                                                    if (track.id == currentTrack?.id) {
-                                                        Modifier.background(Color(0xFFF1E4CC), RoundedCornerShape(13.dp))
-                                                    } else {
-                                                        Modifier.glassSurface(Panel, RoundedCornerShape(13.dp), isGlassTheme)
-                                                    }
-                                                )
+                                                    .background(
+                                                        color = if (track.id == currentTrack?.id) Color(0xFFF1E4CC) else Panel,
+                                                        shape = RoundedCornerShape(13.dp)
+                                                    )
                                                     .clickable { playAt(track, visibleTracks) }
                                                     .padding(10.dp),
                                                 verticalAlignment = Alignment.CenterVertically
@@ -1141,7 +1192,7 @@ class MainActivity : ComponentActivity() {
                                                     if (track.id == currentTrack?.id) {
                                                         Modifier.background(Color(0xFFF1E4CC), RoundedCornerShape(13.dp))
                                                     } else {
-                                                        Modifier.glassSurface(Panel, RoundedCornerShape(13.dp), isGlassTheme)
+                                                        glassPanelModifier(Panel, 13.dp, isGlassTheme)
                                                     }
                                                 )
                                                 .clickable {
@@ -1254,7 +1305,7 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(PanelRaised, RoundedCornerShape(14.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
                                             ) {
                                                 Text("+  СОЗДАТЬ ПЛЕЙЛИСТ", color = Accent, fontWeight = FontWeight.SemiBold)
                                             }
@@ -1272,7 +1323,7 @@ class MainActivity : ComponentActivity() {
                                                         modifier = Modifier
                                                             .fillMaxWidth()
                                                             .padding(bottom = 8.dp)
-                                                            .glassSurface(Panel, RoundedCornerShape(14.dp), isGlassTheme)
+                                                            .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
                                                             .clickable {
                                                                 navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null)
                                                             }
@@ -1361,7 +1412,7 @@ class MainActivity : ComponentActivity() {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(Panel, RoundedCornerShape(18.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
                                                     .padding(16.dp)
                                             ) {
                                                 Text("Эквалайзер · 10 полос", color = TextPrimary, fontWeight = FontWeight.SemiBold)
@@ -1407,7 +1458,7 @@ class MainActivity : ComponentActivity() {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(Panel, RoundedCornerShape(14.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
                                                     .padding(16.dp)
                                             ) {
                                                 Text("Цвет оформления", color = TextPrimary, fontWeight = FontWeight.SemiBold)
@@ -1424,18 +1475,7 @@ class MainActivity : ComponentActivity() {
                                                         Column(
                                                             modifier = Modifier
                                                                 .size(112.dp)
-                                                                .then(
-                                                                    if (theme.name == "Стеклянная") {
-                                                                        Modifier.background(
-                                                                            Brush.verticalGradient(
-                                                                                listOf(Color(0xFF31465B), Color(0xAA1B2B3C), Color(0xFF182333))
-                                                                            ),
-                                                                            RoundedCornerShape(14.dp)
-                                                                        )
-                                                                    } else {
-                                                                        Modifier.background(theme.background, RoundedCornerShape(14.dp))
-                                                                    }
-                                                                )
+                                                                .background(theme.background, RoundedCornerShape(14.dp))
                                                                 .border(
                                                                     width = if (selected) 2.dp else 1.dp,
                                                                     color = if (selected) Accent else theme.panelRaised,
@@ -1474,7 +1514,7 @@ class MainActivity : ComponentActivity() {
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(Panel, RoundedCornerShape(14.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
                                                     .padding(16.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -1489,7 +1529,7 @@ class MainActivity : ComponentActivity() {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(Panel, RoundedCornerShape(14.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
                                                     .padding(16.dp)
                                             ) {
                                                 Text("Таймер сна", color = TextPrimary, fontWeight = FontWeight.SemiBold)
@@ -1522,7 +1562,7 @@ class MainActivity : ComponentActivity() {
                                                 onClick = { tracks = loadTracks() },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(PanelRaised, RoundedCornerShape(14.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
                                             ) {
                                                 Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
                                             }
@@ -1542,7 +1582,7 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .glassSurface(PanelRaised, RoundedCornerShape(14.dp), isGlassTheme)
+                                                    .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
                                             ) {
                                                 Text("СКОПИРОВАТЬ ЖУРНАЛ СБОЯ", color = Accent)
                                             }
@@ -1565,7 +1605,7 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxWidth(0.92f)
                                     .align(Alignment.CenterHorizontally)
                                     .windowInsetsPadding(WindowInsets.navigationBars)
-                                    .glassSurface(Panel, RoundedCornerShape(18.dp), isGlassTheme)
+                                    .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
                                     .border(
                                         width = 1.dp,
                                         color = PanelRaised,
@@ -2399,37 +2439,6 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
     }
 }
 
-
-/** Glassmorphism surface: translucent layered tint, soft highlight and fine edge. */
-private fun Modifier.glassSurface(
-    baseColor: Color,
-    shape: Shape,
-    enabled: Boolean
-): Modifier {
-    if (!enabled) return this.background(baseColor, shape)
-    return this
-        .background(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color(0xFFEAF6FF).copy(alpha = 0.20f),
-                    baseColor.copy(alpha = 0.66f),
-                    Color(0xFF8DB8D8).copy(alpha = 0.12f)
-                )
-            ),
-            shape = shape
-        )
-        .border(
-            width = 1.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.48f),
-                    Color(0xFFB9D8F0).copy(alpha = 0.20f),
-                    Color.White.copy(alpha = 0.10f)
-                )
-            ),
-            shape = shape
-        )
-}
 
 @Composable
 private fun AvMonogram(size: androidx.compose.ui.unit.Dp = 34.dp) {
