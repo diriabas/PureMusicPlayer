@@ -84,6 +84,14 @@ private val PanelRaised = Color(0xFFF3EBDD) // Тёплый оттенок дл�
 private val MutedText = Color(0xFF8B7962) // Приглушённый тёплый текст
 private val TextPrimary = Color(0xFF493A2A) // Основной текст
 
+private data class NavigationSnapshot(
+    val tab: Int,
+    val libraryMode: String,
+    val selectedPlaylist: String?,
+    val selectedAlbumId: Long?,
+    val selectedArtist: String?
+)
+
 private data class PlayerTheme(
     val name: String,
     val background: Color,
@@ -107,7 +115,9 @@ private val playerThemes = listOf(
     PlayerTheme("Тёмно-синяя", Color(0xFF0B1424), Color(0xFF14243A), Color(0xFF203650), Color(0xFFA9B9CF), Color(0xFFEAF1FA)),
     PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF12312F), Color(0xFF1D4542), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
     PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF898E94), Color(0xFF686D73), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
-    PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF34383E), Color(0xFF454A51), Color(0xFFBFC4CA), Color(0xFFF1F3F5))
+    PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF34383E), Color(0xFF454A51), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
+    // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
+    PlayerTheme("Стеклянная", Color(0xFF101722), Color(0xB8223040), Color(0xD12D4054), Color(0xFFB7C7D8), Color(0xFFF1F6FC))
 )
 
 
@@ -266,7 +276,7 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
                 }
                 var selectedTab by remember {
-                    mutableIntStateOf(playerPreferences.getInt("selected_tab", 0).coerceIn(0, 3))
+                    mutableIntStateOf(playerPreferences.getInt("selected_tab", 0).coerceIn(0, 4))
                 }
 
                 LaunchedEffect(libraryMode) {
@@ -276,15 +286,62 @@ class MainActivity : ComponentActivity() {
                     playerPreferences.edit().putInt("selected_tab", selectedTab).apply()
                 }
 
-                // The Android system Back button returns to the Home tab
-                // instead of leaving the player while another tab is open.
-                BackHandler(enabled = selectedTab != 0) {
-                    selectedTab = 0
-                }
                 var createPlaylistDialogOpen by remember { mutableStateOf(false) }
                 var playlistNameInput by remember { mutableStateOf("") }
                 var selectedAlbumId by remember { mutableStateOf<Long?>(null) }
                 var selectedArtist by remember { mutableStateOf<String?>(null) }
+
+                val navigationBackStack = remember { mutableStateListOf<NavigationSnapshot>() }
+
+                fun currentNavigationSnapshot() = NavigationSnapshot(
+                    tab = selectedTab,
+                    libraryMode = libraryMode,
+                    selectedPlaylist = selectedPlaylist,
+                    selectedAlbumId = selectedAlbumId,
+                    selectedArtist = selectedArtist
+                )
+
+                fun navigateTo(
+                    tab: Int = selectedTab,
+                    mode: String = libraryMode,
+                    playlist: String? = selectedPlaylist,
+                    albumId: Long? = selectedAlbumId,
+                    artist: String? = selectedArtist
+                ) {
+                    val current = currentNavigationSnapshot()
+                    val destination = NavigationSnapshot(tab, mode, playlist, albumId, artist)
+                    if (current != destination) {
+                        navigationBackStack.add(current)
+                        selectedTab = destination.tab
+                        libraryMode = destination.libraryMode
+                        selectedPlaylist = destination.selectedPlaylist
+                        selectedAlbumId = destination.selectedAlbumId
+                        selectedArtist = destination.selectedArtist
+                    }
+                }
+
+                fun goBack() {
+                    if (navigationBackStack.isNotEmpty()) {
+                        val previous = navigationBackStack.removeAt(navigationBackStack.lastIndex)
+                        selectedTab = previous.tab
+                        libraryMode = previous.libraryMode
+                        selectedPlaylist = previous.selectedPlaylist
+                        selectedAlbumId = previous.selectedAlbumId
+                        selectedArtist = previous.selectedArtist
+                    } else if (selectedTab != 0 || selectedPlaylist != null ||
+                        selectedAlbumId != null || selectedArtist != null) {
+                        selectedTab = 0
+                        selectedPlaylist = null
+                        selectedAlbumId = null
+                        selectedArtist = null
+                        libraryMode = "Композиции"
+                    }
+                }
+
+                BackHandler(enabled = navigationBackStack.isNotEmpty() || selectedTab != 0 ||
+                    selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null) {
+                    goBack()
+                }
                 var sortMode by remember { mutableStateOf("По названию") }
                 var sortMenuExpanded by remember { mutableStateOf(false) }
                 var playlistMenuExpanded by remember { mutableStateOf(false) }
@@ -540,14 +597,7 @@ class MainActivity : ComponentActivity() {
                                         letterSpacing = 1.5.sp
                                     )
 
-                                    Text(
-                                        text = "AV",
-                                        color = Accent,
-                                        fontSize = 16.sp,
-                                        fontFamily = FontFamily.Serif,
-                                        fontWeight = FontWeight.Light,
-                                        letterSpacing = 0.3.sp
-                                    )
+                                    AvMonogram(size = 34.dp)
                                 }
                             } else {
                                 Spacer(Modifier.height(8.dp))
@@ -818,9 +868,7 @@ class MainActivity : ComponentActivity() {
                                                 RoundedCornerShape(10.dp)
                                             )
                                             .clickable {
-                                                libraryMode = mode
-                                                selectedAlbumId = null
-                                                selectedArtist = null
+                                                navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null)
                                             }
                                             .padding(vertical = 11.dp)
                                     )
@@ -833,16 +881,7 @@ class MainActivity : ComponentActivity() {
 
                             if (selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null) {
                                 TextButton(
-                                    onClick = {
-                                        if (selectedPlaylist != null) {
-                                            selectedPlaylist = null
-                                            libraryMode = "Композиции"
-                                        } else {
-                                            libraryMode = if (selectedAlbumId != null) "Альбомы" else "Исполнители"
-                                        }
-                                        selectedAlbumId = null
-                                        selectedArtist = null
-                                    }
+                                    onClick = { goBack() }
                                 ) {
                                     Text(
                                         if (selectedPlaylist != null) "← Все композиции" else "← Назад к библиотеке",
@@ -930,9 +969,7 @@ class MainActivity : ComponentActivity() {
                                             .fillMaxWidth()
                                             .background(Panel, RoundedCornerShape(13.dp))
                                             .clickable {
-                                                selectedAlbumId = sample.albumId
-                                                selectedArtist = null
-                                                libraryMode = "Композиции"
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
                                             }
                                             .padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
@@ -956,9 +993,7 @@ class MainActivity : ComponentActivity() {
                                                 .fillMaxWidth()
                                                 .background(Panel, RoundedCornerShape(13.dp))
                                                 .clickable {
-                                                    selectedArtist = artistName
-                                                    selectedAlbumId = null
-                                                    libraryMode = "Композиции"
+                                                    navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
                                                 }
                                                 .padding(14.dp),
                                             verticalAlignment = Alignment.CenterVertically
@@ -1232,8 +1267,7 @@ class MainActivity : ComponentActivity() {
                                                             .padding(bottom = 8.dp)
                                                             .background(Panel, RoundedCornerShape(14.dp))
                                                             .clickable {
-                                                                selectedPlaylist = name
-                                                                selectedTab = 1
+                                                                navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null)
                                                             }
                                                             .padding(horizontal = 14.dp, vertical = 12.dp),
                                                         verticalAlignment = Alignment.CenterVertically
@@ -1508,94 +1542,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            if (selectedTab != 0 && currentTrack != null) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.92f)
-                                        .align(Alignment.CenterHorizontally)
-                                        .padding(bottom = 8.dp)
-                                        .background(Panel, RoundedCornerShape(16.dp))
-                                        .border(1.dp, Accent.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
-                                        .clickable { selectedTab = 0 }
-                                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AlbumThumbnail(albumId = currentTrack.albumId, themeSurface = Panel)
-                                        Spacer(Modifier.width(10.dp))
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable { selectedTab = 0 }
-                                        ) {
-                                            Text(
-                                                currentTrack.title,
-                                                color = TextPrimary,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                currentTrack.artist,
-                                                color = MutedText,
-                                                fontSize = 11.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clickable { exoPlayer.seekToPreviousMediaItem() },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("◀", color = Accent, fontSize = 17.sp)
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .background(PanelRaised, RoundedCornerShape(20.dp))
-                                                .clickable {
-                                                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                                    playing = exoPlayer.isPlaying
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                if (playing) "Ⅱ" else "▶",
-                                                color = Accent,
-                                                fontSize = 17.sp
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clickable { exoPlayer.seekToNextMediaItem() },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("▶", color = Accent, fontSize = 17.sp)
-                                        }
-                                    }
-                                    Spacer(Modifier.height(7.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(3.dp)
-                                            .background(PanelRaised, RoundedCornerShape(2.dp))
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth(position.coerceIn(0f, 1f))
-                                                .fillMaxHeight()
-                                                .background(Accent, RoundedCornerShape(2.dp))
-                                        )
-                                    }
-                                }
-                            }
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth(0.92f)
@@ -1623,7 +1569,7 @@ class MainActivity : ComponentActivity() {
                                     Column(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clickable { selectedTab = index }
+                                            .clickable { navigateTo(tab = index) }
                                             .padding(vertical = 2.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
@@ -1749,8 +1695,7 @@ class MainActivity : ComponentActivity() {
                                                     playlists = updated
                                                     savePlaylists(updated)
                                                 }
-                                                selectedPlaylist = name
-                                                selectedTab = 1
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null)
                                             }
                                             createPlaylistDialogOpen = false
                                         }) {
@@ -2433,5 +2378,38 @@ private fun PremiumSpectrum(isPlaying: Boolean) {
                 cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
             )
         }
+    }
+}
+
+
+@Composable
+private fun AvMonogram(size: androidx.compose.ui.unit.Dp = 34.dp) {
+    Box(
+        modifier = Modifier.size(width = size * 1.35f, height = size),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "A",
+            color = Accent,
+            fontSize = (size.value * 0.88f).sp,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Light,
+            modifier = Modifier.offset(x = (-size * 0.13f))
+        )
+        Text(
+            text = "V",
+            color = Accent.copy(alpha = 0.88f),
+            fontSize = (size.value * 0.88f).sp,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Light,
+            modifier = Modifier.offset(x = (size * 0.13f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(0.72f)
+                .height(1.dp)
+                .background(Accent.copy(alpha = 0.8f))
+        )
     }
 }
