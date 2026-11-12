@@ -866,32 +866,33 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
-                                        Column(
+                                        Box(
                                             modifier = Modifier
+                                                .size(width = 56.dp, height = 64.dp)
                                                 .clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
-                                                ) { sleepTimerDialogOpen = true }
-                                                .padding(horizontal = 2.dp, vertical = 4.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                                ) { sleepTimerDialogOpen = true },
+                                            contentAlignment = Alignment.Center
                                         ) {
+                                            // Keep the timer glyph on the same center line as the other player controls.
                                             Text(
                                                 text = "◷",
                                                 color = if (sleepTimerMinutes > 0) Accent else MutedText,
                                                 fontSize = 25.sp
                                             )
-                                            if (sleepTimerMinutes > 0) {
+                                            val timerLabel = if (sleepTimerMinutes > 0) {
                                                 val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
                                                 val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
-                                                Text(
-                                                    text = "%02d:%02d".format(timerMinutes, timerSeconds),
-                                                    color = Accent,
-                                                    fontSize = 8.sp,
-                                                    maxLines = 1
-                                                )
-                                            } else {
-                                                Text("ТАЙМЕР", color = MutedText, fontSize = 8.sp, maxLines = 1)
-                                            }
+                                                "%02d:%02d".format(timerMinutes, timerSeconds)
+                                            } else "ТАЙМЕР"
+                                            Text(
+                                                text = timerLabel,
+                                                color = if (sleepTimerMinutes > 0) Accent else MutedText,
+                                                fontSize = 9.sp,
+                                                maxLines = 1,
+                                                modifier = Modifier.align(Alignment.BottomCenter)
+                                            )
                                         }
                                     }
                                 }
@@ -1987,6 +1988,7 @@ class MainActivity : ComponentActivity() {
                                             listOf(15, 30, 45, 60, 90).forEach { minutes ->
                                                 TextButton(
                                                     onClick = {
+                                                        sleepTimerRemaining = minutes * 60_000L
                                                         sleepTimerMinutes = minutes
                                                         startService(
                                                             Intent(this@MainActivity, PlaybackService::class.java)
