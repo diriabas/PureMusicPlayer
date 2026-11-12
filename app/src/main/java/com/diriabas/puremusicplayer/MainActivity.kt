@@ -150,11 +150,7 @@ private val playerThemes = listOf(
 
     // Светлые темы
     PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
-    PlayerTheme("Нежно-серый", Color(0xFFF1F0EE), Color(0xFFFFFEFC), Color(0xFFE7E5E1), Color(0xFF77736D), Color(0xFF393733)),
-    PlayerTheme("Светло-серый", Color(0xFFE5E7E9), Color(0xFFF7F8F9), Color(0xFFD5D9DD), Color(0xFF68717A), Color(0xFF303840)),
-    PlayerTheme("Голубой", Color(0xFFEAF5FA), Color(0xFFF9FDFF), Color(0xFFD8EBF4), Color(0xFF668494), Color(0xFF294653)),
     PlayerTheme("Синий", Color(0xFFE8EFFB), Color(0xFFF8FAFF), Color(0xFFD5E1F4), Color(0xFF657895), Color(0xFF263B5A)),
-    PlayerTheme("Зелёный", Color(0xFFEDF5EA), Color(0xFFFBFEF9), Color(0xFFDDEBD7), Color(0xFF6D8267), Color(0xFF344A30)),
 
     // Тёмные темы с неизменной шампань-позолотой
     PlayerTheme("Совсем тёмная", Color(0xFF090A0C), Color(0xFF15171A), Color(0xFF25282D), Color(0xFFB5B0A5), Color(0xFFF4F0E7)),
