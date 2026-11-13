@@ -969,27 +969,67 @@ class MainActivity : ComponentActivity() {
                                             Spacer(Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 listOf("Композиции", "Альбомы", "Исполнители", "Папки").forEach { mode ->
                                     val isSelected = libraryMode == mode
-                                    Text(
-                                        text = mode,
-                                        color = if (isSelected) TextPrimary else Accent,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    Box(
                                         modifier = Modifier
                                             .weight(1f)
+                                            .height(38.dp)
                                             .background(
                                                 if (isSelected) Accent else Panel,
-                                                RoundedCornerShape(10.dp)
+                                                RoundedCornerShape(9.dp)
                                             )
                                             .clickable {
                                                 navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null, folder = null)
                                             }
-                                            .padding(vertical = 8.dp)
-                                    )
+                                            .padding(horizontal = 2.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = mode,
+                                            color = if (isSelected) Color(0xFF302719) else Accent,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(9.dp))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(glassPanelModifier(PanelRaised, 11.dp, isGlassTheme))
+                                    .padding(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf("Список", "Плитка").forEach { mode ->
+                                    val selected = libraryDisplayMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(34.dp)
+                                            .background(
+                                                if (selected) Accent else Color.Transparent,
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable { libraryDisplayMode = mode },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            mode,
+                                            color = if (selected) Color(0xFF302719) else TextPrimary,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
                             }
 
@@ -1156,16 +1196,38 @@ class MainActivity : ComponentActivity() {
                                 val albums = visibleTracks.groupBy { it.albumId }
                                     .values
                                     .sortedBy { it.first().album.lowercase() }
-                                albums.forEach { albumTracks ->
+                                if (libraryDisplayMode == "Плитка") {
+                                    albums.chunked(2).forEach { pair ->
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            pair.forEach { albumTracks ->
+                                                val sample = albumTracks.first()
+                                                Column(
+                                                    Modifier.weight(1f).then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                                        .clickable {
+                                                            navigateTo(tab = 1, mode = "Композиции", playlist = null,
+                                                                albumId = sample.albumId, artist = null, folder = null)
+                                                        }.padding(10.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel)
+                                                    Text(sample.album, color = TextPrimary, fontSize = 12.sp,
+                                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text("${albumTracks.size} тр.", color = MutedText, fontSize = 11.sp)
+                                                }
+                                            }
+                                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                                        }
+                                        Spacer(Modifier.height(8.dp))
+                                    }
+                                } else albums.forEach { albumTracks ->
                                     val sample = albumTracks.first()
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth()
                                             .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
                                             .clickable {
-                                                navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
-                                            }
-                                            .padding(12.dp),
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = null,
+                                                    albumId = sample.albumId, artist = null, folder = null)
+                                            }.padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel)
@@ -1179,33 +1241,59 @@ class MainActivity : ComponentActivity() {
                                     Spacer(Modifier.height(7.dp))
                                 }
                             } else if (libraryMode == "Исполнители" && selectedArtist == null) {
-                                visibleTracks.groupBy { it.artist }
+                                val artists = visibleTracks.groupBy { it.artist }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                    .forEach { (artistName, artistTracks) ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
-                                                .clickable {
-                                                    navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
+                                if (libraryDisplayMode == "Плитка") {
+                                    artists.toList().chunked(2).forEach { pair ->
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            pair.forEach { (artistName, artistTracks) ->
+                                                Column(
+                                                    Modifier.weight(1f).then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                                        .clickable {
+                                                            navigateTo(tab = 1, mode = "Композиции", playlist = null,
+                                                                albumId = null, artist = artistName, folder = null)
+                                                        }.padding(12.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Box(
+                                                        Modifier.size(46.dp).then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(artistName.take(1).uppercase(), color = Accent,
+                                                            fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                    Text(artistName, color = TextPrimary, fontSize = 12.sp,
+                                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text("${artistTracks.size} тр.", color = MutedText, fontSize = 11.sp)
                                                 }
-                                                .padding(14.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(46.dp)
-                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(artistName.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            Spacer(Modifier.width(12.dp))
-                                            Text(artistName, color = TextPrimary, modifier = Modifier.weight(1f))
-                                            Text("${artistTracks.size} тр.", color = Accent, fontSize = 12.sp)
+                                            if (pair.size == 1) Spacer(Modifier.weight(1f))
                                         }
-                                        Spacer(Modifier.height(7.dp))
+                                        Spacer(Modifier.height(8.dp))
                                     }
+                                } else artists.forEach { (artistName, artistTracks) ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth()
+                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                            .clickable {
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = null,
+                                                    albumId = null, artist = artistName, folder = null)
+                                            }.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.size(46.dp).then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(artistName.take(1).uppercase(), color = Accent,
+                                                fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(artistName, color = TextPrimary, modifier = Modifier.weight(1f))
+                                        Text("${artistTracks.size} тр.", color = Accent, fontSize = 12.sp)
+                                    }
+                                    Spacer(Modifier.height(7.dp))
+                                }
                             } else if (selectedPlaylist != null) {
                                 Text(
                                     "Чтобы изменить порядок, удерживай значок ⠿ и перетаскивай песню",
