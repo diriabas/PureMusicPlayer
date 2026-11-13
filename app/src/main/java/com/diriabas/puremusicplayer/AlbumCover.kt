@@ -63,11 +63,13 @@ private fun premiumGoldBorder() = Brush.linearGradient(
     )
 )
 
+/** Large square cover used on the player screen and album cards. */
 @Composable
 fun AlbumCover(
     albumId: Long,
     modifier: Modifier = Modifier,
-    themeSurface: Color = Color(0xFF25282C)
+    themeSurface: Color = Color(0xFF25282C),
+    isGlassTheme: Boolean = false
 ) {
     val bitmap = rememberAlbumArtwork(albumId)
 
@@ -95,6 +97,9 @@ fun AlbumCover(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
+
+            // A restrained lower vignette gives the artwork depth without
+            // obscuring its colors or details.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -114,11 +119,20 @@ fun AlbumCover(
                     .fillMaxSize()
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(
-                                Color(0xFF39404A),
-                                Color(0xFF171B21),
-                                CoverBlack
-                            )
+                            colors = if (isGlassTheme) {
+                                // Slightly lighter monogram background in Glass theme.
+                                listOf(
+                                    Color(0xFF464D57),
+                                    Color(0xFF242A33),
+                                    Color(0xFF15191F)
+                                )
+                            } else {
+                                listOf(
+                                    Color(0xFF39404A),
+                                    Color(0xFF171B21),
+                                    CoverBlack
+                                )
+                            }
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -134,6 +148,7 @@ fun AlbumCover(
     }
 }
 
+/** Compact premium thumbnail used in track and album rows. */
 @Composable
 fun AlbumThumbnail(albumId: Long, themeSurface: Color = Color(0xFF25282C)) {
     val bitmap = rememberAlbumArtwork(albumId)
