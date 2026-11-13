@@ -320,6 +320,9 @@ class MainActivity : ComponentActivity() {
                 var libraryMode by remember {
                     mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
                 }
+                var libraryTileSize by remember {
+                    mutableIntStateOf(playerPreferences.getInt("library_tile_columns", 3).let { if (it == 2) 2 else 3 })
+                }
                 var selectedTab by remember {
                     mutableIntStateOf(playerPreferences.getInt("selected_tab", 0).coerceIn(0, 4))
                 }
@@ -510,54 +513,40 @@ class MainActivity : ComponentActivity() {
 
                 val currentTrack = tracks.getOrNull(currentIndex)
 
-                // Adopt the queue already held by PlaybackService when the Activity
-                // is reopened. Only rebuild it from preferences if the service is empty.
+                // Restore the previous queue and playback position after process restart.
                 LaunchedEffect(exoPlayer, tracks) {
-                    if (tracks.isNotEmpty()) {
-                        if (exoPlayer.mediaItemCount > 0) {
-                            val serviceQueue = (0 until exoPlayer.mediaItemCount).mapNotNull { index ->
-                                val id = exoPlayer.getMediaItemAt(index).mediaId.toLongOrNull()
-                                id?.let { trackId -> tracks.firstOrNull { it.id == trackId } }
-                            }
-                            if (serviceQueue.isNotEmpty()) {
-                                playbackQueue = serviceQueue
-                                val activeId = exoPlayer.currentMediaItem?.mediaId?.toLongOrNull()
-                                currentIndex = tracks.indexOfFirst { it.id == activeId }
-                                playing = exoPlayer.isPlaying
-                            }
-                        } else {
-                            val savedIds = playerPreferences.getString("last_queue_ids", null)
-                                ?.split(",")?.mapNotNull { it.toLongOrNull() }.orEmpty()
-                            val restoredQueue = savedIds.mapNotNull { id -> tracks.find { it.id == id } }
-                            val queueToRestore = restoredQueue.ifEmpty { tracks }
-                            val savedTrackId = playerPreferences.getLong("last_track_id", -1L)
-                            val restoredIndex = queueToRestore.indexOfFirst { it.id == savedTrackId }
-                                .takeIf { it >= 0 } ?: playerPreferences.getInt("last_queue_index", 0)
-                                    .coerceIn(0, queueToRestore.lastIndex)
-                            val savedPosition = playerPreferences.getLong("last_position_ms", 0L)
-                                .coerceAtLeast(0L)
-                            val shouldResume = playerPreferences.getBoolean("was_playing", false)
-                            val mediaItems = queueToRestore.map { track ->
-                                val metadata = MediaMetadata.Builder()
-                                    .setTitle(track.title)
-                                    .setArtist(track.artist)
-                                    .setArtworkUri(Uri.parse(
-                                        "content://media/external/audio/albumart/${track.albumId}"
-                                    ))
-                                    .build()
-                                MediaItem.Builder()
-                                    .setMediaId(track.id.toString())
-                                    .setUri(track.uri)
-                                    .setMediaMetadata(metadata)
-                                    .build()
-                            }
-                            playbackQueue = queueToRestore
-                            exoPlayer.setMediaItems(mediaItems, restoredIndex, savedPosition)
-                            exoPlayer.prepare()
-                            currentIndex = tracks.indexOfFirst { it.id == queueToRestore[restoredIndex].id }
-                            if (shouldResume) exoPlayer.play()
-                            playing = shouldResume
+                    if (tracks.isNotEmpty() && exoPlayer.mediaItemCount == 0) {
+                        val savedIds = playerPreferences.getString("last_queue_ids", null)
+                            ?.split(",")?.mapNotNull { it.toLongOrNull() }.orEmpty()
+                        val restoredQueue = savedIds.mapNotNull { id -> tracks.find { it.id == id } }
+                        val queueToRestore = restoredQueue.ifEmpty { tracks }
+                        val savedTrackId = playerPreferences.getLong("last_track_id", -1L)
+                        val restoredIndex = queueToRestore.indexOfFirst { it.id == savedTrackId }
+                            .takeIf { it >= 0 } ?: playerPreferences.getInt("last_queue_index", 0)
+                                .coerceIn(0, queueToRestore.lastIndex)
+                        val savedPosition = playerPreferences.getLong("last_position_ms", 0L)
+                            .coerceAtLeast(0L)
+                        val shouldResume = playerPreferences.getBoolean("was_playing", false)
+                        val mediaItems = queueToRestore.map { track ->
+                            val metadata = MediaMetadata.Builder()
+                                .setTitle(track.title)
+                                .setArtist(track.artist)
+                                .setArtworkUri(Uri.parse(
+                                    "content://media/external/audio/albumart/${track.albumId}"
+                                ))
+                                .build()
+                            MediaItem.Builder()
+                                .setMediaId(track.id.toString())
+                                .setUri(track.uri)
+                                .setMediaMetadata(metadata)
+                                .build()
                         }
+                        playbackQueue = queueToRestore
+                        exoPlayer.setMediaItems(mediaItems, restoredIndex, savedPosition)
+                        exoPlayer.prepare()
+                        currentIndex = tracks.indexOfFirst { it.id == queueToRestore[restoredIndex].id }
+                        if (shouldResume) exoPlayer.play()
+                        playing = shouldResume
                     }
                 }
 
@@ -599,27 +588,19 @@ class MainActivity : ComponentActivity() {
                     playing = true
                 }
 
-                // The MediaController/PlaybackService owns the real queue.
-                // Re-read it from ExoPlayer instead of assuming the Activity's
-                // remembered queue survived closing and reopening the screen.
-                val latestTracks by rememberUpdatedState(tracks)
+                // Keep the polling coroutine in sync with the newest queue.
+                // LaunchedEffect(exoPlayer) runs only once; without rememberUpdatedState
+                // it would keep the initial library-wide queue after starting a folder queue.
+                val latestPlaybackQueue by rememberUpdatedState(playbackQueue)
 
                 LaunchedEffect(exoPlayer) {
                     while (true) {
                         val serviceIndex = exoPlayer.currentMediaItemIndex
-                        val activeQueue = (0 until exoPlayer.mediaItemCount).mapNotNull { index ->
-                            val id = exoPlayer.getMediaItemAt(index).mediaId.toLongOrNull()
-                            id?.let { trackId -> latestTracks.firstOrNull { it.id == trackId } }
-                        }
-                        val activeTrack = activeQueue.getOrNull(serviceIndex)
 
-                        if (activeQueue.isNotEmpty()) {
-                            if (playbackQueue.map { it.id } != activeQueue.map { it.id }) {
-                                playbackQueue = activeQueue
-                            }
-                        }
+                        val activeQueue = latestPlaybackQueue
+                        val activeTrack = activeQueue.getOrNull(serviceIndex)
                         if (activeTrack != null) {
-                            currentIndex = latestTracks.indexOfFirst { it.id == activeTrack.id }
+                            currentIndex = tracks.indexOfFirst { it.id == activeTrack.id }
                         }
 
                         playing = exoPlayer.isPlaying
@@ -1025,9 +1006,29 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+                            if (libraryMode == "Альбомы" || libraryMode == "Исполнители" || libraryMode == "Папки") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Плитки:", color = MutedText, fontSize = 11.sp)
+                                    Spacer(Modifier.width(6.dp))
+                                    listOf(3 to "Меньше", 2 to "Больше").forEach { (columns, label) ->
+                                        TextButton(
+                                            onClick = {
+                                                libraryTileSize = columns
+                                                playerPreferences.edit().putInt("library_tile_columns", columns).apply()
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(label, color = if (libraryTileSize == columns) Accent else MutedText, fontSize = 11.sp,
+                                                fontWeight = if (libraryTileSize == columns) FontWeight.Bold else FontWeight.Normal)
+                                        }
+                                    }
+                                }
+                            }
                             Spacer(Modifier.height(10.dp))
-
-
 
                             if (selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null || selectedFolderPath != null) {
                                 TextButton(
@@ -1140,77 +1141,73 @@ class MainActivity : ComponentActivity() {
                             } else if (libraryMode == "Папки" && selectedFolderPath == null) {
                                 val folders = visibleTracks.groupBy { it.folderPath }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                folders.forEach { (folder, folderTracks) ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 7.dp)
-                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
-                                            .clickable { selectedFolderPath = folder }
-                                            .padding(horizontal = 12.dp, vertical = 11.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("▰", color = Accent, fontSize = 22.sp)
-                                        Spacer(Modifier.width(10.dp))
-                                        Column(Modifier.weight(1f)) {
-                                            Text(folder.substringAfterLast('/').ifBlank { "Музыка" }, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                            Text(folder, color = MutedText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                        Text("${folderTracks.size}", color = Accent, fontSize = 12.sp)
+                                    .map { (folder, folderTracks) ->
+                                        Triple(folder.substringAfterLast('/').ifBlank { "Музыка" }, "${folderTracks.size} треков", folderTracks.first().albumId) to folder
                                     }
+                                folders.chunked(libraryTileSize).forEach { rowItems ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                        rowItems.forEach { (info, folder) ->
+                                            SquareLibraryTile(
+                                                title = info.first,
+                                                subtitle = info.second,
+                                                albumId = info.third,
+                                                themeSurface = Panel,
+                                                glass = isGlassTheme,
+                                                modifier = Modifier.weight(1f),
+                                                onClick = { selectedFolderPath = folder }
+                                            )
+                                        }
+                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                    }
+                                    Spacer(Modifier.height(10.dp))
                                 }
                             } else if (libraryMode == "Альбомы" && selectedAlbumId == null) {
                                 val albums = visibleTracks.groupBy { it.albumId }
                                     .values
                                     .sortedBy { it.first().album.lowercase() }
-                                albums.forEach { albumTracks ->
-                                    val sample = albumTracks.first()
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
-                                            .clickable {
-                                                navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
-                                            }
-                                            .padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel)
-                                        Spacer(Modifier.width(12.dp))
-                                        Column(Modifier.weight(1f)) {
-                                            Text(sample.album, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                            Text(sample.artist, color = MutedText, fontSize = 12.sp)
+                                albums.chunked(libraryTileSize).forEach { rowItems ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                        rowItems.forEach { albumTracks ->
+                                            val sample = albumTracks.first()
+                                            SquareLibraryTile(
+                                                title = sample.album,
+                                                subtitle = "${albumTracks.size} тр. · ${sample.artist}",
+                                                albumId = sample.albumId,
+                                                themeSurface = Panel,
+                                                glass = isGlassTheme,
+                                                modifier = Modifier.weight(1f),
+                                                onClick = {
+                                                    navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
+                                                }
+                                            )
                                         }
-                                        Text("${albumTracks.size} тр.", color = Accent, fontSize = 12.sp)
+                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
                                     }
-                                    Spacer(Modifier.height(7.dp))
+                                    Spacer(Modifier.height(10.dp))
                                 }
                             } else if (libraryMode == "Исполнители" && selectedArtist == null) {
-                                visibleTracks.groupBy { it.artist }
+                                val artists = visibleTracks.groupBy { it.artist }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                    .forEach { (artistName, artistTracks) ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
-                                                .clickable {
+                                    .toList()
+                                artists.chunked(libraryTileSize).forEach { rowItems ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                        rowItems.forEach { (artistName, artistTracks) ->
+                                            SquareLibraryTile(
+                                                title = artistName,
+                                                subtitle = "${artistTracks.size} тр.",
+                                                albumId = artistTracks.first().albumId,
+                                                themeSurface = Panel,
+                                                glass = isGlassTheme,
+                                                modifier = Modifier.weight(1f),
+                                                onClick = {
                                                     navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
                                                 }
-                                                .padding(14.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(46.dp)
-                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(artistName.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                            }
-                                            Spacer(Modifier.width(12.dp))
-                                            Text(artistName, color = TextPrimary, modifier = Modifier.weight(1f))
-                                            Text("${artistTracks.size} тр.", color = Accent, fontSize = 12.sp)
+                                            )
                                         }
-                                        Spacer(Modifier.height(7.dp))
+                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
                                     }
+                                    Spacer(Modifier.height(10.dp))
+                                }
                             } else if (selectedPlaylist != null) {
                                 Text(
                                     "Чтобы изменить порядок, удерживай значок ⠿ и перетаскивай песню",
@@ -2597,4 +2594,40 @@ private fun AvMonogram(size: androidx.compose.ui.unit.Dp = 34.dp) {
         modifier = Modifier.size(size * 1.35f),
         contentScale = ContentScale.Fit
     )
+}
+
+
+@Composable
+private fun SquareLibraryTile(
+    title: String,
+    subtitle: String,
+    albumId: Long,
+    themeSurface: Color,
+    glass: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(15.dp)
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .then(if (glass) Modifier.border(1.dp, Color.White.copy(alpha = 0.32f), shape) else Modifier.border(1.dp, Color(0xFFD6B878), shape))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.BottomStart
+    ) {
+        AlbumCover(albumId = albumId, modifier = Modifier.fillMaxSize(), themeSurface = themeSurface)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f))))
+                .padding(horizontal = 9.dp, vertical = 8.dp)
+        ) {
+            Column {
+                Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(subtitle, color = Color.White.copy(alpha = 0.78f), fontSize = 9.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
 }
