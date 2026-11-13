@@ -320,9 +320,6 @@ class MainActivity : ComponentActivity() {
                 var libraryMode by remember {
                     mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
                 }
-                var libraryTileSize by remember {
-                    mutableIntStateOf(playerPreferences.getInt("library_tile_columns", 3).let { if (it == 2) 2 else 3 })
-                }
                 var selectedTab by remember {
                     mutableIntStateOf(playerPreferences.getInt("selected_tab", 0).coerceIn(0, 4))
                 }
@@ -688,7 +685,13 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                // The player display stays light and distinct from the app background.
+                                                .background(
+                                                    if (isGlassTheme) Color(0xFFFFFDF8) else Panel,
+                                                    RoundedCornerShape(24.dp)
+                                                )
+                                                .padding(horizontal = 8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
@@ -1006,29 +1009,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            if (libraryMode == "Альбомы" || libraryMode == "Исполнители" || libraryMode == "Папки") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Плитки:", color = MutedText, fontSize = 11.sp)
-                                    Spacer(Modifier.width(6.dp))
-                                    listOf(3 to "Меньше", 2 to "Больше").forEach { (columns, label) ->
-                                        TextButton(
-                                            onClick = {
-                                                libraryTileSize = columns
-                                                playerPreferences.edit().putInt("library_tile_columns", columns).apply()
-                                            },
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(label, color = if (libraryTileSize == columns) Accent else MutedText, fontSize = 11.sp,
-                                                fontWeight = if (libraryTileSize == columns) FontWeight.Bold else FontWeight.Normal)
-                                        }
-                                    }
-                                }
-                            }
                             Spacer(Modifier.height(10.dp))
+
+
 
                             if (selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null || selectedFolderPath != null) {
                                 TextButton(
@@ -1141,73 +1124,77 @@ class MainActivity : ComponentActivity() {
                             } else if (libraryMode == "Папки" && selectedFolderPath == null) {
                                 val folders = visibleTracks.groupBy { it.folderPath }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                    .map { (folder, folderTracks) ->
-                                        Triple(folder.substringAfterLast('/').ifBlank { "Музыка" }, "${folderTracks.size} треков", folderTracks.first().albumId) to folder
-                                    }
-                                folders.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                        rowItems.forEach { (info, folder) ->
-                                            SquareLibraryTile(
-                                                title = info.first,
-                                                subtitle = info.second,
-                                                albumId = info.third,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = { selectedFolderPath = folder }
-                                            )
+                                folders.forEach { (folder, folderTracks) ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 7.dp)
+                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                            .clickable { selectedFolderPath = folder }
+                                            .padding(horizontal = 12.dp, vertical = 11.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("▰", color = Accent, fontSize = 22.sp)
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(folder.substringAfterLast('/').ifBlank { "Музыка" }, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            Text(folder, color = MutedText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
-                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                        Text("${folderTracks.size}", color = Accent, fontSize = 12.sp)
                                     }
-                                    Spacer(Modifier.height(10.dp))
                                 }
                             } else if (libraryMode == "Альбомы" && selectedAlbumId == null) {
                                 val albums = visibleTracks.groupBy { it.albumId }
                                     .values
                                     .sortedBy { it.first().album.lowercase() }
-                                albums.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                        rowItems.forEach { albumTracks ->
-                                            val sample = albumTracks.first()
-                                            SquareLibraryTile(
-                                                title = sample.album,
-                                                subtitle = "${albumTracks.size} тр. · ${sample.artist}",
-                                                albumId = sample.albumId,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = {
-                                                    navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
-                                                }
-                                            )
+                                albums.forEach { albumTracks ->
+                                    val sample = albumTracks.first()
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                            .clickable {
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
+                                            }
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel)
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(sample.album, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            Text(sample.artist, color = MutedText, fontSize = 12.sp)
                                         }
-                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                        Text("${albumTracks.size} тр.", color = Accent, fontSize = 12.sp)
                                     }
-                                    Spacer(Modifier.height(10.dp))
+                                    Spacer(Modifier.height(7.dp))
                                 }
                             } else if (libraryMode == "Исполнители" && selectedArtist == null) {
-                                val artists = visibleTracks.groupBy { it.artist }
+                                visibleTracks.groupBy { it.artist }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                    .toList()
-                                artists.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                        rowItems.forEach { (artistName, artistTracks) ->
-                                            SquareLibraryTile(
-                                                title = artistName,
-                                                subtitle = "${artistTracks.size} тр.",
-                                                albumId = artistTracks.first().albumId,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = {
+                                    .forEach { (artistName, artistTracks) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                                .clickable {
                                                     navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
                                                 }
-                                            )
+                                                .padding(14.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(46.dp)
+                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(artistName.take(1).uppercase(), color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(artistName, color = TextPrimary, modifier = Modifier.weight(1f))
+                                            Text("${artistTracks.size} тр.", color = Accent, fontSize = 12.sp)
                                         }
-                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                        Spacer(Modifier.height(7.dp))
                                     }
-                                    Spacer(Modifier.height(10.dp))
-                                }
                             } else if (selectedPlaylist != null) {
                                 Text(
                                     "Чтобы изменить порядок, удерживай значок ⠿ и перетаскивай песню",
@@ -1920,7 +1907,7 @@ class MainActivity : ComponentActivity() {
                                         color = PanelRaised,
                                         shape = RoundedCornerShape(18.dp)
                                     )
-                                    .padding(top = 5.dp, bottom = 6.dp),
+                                    .padding(top = 2.dp, bottom = 3.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1936,13 +1923,13 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier
                                             .weight(1f)
                                             .clickable { navigateTo(tab = index) }
-                                            .padding(vertical = 2.dp),
+                                            .padding(vertical = 1.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Text(
                                             text = symbol,
                                             color = if (selected) Accent else MutedText,
-                                            fontSize = 21.sp,
+                                            fontSize = 19.sp,
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                         )
                                         Text(
@@ -2594,40 +2581,4 @@ private fun AvMonogram(size: androidx.compose.ui.unit.Dp = 34.dp) {
         modifier = Modifier.size(size * 1.35f),
         contentScale = ContentScale.Fit
     )
-}
-
-
-@Composable
-private fun SquareLibraryTile(
-    title: String,
-    subtitle: String,
-    albumId: Long,
-    themeSurface: Color,
-    glass: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(15.dp)
-    Box(
-        modifier = modifier
-            .aspectRatio(1f)
-            .then(if (glass) Modifier.border(1.dp, Color.White.copy(alpha = 0.32f), shape) else Modifier.border(1.dp, Color(0xFFD6B878), shape))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.BottomStart
-    ) {
-        AlbumCover(albumId = albumId, modifier = Modifier.fillMaxSize(), themeSurface = themeSurface)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f))))
-                .padding(horizontal = 9.dp, vertical = 8.dp)
-        ) {
-            Column {
-                Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(subtitle, color = Color.White.copy(alpha = 0.78f), fontSize = 9.sp,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-    }
 }
