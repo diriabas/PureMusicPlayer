@@ -510,40 +510,54 @@ class MainActivity : ComponentActivity() {
 
                 val currentTrack = tracks.getOrNull(currentIndex)
 
-                // Restore the previous queue and playback position after process restart.
+                // Adopt the queue already held by PlaybackService when the Activity
+                // is reopened. Only rebuild it from preferences if the service is empty.
                 LaunchedEffect(exoPlayer, tracks) {
-                    if (tracks.isNotEmpty() && exoPlayer.mediaItemCount == 0) {
-                        val savedIds = playerPreferences.getString("last_queue_ids", null)
-                            ?.split(",")?.mapNotNull { it.toLongOrNull() }.orEmpty()
-                        val restoredQueue = savedIds.mapNotNull { id -> tracks.find { it.id == id } }
-                        val queueToRestore = restoredQueue.ifEmpty { tracks }
-                        val savedTrackId = playerPreferences.getLong("last_track_id", -1L)
-                        val restoredIndex = queueToRestore.indexOfFirst { it.id == savedTrackId }
-                            .takeIf { it >= 0 } ?: playerPreferences.getInt("last_queue_index", 0)
-                                .coerceIn(0, queueToRestore.lastIndex)
-                        val savedPosition = playerPreferences.getLong("last_position_ms", 0L)
-                            .coerceAtLeast(0L)
-                        val shouldResume = playerPreferences.getBoolean("was_playing", false)
-                        val mediaItems = queueToRestore.map { track ->
-                            val metadata = MediaMetadata.Builder()
-                                .setTitle(track.title)
-                                .setArtist(track.artist)
-                                .setArtworkUri(Uri.parse(
-                                    "content://media/external/audio/albumart/${track.albumId}"
-                                ))
-                                .build()
-                            MediaItem.Builder()
-                                .setMediaId(track.id.toString())
-                                .setUri(track.uri)
-                                .setMediaMetadata(metadata)
-                                .build()
+                    if (tracks.isNotEmpty()) {
+                        if (exoPlayer.mediaItemCount > 0) {
+                            val serviceQueue = (0 until exoPlayer.mediaItemCount).mapNotNull { index ->
+                                val id = exoPlayer.getMediaItemAt(index).mediaId.toLongOrNull()
+                                id?.let { trackId -> tracks.firstOrNull { it.id == trackId } }
+                            }
+                            if (serviceQueue.isNotEmpty()) {
+                                playbackQueue = serviceQueue
+                                val activeId = exoPlayer.currentMediaItem?.mediaId?.toLongOrNull()
+                                currentIndex = tracks.indexOfFirst { it.id == activeId }
+                                playing = exoPlayer.isPlaying
+                            }
+                        } else {
+                            val savedIds = playerPreferences.getString("last_queue_ids", null)
+                                ?.split(",")?.mapNotNull { it.toLongOrNull() }.orEmpty()
+                            val restoredQueue = savedIds.mapNotNull { id -> tracks.find { it.id == id } }
+                            val queueToRestore = restoredQueue.ifEmpty { tracks }
+                            val savedTrackId = playerPreferences.getLong("last_track_id", -1L)
+                            val restoredIndex = queueToRestore.indexOfFirst { it.id == savedTrackId }
+                                .takeIf { it >= 0 } ?: playerPreferences.getInt("last_queue_index", 0)
+                                    .coerceIn(0, queueToRestore.lastIndex)
+                            val savedPosition = playerPreferences.getLong("last_position_ms", 0L)
+                                .coerceAtLeast(0L)
+                            val shouldResume = playerPreferences.getBoolean("was_playing", false)
+                            val mediaItems = queueToRestore.map { track ->
+                                val metadata = MediaMetadata.Builder()
+                                    .setTitle(track.title)
+                                    .setArtist(track.artist)
+                                    .setArtworkUri(Uri.parse(
+                                        "content://media/external/audio/albumart/${track.albumId}"
+                                    ))
+                                    .build()
+                                MediaItem.Builder()
+                                    .setMediaId(track.id.toString())
+                                    .setUri(track.uri)
+                                    .setMediaMetadata(metadata)
+                                    .build()
+                            }
+                            playbackQueue = queueToRestore
+                            exoPlayer.setMediaItems(mediaItems, restoredIndex, savedPosition)
+                            exoPlayer.prepare()
+                            currentIndex = tracks.indexOfFirst { it.id == queueToRestore[restoredIndex].id }
+                            if (shouldResume) exoPlayer.play()
+                            playing = shouldResume
                         }
-                        playbackQueue = queueToRestore
-                        exoPlayer.setMediaItems(mediaItems, restoredIndex, savedPosition)
-                        exoPlayer.prepare()
-                        currentIndex = tracks.indexOfFirst { it.id == queueToRestore[restoredIndex].id }
-                        if (shouldResume) exoPlayer.play()
-                        playing = shouldResume
                     }
                 }
 
@@ -585,19 +599,27 @@ class MainActivity : ComponentActivity() {
                     playing = true
                 }
 
-                // Keep the polling coroutine in sync with the newest queue.
-                // LaunchedEffect(exoPlayer) runs only once; without rememberUpdatedState
-                // it would keep the initial library-wide queue after starting a folder queue.
-                val latestPlaybackQueue by rememberUpdatedState(playbackQueue)
+                // The MediaController/PlaybackService owns the real queue.
+                // Re-read it from ExoPlayer instead of assuming the Activity's
+                // remembered queue survived closing and reopening the screen.
+                val latestTracks by rememberUpdatedState(tracks)
 
                 LaunchedEffect(exoPlayer) {
                     while (true) {
                         val serviceIndex = exoPlayer.currentMediaItemIndex
-
-                        val activeQueue = latestPlaybackQueue
+                        val activeQueue = (0 until exoPlayer.mediaItemCount).mapNotNull { index ->
+                            val id = exoPlayer.getMediaItemAt(index).mediaId.toLongOrNull()
+                            id?.let { trackId -> latestTracks.firstOrNull { it.id == trackId } }
+                        }
                         val activeTrack = activeQueue.getOrNull(serviceIndex)
+
+                        if (activeQueue.isNotEmpty()) {
+                            if (playbackQueue.map { it.id } != activeQueue.map { it.id }) {
+                                playbackQueue = activeQueue
+                            }
+                        }
                         if (activeTrack != null) {
-                            currentIndex = tracks.indexOfFirst { it.id == activeTrack.id }
+                            currentIndex = latestTracks.indexOfFirst { it.id == activeTrack.id }
                         }
 
                         playing = exoPlayer.isPlaying
