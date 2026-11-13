@@ -88,11 +88,14 @@ fun AlbumCover(
 
 /** Compact 46 dp thumbnail used in track and album rows. */
 @Composable
-fun AlbumThumbnail(albumId: Long, themeSurface: Color = Color(0xFF25282C)) {
+fun AlbumThumbnail(
+    albumId: Long,
+    themeSurface: Color = Color(0xFF25282C),
+    modifier: Modifier = Modifier.size(46.dp)
+) {
     val bitmap = rememberAlbumArtwork(albumId)
     Box(
-        modifier = Modifier
-            .size(46.dp)
+    modifier = modifier
             .clip(RoundedCornerShape(9.dp))
             .background(themeSurface),
         contentAlignment = Alignment.Center
