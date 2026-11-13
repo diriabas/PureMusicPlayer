@@ -87,9 +87,9 @@ private fun glassPanelModifier(
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.20f),
-                        color.copy(alpha = 0.58f),
-                        Color(0xFF78BFFF).copy(alpha = 0.12f)
+                        Color.White.copy(alpha = 0.24f),
+                        color.copy(alpha = 0.82f),
+                        Color(0xFF9CCFFF).copy(alpha = 0.16f)
                     )
                 ),
                 shape = shape
@@ -150,18 +150,18 @@ private data class PlayerTheme(
 private val playerThemes = listOf(
     // Glass вынесена первой, чтобы карточка была видна сразу без горизонтальной прокрутки.
     // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
-    PlayerTheme("Стеклянная", Color(0xFF101A29), Color(0x757D9AB8), Color(0xA04D6885), Color(0xFFB7C7D8), Color(0xFFF1F6FC)),
+    PlayerTheme("Стеклянная", Color(0xFF101A29), Color(0xFF425D78), Color(0xFF536F89), Color(0xFFB7C7D8), Color(0xFFF1F6FC)),
 
     // Светлые темы
     PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
     PlayerTheme("Синий", Color(0xFFE8EFFB), Color(0xFFF8FAFF), Color(0xFFD5E1F4), Color(0xFF657895), Color(0xFF263B5A)),
 
     // Тёмные темы с неизменной шампань-позолотой
-    PlayerTheme("Совсем тёмная", Color(0xFF090A0C), Color(0xFF15171A), Color(0xFF25282D), Color(0xFFB5B0A5), Color(0xFFF4F0E7)),
-    PlayerTheme("Тёмно-синяя", Color(0xFF0B1424), Color(0xFF14243A), Color(0xFF203650), Color(0xFFA9B9CF), Color(0xFFEAF1FA)),
-    PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF12312F), Color(0xFF1D4542), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
-    PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF898E94), Color(0xFF686D73), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
-    PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF34383E), Color(0xFF454A51), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
+    PlayerTheme("Совсем тёмная", Color(0xFF090A0C), Color(0xFF202327), Color(0xFF30343A), Color(0xFFB5B0A5), Color(0xFFF4F0E7)),
+    PlayerTheme("Тёмно-синяя", Color(0xFF0B1424), Color(0xFF1B2D47), Color(0xFF2A405D), Color(0xFFA9B9CF), Color(0xFFEAF1FA)),
+    PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF1A3B39), Color(0xFF28534F), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
+    PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF969BA1), Color(0xFFA7ACB2), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
+    PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF3B4047), Color(0xFF4B5159), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
 )
 
 
@@ -727,7 +727,7 @@ class MainActivity : ComponentActivity() {
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    AlbumCover(albumId = currentTrack.albumId, themeSurface = Panel)
+                                    AlbumCover(albumId = currentTrack.albumId, themeSurface = Panel, isGlassTheme = isGlassTheme)
 
                                     Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
