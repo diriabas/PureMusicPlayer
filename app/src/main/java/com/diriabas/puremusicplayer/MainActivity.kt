@@ -685,13 +685,7 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                                // The player display stays light and distinct from the app background.
-                                                .background(
-                                                    if (isGlassTheme) Color(0xFFFFFDF8) else Panel,
-                                                    RoundedCornerShape(24.dp)
-                                                )
-                                                .padding(horizontal = 8.dp),
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
@@ -707,7 +701,7 @@ class MainActivity : ComponentActivity() {
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    AlbumCover(albumId = currentTrack.albumId, themeSurface = Panel)
+                                    AlbumCover(albumId = currentTrack.albumId, themeSurface = Panel, isGlassTheme = isGlassTheme)
 
                                     Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
