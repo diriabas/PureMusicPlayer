@@ -411,34 +411,20 @@ class MainActivity : ComponentActivity() {
                 var profileName by remember { mutableStateOf("") }
                 var customProfiles by remember { mutableStateOf(loadEqualizerProfiles()) }
                 var sleepTimerDialogOpen by remember { mutableStateOf(false) }
-                // Persist an absolute deadline so the visible countdown survives Activity recreation.
-                var sleepTimerEndAt by remember {
-                    mutableLongStateOf(playerPreferences.getLong("sleep_timer_end_at", 0L))
-                }
-                var sleepTimerMinutes by remember {
-                    mutableIntStateOf(
-                        if (sleepTimerEndAt > System.currentTimeMillis())
-                            ((sleepTimerEndAt - System.currentTimeMillis() + 59_999L) / 60_000L).toInt()
-                        else 0
-                    )
-                }
-                var sleepTimerRemaining by remember { mutableLongStateOf((sleepTimerEndAt - System.currentTimeMillis()).coerceAtLeast(0L)) }
+                var sleepTimerMinutes by remember { mutableIntStateOf(0) }
+                var sleepTimerRemaining by remember { mutableLongStateOf(0L) }
 
-                LaunchedEffect(sleepTimerEndAt) {
-                    if (sleepTimerEndAt > 0L) {
-                        while (true) {
-                            val remaining = (sleepTimerEndAt - System.currentTimeMillis()).coerceAtLeast(0L)
-                            sleepTimerRemaining = remaining
-                            if (remaining <= 0L) break
+                LaunchedEffect(sleepTimerMinutes) {
+                    if (sleepTimerMinutes > 0) {
+                        sleepTimerRemaining = sleepTimerMinutes * 60_000L
+                        while (sleepTimerRemaining > 0L) {
                             delay(1_000L)
+                            sleepTimerRemaining = (sleepTimerRemaining - 1_000L).coerceAtLeast(0L)
                         }
                         sleepTimerMinutes = 0
-                        sleepTimerEndAt = 0L
-                        playerPreferences.edit().remove("sleep_timer_end_at").apply()
                         Toast.makeText(this@MainActivity, "Таймер сна: воспроизведение остановлено", Toast.LENGTH_SHORT).show()
                     } else {
                         sleepTimerRemaining = 0L
-                        sleepTimerMinutes = 0
                     }
                 }
 
@@ -1584,11 +1570,11 @@ class MainActivity : ComponentActivity() {
                                                 DropdownMenu(
                                                     expanded = presetMenuExpanded,
                                                     onDismissRequest = { presetMenuExpanded = false },
-                                                    containerColor = Background
+                                                    containerColor = if (isGlassTheme) Color(0xFF26384B) else Background
                                                 ) {
                                                     equalizerPresets.forEach { preset ->
                                                         DropdownMenuItem(
-                                                            text = { Text(preset.name) },
+                                                            text = { Text(preset.name, color = TextPrimary) },
                                                             onClick = {
                                                                 equalizerLevels = preset.levels
                                                                 presetMenuExpanded = false
@@ -1601,7 +1587,7 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     customProfiles.toSortedMap().forEach { (name, values) ->
                                                         DropdownMenuItem(
-                                                            text = { Text("★ $name") },
+                                                            text = { Text("★ $name", color = TextPrimary) },
                                                             onClick = {
                                                                 equalizerLevels = values
                                                                 presetMenuExpanded = false
@@ -1843,8 +1829,6 @@ class MainActivity : ComponentActivity() {
                                                         TextButton(
                                                             onClick = {
                                                                 sleepTimerMinutes = 0
-                                                                sleepTimerEndAt = 0L
-                                                                playerPreferences.edit().remove("sleep_timer_end_at").apply()
                                                                 startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
                                                             },
                                                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
@@ -2074,10 +2058,6 @@ class MainActivity : ComponentActivity() {
                                                 TextButton(
                                                     onClick = {
                                                         sleepTimerMinutes = minutes
-                                                        sleepTimerEndAt = System.currentTimeMillis() + minutes * 60_000L
-                                                        playerPreferences.edit()
-                                                            .putLong("sleep_timer_end_at", sleepTimerEndAt)
-                                                            .apply()
                                                         startService(
                                                             Intent(this@MainActivity, PlaybackService::class.java)
                                                                 .setAction(PlaybackService.ACTION_START_SLEEP_TIMER)
