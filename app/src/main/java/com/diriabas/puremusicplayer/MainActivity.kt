@@ -411,20 +411,34 @@ class MainActivity : ComponentActivity() {
                 var profileName by remember { mutableStateOf("") }
                 var customProfiles by remember { mutableStateOf(loadEqualizerProfiles()) }
                 var sleepTimerDialogOpen by remember { mutableStateOf(false) }
-                var sleepTimerMinutes by remember { mutableIntStateOf(0) }
-                var sleepTimerRemaining by remember { mutableLongStateOf(0L) }
+                // Persist an absolute deadline so the visible countdown survives Activity recreation.
+                var sleepTimerEndAt by remember {
+                    mutableLongStateOf(playerPreferences.getLong("sleep_timer_end_at", 0L))
+                }
+                var sleepTimerMinutes by remember {
+                    mutableIntStateOf(
+                        if (sleepTimerEndAt > System.currentTimeMillis())
+                            ((sleepTimerEndAt - System.currentTimeMillis() + 59_999L) / 60_000L).toInt()
+                        else 0
+                    )
+                }
+                var sleepTimerRemaining by remember { mutableLongStateOf((sleepTimerEndAt - System.currentTimeMillis()).coerceAtLeast(0L)) }
 
-                LaunchedEffect(sleepTimerMinutes) {
-                    if (sleepTimerMinutes > 0) {
-                        sleepTimerRemaining = sleepTimerMinutes * 60_000L
-                        while (sleepTimerRemaining > 0L) {
+                LaunchedEffect(sleepTimerEndAt) {
+                    if (sleepTimerEndAt > 0L) {
+                        while (true) {
+                            val remaining = (sleepTimerEndAt - System.currentTimeMillis()).coerceAtLeast(0L)
+                            sleepTimerRemaining = remaining
+                            if (remaining <= 0L) break
                             delay(1_000L)
-                            sleepTimerRemaining = (sleepTimerRemaining - 1_000L).coerceAtLeast(0L)
                         }
                         sleepTimerMinutes = 0
+                        sleepTimerEndAt = 0L
+                        playerPreferences.edit().remove("sleep_timer_end_at").apply()
                         Toast.makeText(this@MainActivity, "Таймер сна: воспроизведение остановлено", Toast.LENGTH_SHORT).show()
                     } else {
                         sleepTimerRemaining = 0L
+                        sleepTimerMinutes = 0
                     }
                 }
 
@@ -874,31 +888,27 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
-                                        Column(
+                                        Box(
                                             modifier = Modifier
                                                 .clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
                                                 ) { sleepTimerDialogOpen = true }
-                                                .padding(horizontal = 2.dp, vertical = 4.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                                .padding(horizontal = 3.dp, vertical = 6.dp),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Text(
-                                                text = "◷",
-                                                color = if (sleepTimerMinutes > 0) Accent else MutedText,
-                                                fontSize = 25.sp
-                                            )
                                             if (sleepTimerMinutes > 0) {
                                                 val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
                                                 val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
                                                 Text(
                                                     text = "%02d:%02d".format(timerMinutes, timerSeconds),
                                                     color = Accent,
-                                                    fontSize = 8.sp,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
                                                     maxLines = 1
                                                 )
                                             } else {
-                                                Text("ТАЙМЕР", color = MutedText, fontSize = 8.sp, maxLines = 1)
+                                                Text("◷", color = MutedText, fontSize = 21.sp)
                                             }
                                         }
                                     }
@@ -941,14 +951,14 @@ class MainActivity : ComponentActivity() {
                                             )
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                                                horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 TextButton(
                                                     onClick = { selectedFolderPath = null; navigateTo(tab = 1, mode = "Плейлисты", playlist = null, albumId = null, artist = null) },
                                                     modifier = Modifier.then(glassPanelModifier(Panel, 12.dp, isGlassTheme)),
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp)
-                                                ) { Text("♫ Плейлисты", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                ) { Text("♫ Плейлисты", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) }
                                                 TextButton(
                                                     onClick = {
                                                         playlistNameInput = ""
@@ -957,9 +967,9 @@ class MainActivity : ComponentActivity() {
                                                     modifier = Modifier
                                                         .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme))
                                                         .border(1.dp, Accent.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
-                                                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 5.dp)
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                                 ) {
-                                                    Text("＋  Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                                    Text("＋ Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                                                 }
                                             }
                                             Spacer(Modifier.height(8.dp))
@@ -970,22 +980,30 @@ class MainActivity : ComponentActivity() {
                                 listOf("Композиции", "Альбомы", "Исполнители", "Папки").forEach { mode ->
                                     val isSelected = libraryMode == mode
                                     Text(
-                                        text = mode,
-                                        color = if (isSelected) TextPrimary else Accent,
-                                        fontSize = 11.sp,
+                                        text = when (mode) {
+                                            "Композиции" -> "Песни"
+                                            "Исполнители" -> "Артисты"
+                                            else -> mode
+                                        },
+                                        color = if (isSelected) Color(0xFF211B10) else Accent,
+                                        fontSize = 9.sp,
+                                        lineHeight = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        maxLines = 1,
                                         modifier = Modifier
                                             .weight(1f)
+                                            .height(34.dp)
                                             .background(
-                                                if (isSelected) Accent else Panel,
-                                                RoundedCornerShape(10.dp)
+                                                if (isSelected) Brush.linearGradient(listOf(Accent, Color(0xFFE9D49B))) else Brush.linearGradient(listOf(Panel, Background)),
+                                                RoundedCornerShape(9.dp)
                                             )
                                             .clickable {
                                                 selectedFolderPath = null
                                                 navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null)
                                             }
-                                            .padding(vertical = 8.dp)
+                                            .wrapContentHeight(Alignment.CenterVertically)
+                                            .padding(horizontal = 2.dp)
                                     )
                                 }
                             }
@@ -1525,7 +1543,7 @@ class MainActivity : ComponentActivity() {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 20.dp, isGlassTheme))
+                                                    .background(Background, RoundedCornerShape(20.dp))
                                                     .border(1.dp, Accent.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
                                                     .padding(horizontal = 17.dp, vertical = 15.dp)
                                         ) {
@@ -1557,7 +1575,7 @@ class MainActivity : ComponentActivity() {
                                                 TextButton(
                                                     onClick = { presetMenuExpanded = true },
                                                     modifier = Modifier
-                                                        .background(PanelRaised, RoundedCornerShape(10.dp))
+                                                        .background(Background, RoundedCornerShape(10.dp))
                                                         .border(1.dp, Accent.copy(alpha = 0.20f), RoundedCornerShape(10.dp)),
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)
                                                 ) {
@@ -1566,7 +1584,7 @@ class MainActivity : ComponentActivity() {
                                                 DropdownMenu(
                                                     expanded = presetMenuExpanded,
                                                     onDismissRequest = { presetMenuExpanded = false },
-                                                    containerColor = Panel
+                                                    containerColor = Background
                                                 ) {
                                                     equalizerPresets.forEach { preset ->
                                                         DropdownMenuItem(
@@ -1739,7 +1757,7 @@ class MainActivity : ComponentActivity() {
                                                         val selected = selectedThemeName == theme.name
                                                         Column(
                                                             modifier = Modifier
-                                                                .size(width = 88.dp, height = 82.dp)
+                                                                .size(width = 70.dp, height = 64.dp)
                                                                 .background(
                                                                     Brush.linearGradient(listOf(theme.background, theme.panel, theme.panelRaised)),
                                                                     RoundedCornerShape(12.dp)
@@ -1753,25 +1771,25 @@ class MainActivity : ComponentActivity() {
                                                                     selectedThemeName = theme.name
                                                                     playerPreferences.edit().putString("player_theme", theme.name).apply()
                                                                 }
-                                                                .padding(6.dp),
+                                                                .padding(4.dp),
                                                             horizontalAlignment = Alignment.CenterHorizontally,
                                                             verticalArrangement = Arrangement.Center
                                                         ) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .size(20.dp)
+                                                                    .size(16.dp)
                                                                     .background(
                                                                         Brush.linearGradient(listOf(theme.panel, theme.panelRaised, theme.background)),
                                                                         RoundedCornerShape(7.dp)
                                                                     )
                                                                     .border(1.dp, Accent.copy(alpha = 0.85f), RoundedCornerShape(9.dp))
                                                             )
-                                                            Spacer(Modifier.height(5.dp))
+                                                            Spacer(Modifier.height(3.dp))
                                                             Text(
                                                                 theme.name,
                                                                 color = theme.textPrimary,
-                                                                fontSize = 10.sp,
-                                                                lineHeight = 11.sp,
+                                                                fontSize = 9.sp,
+                                                                lineHeight = 10.sp,
                                                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                                                 maxLines = 2,
@@ -1817,19 +1835,21 @@ class MainActivity : ComponentActivity() {
                                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                     TextButton(
                                                         onClick = { sleepTimerDialogOpen = true },
-                                                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 2.dp)
+                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                                                     ) {
-                                                        Text("ТАЙМЕР", color = Accent, fontSize = 11.sp)
+                                                        Text("ТАЙМЕР", color = Accent, fontSize = 10.sp)
                                                     }
                                                     if (sleepTimerMinutes > 0) {
                                                         TextButton(
                                                             onClick = {
                                                                 sleepTimerMinutes = 0
+                                                                sleepTimerEndAt = 0L
+                                                                playerPreferences.edit().remove("sleep_timer_end_at").apply()
                                                                 startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
                                                             },
-                                                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 2.dp)
+                                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                                                         ) {
-                                                            Text("ОТМЕНИТЬ", color = MutedText, fontSize = 11.sp)
+                                                            Text("ОТМЕНИТЬ", color = MutedText, fontSize = 10.sp)
                                                         }
                                                     }
                                                 }
@@ -2054,6 +2074,10 @@ class MainActivity : ComponentActivity() {
                                                 TextButton(
                                                     onClick = {
                                                         sleepTimerMinutes = minutes
+                                                        sleepTimerEndAt = System.currentTimeMillis() + minutes * 60_000L
+                                                        playerPreferences.edit()
+                                                            .putLong("sleep_timer_end_at", sleepTimerEndAt)
+                                                            .apply()
                                                         startService(
                                                             Intent(this@MainActivity, PlaybackService::class.java)
                                                                 .setAction(PlaybackService.ACTION_START_SLEEP_TIMER)
