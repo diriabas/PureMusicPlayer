@@ -318,7 +318,22 @@ class MainActivity : ComponentActivity() {
                 var libraryDisplayMode by remember {
                     mutableStateOf(playerPreferences.getString("library_display_mode", "Список") ?: "Список")
                 }
-                var selectedFolder by remember { mutableStateOf<String?>(null) }
+                var selectedFolder by remember {
+                    mutableStateOf(playerPreferences.getString("selected_music_folder", null))
+                }
+                LaunchedEffect(selectedFolder) {
+                    if (selectedFolder == null) {
+                        playerPreferences.edit().remove("selected_music_folder").apply()
+                    } else {
+                        playerPreferences.edit().putString("selected_music_folder", selectedFolder).apply()
+                    }
+                }
+                var libraryGridColumns by remember {
+                    mutableIntStateOf(playerPreferences.getInt("library_grid_columns", 2).coerceIn(2, 4))
+                }
+                LaunchedEffect(libraryGridColumns) {
+                    playerPreferences.edit().putInt("library_grid_columns", libraryGridColumns).apply()
+                }
                 LaunchedEffect(libraryDisplayMode) {
                     playerPreferences.edit().putString("library_display_mode", libraryDisplayMode).apply()
                 }
@@ -949,23 +964,6 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
                                             )
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.End
-                                            ) {
-                                                TextButton(
-                                                    onClick = {
-                                                        playlistNameInput = ""
-                                                        createPlaylistDialogOpen = true
-                                                    },
-                                                    modifier = Modifier
-                                                        .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme))
-                                                        .border(1.dp, Accent.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
-                                                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 5.dp)
-                                                ) {
-                                                    Text("＋  Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                                                }
-                                            }
                                             Spacer(Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1004,32 +1002,53 @@ class MainActivity : ComponentActivity() {
                             Spacer(Modifier.height(9.dp))
 
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .then(glassPanelModifier(PanelRaised, 11.dp, isGlassTheme))
-                                    .padding(3.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                listOf("Список", "Плитка").forEach { mode ->
-                                    val selected = libraryDisplayMode == mode
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(34.dp)
-                                            .background(
-                                                if (selected) Accent else Color.Transparent,
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .clickable { libraryDisplayMode = mode },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            mode,
-                                            color = if (selected) Color(0xFF302719) else TextPrimary,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
+                                Row(
+                                    modifier = Modifier.weight(1f)
+                                        .then(glassPanelModifier(PanelRaised, 11.dp, isGlassTheme))
+                                        .padding(3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    listOf("Список", "Плитка").forEach { mode ->
+                                        val selected = libraryDisplayMode == mode
+                                        Box(
+                                            modifier = Modifier.weight(1f).height(34.dp)
+                                                .background(if (selected) Accent else Color.Transparent, RoundedCornerShape(8.dp))
+                                                .clickable { libraryDisplayMode = mode },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(mode, color = if (selected) Color(0xFF302719) else TextPrimary,
+                                                fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                        }
                                     }
+                                }
+                                Row(
+                                    modifier = Modifier.then(glassPanelModifier(PanelRaised, 10.dp, isGlassTheme)).padding(3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    listOf(2, 3, 4).forEach { count ->
+                                        Box(
+                                            modifier = Modifier.size(width = 27.dp, height = 34.dp)
+                                                .background(if (libraryGridColumns == count) Accent else Color.Transparent, RoundedCornerShape(7.dp))
+                                                .clickable { libraryGridColumns = count },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("$count", color = if (libraryGridColumns == count) Color(0xFF302719) else TextPrimary,
+                                                fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                                TextButton(
+                                    onClick = {
+                                        playlistNameInput = ""
+                                        createPlaylistDialogOpen = true
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 7.dp, vertical = 4.dp)
+                                ) {
+                                    Text("＋ Плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                                 }
                             }
 
@@ -1143,7 +1162,7 @@ class MainActivity : ComponentActivity() {
                                 val folders = visibleTracks.groupBy { it.folder }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
                                 if (libraryDisplayMode == "Плитка") {
-                                    folders.toList().chunked(2).forEach { pair ->
+                                    folders.toList().chunked(libraryGridColumns).forEach { pair ->
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1197,7 +1216,7 @@ class MainActivity : ComponentActivity() {
                                     .values
                                     .sortedBy { it.first().album.lowercase() }
                                 if (libraryDisplayMode == "Плитка") {
-                                    albums.chunked(2).forEach { pair ->
+                                    albums.chunked(libraryGridColumns).forEach { pair ->
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             pair.forEach { albumTracks ->
                                                 val sample = albumTracks.first()
@@ -1209,7 +1228,8 @@ class MainActivity : ComponentActivity() {
                                                         }.padding(10.dp),
                                                     horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
-                                                    AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel)
+                                                    AlbumThumbnail(albumId = sample.albumId, themeSurface = Panel,
+                                                        modifier = Modifier.fillMaxWidth().aspectRatio(1f))
                                                     Text(sample.album, color = TextPrimary, fontSize = 12.sp,
                                                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                     Text("${albumTracks.size} тр.", color = MutedText, fontSize = 11.sp)
@@ -1244,7 +1264,7 @@ class MainActivity : ComponentActivity() {
                                 val artists = visibleTracks.groupBy { it.artist }
                                     .toSortedMap(String.CASE_INSENSITIVE_ORDER)
                                 if (libraryDisplayMode == "Плитка") {
-                                    artists.toList().chunked(2).forEach { pair ->
+                                    artists.toList().chunked(libraryGridColumns).forEach { pair ->
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             pair.forEach { (artistName, artistTracks) ->
                                                 Column(
@@ -1405,7 +1425,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             } else {
                                 if (libraryDisplayMode == "Плитка") {
-                                    visibleTracks.chunked(2).forEach { pair ->
+                                    visibleTracks.chunked(libraryGridColumns).forEach { pair ->
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1418,7 +1438,8 @@ class MainActivity : ComponentActivity() {
                                                         .padding(10.dp),
                                                     horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
-                                                    AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
+                                                    AlbumThumbnail(albumId = track.albumId, themeSurface = Panel,
+                                                        modifier = Modifier.fillMaxWidth().aspectRatio(1f))
                                                     Spacer(Modifier.height(6.dp))
                                                     Text(track.title, color = TextPrimary, fontSize = 13.sp,
                                                         maxLines = 1, overflow = TextOverflow.Ellipsis)
