@@ -41,6 +41,34 @@ class PlaybackService : MediaSessionService() {
     private var sleepTimerRunnable: Runnable? = null
     private var sleepTimerOriginalVolume = 1f
 
+    // Persist playback independently of the Activity: Android may keep this
+    // service alive after the app screen is dismissed, or kill the process later.
+    private val playbackStateHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val playbackStateSaver = object : Runnable {
+        override fun run() {
+            savePlaybackState()
+            playbackStateHandler.postDelayed(this, 1_000L)
+        }
+    }
+
+    private fun savePlaybackState() {
+        val player = exoPlayer ?: return
+        val queueIds = (0 until player.mediaItemCount).mapNotNull { index ->
+            player.getMediaItemAt(index).mediaId.toLongOrNull()
+        }
+        val currentIndex = player.currentMediaItemIndex
+        if (queueIds.isEmpty() || currentIndex !in queueIds.indices) return
+
+        val currentTrackId = queueIds[currentIndex]
+        getSharedPreferences("pure_music_player", MODE_PRIVATE).edit()
+            .putString("last_queue_ids", queueIds.joinToString(","))
+            .putInt("last_queue_index", currentIndex)
+            .putLong("last_track_id", currentTrackId)
+            .putLong("last_position_ms", player.currentPosition.coerceAtLeast(0L))
+            .putBoolean("was_playing", player.isPlaying)
+            .apply()
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -140,6 +168,9 @@ class PlaybackService : MediaSessionService() {
         mediaSession = MediaSession.Builder(this, player)
             .setSessionActivity(pendingIntent)
             .build()
+
+        savePlaybackState()
+        playbackStateHandler.post(playbackStateSaver)
     }
 
     override fun onStartCommand(
@@ -213,7 +244,14 @@ class PlaybackService : MediaSessionService() {
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? = mediaSession
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        savePlaybackState()
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
+        savePlaybackState()
+        playbackStateHandler.removeCallbacksAndMessages(null)
         cancelSleepTimer()
         sleepTimerHandler.removeCallbacksAndMessages(null)
         mediaSession?.release()
