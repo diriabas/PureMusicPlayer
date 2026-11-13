@@ -585,11 +585,17 @@ class MainActivity : ComponentActivity() {
                     playing = true
                 }
 
+                // Keep the polling coroutine in sync with the newest queue.
+                // LaunchedEffect(exoPlayer) runs only once; without rememberUpdatedState
+                // it would keep the initial library-wide queue after starting a folder queue.
+                val latestPlaybackQueue by rememberUpdatedState(playbackQueue)
+
                 LaunchedEffect(exoPlayer) {
                     while (true) {
                         val serviceIndex = exoPlayer.currentMediaItemIndex
 
-                        val activeTrack = playbackQueue.getOrNull(serviceIndex)
+                        val activeQueue = latestPlaybackQueue
+                        val activeTrack = activeQueue.getOrNull(serviceIndex)
                         if (activeTrack != null) {
                             currentIndex = tracks.indexOfFirst { it.id == activeTrack.id }
                         }
@@ -597,7 +603,7 @@ class MainActivity : ComponentActivity() {
                         playing = exoPlayer.isPlaying
                         if (activeTrack != null) {
                             playerPreferences.edit()
-                                .putString("last_queue_ids", playbackQueue.joinToString(",") { it.id.toString() })
+                                .putString("last_queue_ids", activeQueue.joinToString(",") { it.id.toString() })
                                 .putInt("last_queue_index", serviceIndex.coerceAtLeast(0))
                                 .putLong("last_track_id", activeTrack.id)
                                 .putLong("last_position_ms", exoPlayer.currentPosition.coerceAtLeast(0L))
