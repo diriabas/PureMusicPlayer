@@ -38,12 +38,17 @@ private val ThumbnailShape = RoundedCornerShape(10.dp)
 @Composable
 private fun rememberAlbumArtwork(albumId: Long): Bitmap? {
     val context = LocalContext.current
-    return produceState<Bitmap?>(initialValue = null, key1 = albumId) {
+
+    return produceState<Bitmap?>(
+        initialValue = null,
+        key1 = albumId
+    ) {
         value = withContext(Dispatchers.IO) {
             try {
                 val artworkUri = Uri.parse(
                     "content://media/external/audio/albumart/$albumId"
                 )
+
                 context.contentResolver.openInputStream(artworkUri)?.use { stream ->
                     BitmapFactory.decodeStream(stream)
                 }
@@ -63,7 +68,9 @@ private fun premiumGoldBorder() = Brush.linearGradient(
     )
 )
 
-/** Large square cover used on the player screen and album cards. */
+/**
+ * Large square cover used on the player screen and album cards.
+ */
 @Composable
 fun AlbumCover(
     albumId: Long,
@@ -87,7 +94,11 @@ fun AlbumCover(
                     )
                 )
             )
-            .border(1.6.dp, premiumGoldBorder(), CoverShape),
+            .border(
+                1.6.dp,
+                premiumGoldBorder(),
+                CoverShape
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (bitmap != null) {
@@ -98,8 +109,7 @@ fun AlbumCover(
                 contentScale = ContentScale.Crop
             )
 
-            // A restrained lower vignette gives the artwork depth without
-            // obscuring its colors or details.
+            // A restrained lower vignette gives the artwork depth.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -120,11 +130,12 @@ fun AlbumCover(
                     .background(
                         Brush.radialGradient(
                             colors = if (isGlassTheme) {
-                                // Slightly lighter monogram background in Glass theme.
+                                // Slightly lighter monogram background
+                                // only in the Glass theme.
                                 listOf(
-                                    Color(0xFF464D57),
-                                    Color(0xFF242A33),
-                                    Color(0xFF15191F)
+                                    Color(0xFF424954),
+                                    Color(0xFF20262F),
+                                    Color(0xFF111419)
                                 )
                             } else {
                                 listOf(
@@ -138,9 +149,13 @@ fun AlbumCover(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.av_monogram_transparent),
+                    painter = painterResource(
+                        id = R.drawable.av_monogram_transparent
+                    ),
                     contentDescription = "Золотой декоративный вензель",
-                    modifier = Modifier.fillMaxSize().padding(18.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -148,9 +163,14 @@ fun AlbumCover(
     }
 }
 
-/** Compact premium thumbnail used in track and album rows. */
+/**
+ * Compact premium thumbnail used in track and album rows.
+ */
 @Composable
-fun AlbumThumbnail(albumId: Long, themeSurface: Color = Color(0xFF25282C)) {
+fun AlbumThumbnail(
+    albumId: Long,
+    themeSurface: Color = Color(0xFF25282C)
+) {
     val bitmap = rememberAlbumArtwork(albumId)
 
     Box(
@@ -159,7 +179,11 @@ fun AlbumThumbnail(albumId: Long, themeSurface: Color = Color(0xFF25282C)) {
             .shadow(5.dp, ThumbnailShape)
             .clip(ThumbnailShape)
             .background(themeSurface)
-            .border(0.8.dp, premiumGoldBorder(), ThumbnailShape),
+            .border(
+                0.8.dp,
+                premiumGoldBorder(),
+                ThumbnailShape
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (bitmap != null) {
@@ -175,15 +199,22 @@ fun AlbumThumbnail(albumId: Long, themeSurface: Color = Color(0xFF25282C)) {
                     .fillMaxSize()
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(Color(0xFF343B45), CoverBlack)
+                            colors = listOf(
+                                Color(0xFF343B45),
+                                CoverBlack
+                            )
                         )
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.av_monogram_transparent),
+                    painter = painterResource(
+                        id = R.drawable.av_monogram_transparent
+                    ),
                     contentDescription = "Золотой декоративный вензель",
-                    modifier = Modifier.fillMaxSize().padding(4.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp),
                     contentScale = ContentScale.Fit
                 )
             }
