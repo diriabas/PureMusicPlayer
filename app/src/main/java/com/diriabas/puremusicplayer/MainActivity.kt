@@ -719,14 +719,19 @@ class MainActivity : ComponentActivity() {
                                                 fontSize = 13.sp,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(top = 26.dp, bottom = 16.dp)
+                                                    .padding(top = 12.dp, bottom = 8.dp)
                                             )
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    AlbumCover(albumId = currentTrack.albumId, themeSurface = Panel, isGlassTheme = isGlassTheme)
+                                    AlbumCover(
+                                        albumId = currentTrack.albumId,
+                                        modifier = Modifier.fillMaxWidth(0.78f),
+                                        themeSurface = Panel,
+                                        isGlassTheme = isGlassTheme
+                                    )
 
                                     Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
