@@ -270,7 +270,7 @@ class MainActivity : ComponentActivity() {
             val screenConfiguration = LocalConfiguration.current
             val screenWidthDp = screenConfiguration.screenWidthDp
             val screenHeightDp = screenConfiguration.screenHeightDp
-            val isTabletWidth = screenWidthDp >= 600
+            val isTabletWidth = screenConfiguration.smallestScreenWidthDp >= 600
             val isLandscapeLayout = screenWidthDp > screenHeightDp
 
             if (exoPlayer == null) {
@@ -717,7 +717,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .then(
-                                                    if (isLandscapeLayout) Modifier.verticalScroll(rememberScrollState())
+                                                    if (isLandscapeLayout && selectedTab != 0) Modifier.verticalScroll(rememberScrollState())
                                                     else Modifier
                                                 )
                                                 .widthIn(max = if (isTabletWidth) 980.dp else Dp.Unspecified)
@@ -1007,6 +1007,208 @@ class MainActivity : ComponentActivity() {
                                             text = "Выбери композицию во вкладке «Музыка»",
                                             color = MutedText
                                         )
+                                    }
+                                }
+                            } else if (isLandscapeLayout) {
+                                // Компактная горизонтальная компоновка для смартфонов.
+                                if (currentTrack != null) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight()
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(0.78f)
+                                                .fillMaxHeight(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            AlbumCover(
+                                                albumId = currentTrack.albumId,
+                                                modifier = Modifier
+                                                    .fillMaxHeight(0.72f)
+                                                    .aspectRatio(1f)
+                                                    .widthIn(max = 220.dp),
+                                                themeSurface = Panel,
+                                                isGlassTheme = isGlassTheme
+                                            )
+                                            Spacer(Modifier.height(5.dp))
+                                            PremiumSpectrum(isPlaying = playing)
+                                        }
+
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(1.22f)
+                                                .fillMaxHeight()
+                                                .padding(vertical = 3.dp),
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                    .border(
+                                                        1.dp,
+                                                        Accent.copy(alpha = 0.30f),
+                                                        RoundedCornerShape(14.dp)
+                                                    )
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(
+                                                    text = currentTrack.title,
+                                                    color = TextPrimary,
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(Modifier.height(2.dp))
+                                                Text(
+                                                    text = currentTrack.artist,
+                                                    color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
+                                                    fontSize = 10.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            Spacer(Modifier.height(4.dp))
+                                            Slider(
+                                                value = position.coerceIn(0f, 1f),
+                                                onValueChange = { position = it },
+                                                onValueChangeFinished = {
+                                                    if (duration > 0L) {
+                                                        exoPlayer.seekTo((position * duration).toLong())
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(20.dp),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Accent,
+                                                    activeTrackColor = Accent,
+                                                    inactiveTrackColor = MutedText.copy(alpha = 0.32f)
+                                                )
+                                            )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(time(exoPlayer.currentPosition), color = Accent, fontSize = 9.sp)
+                                                Text(time(duration), color = MutedText, fontSize = 9.sp)
+                                            }
+
+                                            Spacer(Modifier.height(6.dp))
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(glassPanelModifier(Panel, 16.dp, isGlassTheme))
+                                                    .border(
+                                                        1.dp,
+                                                        Accent.copy(alpha = 0.25f),
+                                                        RoundedCornerShape(16.dp)
+                                                    )
+                                                    .padding(horizontal = 3.dp, vertical = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "⤨",
+                                                    color = if (shuffleEnabled) Accent else MutedText,
+                                                    fontSize = 20.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
+                                                        shuffleEnabled = exoPlayer.shuffleModeEnabled
+                                                    }
+                                                )
+                                                Text(
+                                                    "◀",
+                                                    color = Accent,
+                                                    fontSize = 20.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { exoPlayer.seekToPreviousMediaItem() }
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(42.dp)
+                                                        .clickable(
+                                                            interactionSource = remember { MutableInteractionSource() },
+                                                            indication = null
+                                                        ) {
+                                                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                            playing = exoPlayer.isPlaying
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Canvas(Modifier.fillMaxSize()) {
+                                                        val cx = size.width / 2f
+                                                        val cy = size.height / 2f
+                                                        if (playing) {
+                                                            val bw = 4.dp.toPx()
+                                                            val bh = 16.dp.toPx()
+                                                            val gap = 4.dp.toPx()
+                                                            drawRoundRect(Accent, Offset(cx - gap / 2f - bw, cy - bh / 2f), Size(bw, bh), CornerRadius(1.dp.toPx()))
+                                                            drawRoundRect(Accent, Offset(cx + gap / 2f, cy - bh / 2f), Size(bw, bh), CornerRadius(1.dp.toPx()))
+                                                        } else {
+                                                            val path = androidx.compose.ui.graphics.Path().apply {
+                                                                moveTo(cx - 7.dp.toPx(), cy - 10.dp.toPx())
+                                                                lineTo(cx - 7.dp.toPx(), cy + 10.dp.toPx())
+                                                                lineTo(cx + 10.dp.toPx(), cy)
+                                                                close()
+                                                            }
+                                                            drawPath(path, Accent)
+                                                        }
+                                                    }
+                                                }
+                                                Text(
+                                                    "▶",
+                                                    color = Accent,
+                                                    fontSize = 20.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { exoPlayer.seekToNextMediaItem() }
+                                                )
+                                                Text(
+                                                    if (repeatMode == Player.REPEAT_MODE_ONE) "1↻" else "↻",
+                                                    color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
+                                                    fontSize = 20.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        val nextMode = when (exoPlayer.repeatMode) {
+                                                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                                            else -> Player.REPEAT_MODE_OFF
+                                                        }
+                                                        exoPlayer.repeatMode = nextMode
+                                                        repeatMode = nextMode
+                                                    }
+                                                )
+                                                Text(
+                                                    "◷",
+                                                    color = if (sleepTimerMinutes > 0) Accent else MutedText,
+                                                    fontSize = 17.sp,
+                                                    modifier = Modifier.clickable { sleepTimerDialogOpen = true }
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("Выбери композицию во вкладке «Музыка»", color = MutedText)
                                     }
                                 }
                             } else {
@@ -2302,7 +2504,10 @@ class MainActivity : ComponentActivity() {
                                         color = PanelRaised,
                                         shape = RoundedCornerShape(18.dp)
                                     )
-                                    .padding(top = 5.dp, bottom = 6.dp),
+                                    .padding(
+                                        top = if (isLandscapeLayout && !isTabletWidth) 2.dp else 5.dp,
+                                        bottom = if (isLandscapeLayout && !isTabletWidth) 2.dp else 6.dp
+                                    ),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -2318,12 +2523,12 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier
                                             .weight(1f)
                                             .clickable { navigateTo(tab = index) }
-                                            .padding(vertical = 3.dp),
+                                            .padding(vertical = if (isLandscapeLayout && !isTabletWidth) 1.dp else 3.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(32.dp)
+                                                .size(if (isLandscapeLayout && !isTabletWidth) 24.dp else 32.dp)
                                                 .then(
                                                     if (selected) Modifier.background(
                                                         Accent.copy(alpha = 0.12f),
@@ -2335,7 +2540,7 @@ class MainActivity : ComponentActivity() {
                                             Text(
                                                 text = symbol,
                                                 color = if (selected) Accent else MutedText,
-                                                fontSize = 18.sp,
+                                                fontSize = if (isLandscapeLayout && !isTabletWidth) 15.sp else 18.sp,
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                                             )
                                         }
@@ -2343,7 +2548,7 @@ class MainActivity : ComponentActivity() {
                                         Text(
                                             text = label,
                                             color = if (selected) Accent else MutedText,
-                                            fontSize = 9.sp,
+                                            fontSize = if (isLandscapeLayout && !isTabletWidth) 7.sp else 9.sp,
                                             maxLines = 1
                                         )
                                         if (selected) {
