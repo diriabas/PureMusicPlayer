@@ -321,7 +321,7 @@ class MainActivity : ComponentActivity() {
                     getSharedPreferences("pure_music_player", MODE_PRIVATE)
                 }
                 var selectedThemeName by remember {
-                    mutableStateOf(playerPreferences.getString("player_theme", "Сливочный") ?: "Сливочный")
+                    mutableStateOf(playerPreferences.getString("player_theme", "Стеклянная") ?: "Стеклянная")
                 }
                 val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
                 val isGlassTheme = currentTheme.name == "Стеклянная"
@@ -2274,73 +2274,49 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                         Spacer(Modifier.height(10.dp))
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                .padding(16.dp)
-                                        ) {
-                                            Text("Таймер сна", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                            Text(
-                                                if (sleepTimerMinutes > 0) {
-                                                    val mins = (sleepTimerRemaining / 60_000L).toInt()
-                                                    val secs = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
-                                                    "Остановка через %02d:%02d".format(mins, secs)
-                                                } else "Автоматическая остановка музыки",
-                                                color = MutedText,
-                                                fontSize = 12.sp
-                                            )
-                                            Spacer(Modifier.height(8.dp))
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                TextButton(
-                                                    onClick = { sleepTimerDialogOpen = true },
-                                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                                                ) {
-                                                    Text("ТАЙМЕР", color = Accent, fontSize = 10.sp)
-                                                }
-                                                if (sleepTimerMinutes > 0) {
-                                                    TextButton(
-                                                        onClick = {
-                                                            sleepTimerMinutes = 0
-                                                            startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
-                                                        },
-                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                                                    ) {
-                                                        Text("ОТМЕНИТЬ", color = MutedText, fontSize = 10.sp)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        Spacer(Modifier.height(10.dp))
                                         TextButton(
-                                            onClick = { tracks = loadTracks() },
+                                            onClick = {
+                                                val refreshedTracks = loadTracks()
+                                                val queueWasFullLibrary = playbackQueue.map { it.id } == tracks.map { it.id }
+                                                tracks = refreshedTracks
+                                                if (queueWasFullLibrary || playbackQueue.isEmpty()) {
+                                                    playbackQueue = refreshedTracks
+                                                }
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Библиотека обновлена: ${refreshedTracks.size} аудиофайлов",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            },
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
                                         ) {
                                             Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
                                         }
-                                        Spacer(Modifier.height(8.dp))
-                                        TextButton(
-                                            onClick = {
-                                                val crashFile = java.io.File(filesDir, "last_crash.txt")
-                                                if (crashFile.exists()) {
-                                                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                                                    clipboard.setPrimaryClip(
-                                                        ClipData.newPlainText("Pure Music Player crash log", crashFile.readText())
-                                                    )
-                                                    Toast.makeText(this@MainActivity, "Журнал сбоя скопирован. Вставь его в чат.", Toast.LENGTH_LONG).show()
-                                                } else {
-                                                    Toast.makeText(this@MainActivity, "Сохранённых сбоев пока нет.", Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
+                                        Spacer(Modifier.height(2.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
                                         ) {
-                                            Text("СКОПИРОВАТЬ ЖУРНАЛ СБОЯ", color = Accent)
+                                            TextButton(
+                                                onClick = {
+                                                    val crashFile = java.io.File(filesDir, "last_crash.txt")
+                                                    if (crashFile.exists()) {
+                                                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                                                        clipboard.setPrimaryClip(
+                                                            ClipData.newPlainText("Pure Music Player crash log", crashFile.readText())
+                                                        )
+                                                        Toast.makeText(this@MainActivity, "Журнал сбоя скопирован. Вставь его в чат.", Toast.LENGTH_LONG).show()
+                                                    } else {
+                                                        Toast.makeText(this@MainActivity, "Сохранённых сбоев пока нет.", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("ЖУРНАЛ СБОЯ", color = MutedText, fontSize = 10.sp)
+                                            }
                                         }
-                                        Spacer(Modifier.height(10.dp))
                                         Text(
                                             text = "PURE MUSIC  ·  PREMIUM HI-FI",
                                             color = Accent,
