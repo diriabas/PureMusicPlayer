@@ -266,6 +266,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            MainContent()
+        }
+    }
+
+
+    @Composable
+    private fun MainContent() {
             val exoPlayer = controllerState.value
             val screenConfiguration = LocalConfiguration.current
             val screenWidthDp = screenConfiguration.screenWidthDp
@@ -655,6 +662,1797 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                @Composable
+                fun HomeTabContent() {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .then(
+                                                if (isLandscapeLayout && selectedTab != 0) Modifier.verticalScroll(rememberScrollState())
+                                                else Modifier
+                                            )
+                                            .widthIn(max = if (isTabletWidth) 980.dp else Dp.Unspecified)
+                                            .padding(
+                                                horizontal = if (isTabletWidth) 24.dp else 10.dp,
+                                                vertical = if (isLandscapeLayout) 2.dp else 6.dp
+                                            ),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        if (!(isLandscapeLayout && isTabletWidth)) {
+                                            Text(
+                                                text = if (playbackQueue.isNotEmpty()) "Сейчас играет из выбранного списка" else "Твоя музыка. Твой мир.",
+                                                color = MutedText,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 12.dp, bottom = 8.dp)
+                                            )
+                                        }
+                        if (isLandscapeLayout && isTabletWidth) {
+                            if (currentTrack != null) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight()
+                                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Левая зона: крупная квадратная обложка и спектр.
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(0.88f)
+                                            .fillMaxHeight(),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        AlbumCover(
+                                            albumId = currentTrack.albumId,
+                                            modifier = Modifier
+                                                .fillMaxHeight(0.78f)
+                                                .aspectRatio(1f)
+                                                .widthIn(max = 360.dp),
+                                            themeSurface = Panel,
+                                            isGlassTheme = isGlassTheme
+                                        )
+                                        Spacer(Modifier.height(10.dp))
+                                        PremiumSpectrum(isPlaying = playing)
+                                    }
+
+                                    // Правая зона: название, прогресс и управление.
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1.12f)
+                                            .fillMaxHeight()
+                                            .padding(vertical = 8.dp),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = if (playbackQueue.isNotEmpty()) "Сейчас играет из выбранного списка" else "Твоя музыка. Твой мир.",
+                                            color = MutedText,
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 12.dp)
+                                        )
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
+                                                    shape = RoundedCornerShape(18.dp)
+                                                )
+                                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = currentTrack.title,
+                                                color = TextPrimary,
+                                                fontSize = 21.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.15.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(Modifier.height(5.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(28.dp)
+                                                    .height(2.dp)
+                                                    .background(Accent.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+                                            )
+                                            Spacer(Modifier.height(5.dp))
+                                            Text(
+                                                text = currentTrack.artist,
+                                                color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                letterSpacing = 0.35.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Spacer(Modifier.height(14.dp))
+
+                                        Slider(
+                                            value = position.coerceIn(0f, 1f),
+                                            onValueChange = { position = it },
+                                            onValueChangeFinished = {
+                                                if (duration > 0L) {
+                                                    exoPlayer.seekTo((position * duration).toLong())
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(24.dp),
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Accent,
+                                                activeTrackColor = Accent,
+                                                inactiveTrackColor = MutedText.copy(alpha = 0.32f)
+                                            )
+                                        )
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = time(exoPlayer.currentPosition),
+                                                color = Accent.copy(alpha = 0.92f),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                text = time(duration),
+                                                color = MutedText.copy(alpha = 0.88f),
+                                                fontSize = 11.sp
+                                            )
+                                        }
+
+                                        Spacer(Modifier.height(18.dp))
+
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 22.dp, isGlassTheme))
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = Accent.copy(alpha = 0.28f),
+                                                    shape = RoundedCornerShape(22.dp)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "⤨",
+                                                color = if (shuffleEnabled) Accent else MutedText,
+                                                fontSize = 27.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
+                                                    exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
+                                                    shuffleEnabled = exoPlayer.shuffleModeEnabled
+                                                }
+                                            )
+                                            Text(
+                                                text = "◀",
+                                                color = Color(0xFFE5C982),
+                                                fontSize = 27.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) { exoPlayer.seekToPreviousMediaItem() }
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(58.dp)
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                        playing = exoPlayer.isPlaying
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                                    val cx = size.width / 2f
+                                                    val cy = size.height / 2f
+                                                    if (playing) {
+                                                        val barWidth = 5.dp.toPx()
+                                                        val barHeight = 21.dp.toPx()
+                                                        val gap = 5.dp.toPx()
+                                                        drawRoundRect(
+                                                            color = Accent,
+                                                            topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
+                                                            size = Size(barWidth, barHeight),
+                                                            cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                        )
+                                                        drawRoundRect(
+                                                            color = Accent,
+                                                            topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
+                                                            size = Size(barWidth, barHeight),
+                                                            cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                        )
+                                                    } else {
+                                                        val halfHeight = 13.dp.toPx()
+                                                        val left = 10.dp.toPx()
+                                                        val right = 16.dp.toPx()
+                                                        val triangle = androidx.compose.ui.graphics.Path().apply {
+                                                            moveTo(cx - left, cy - halfHeight)
+                                                            lineTo(cx - left, cy + halfHeight)
+                                                            lineTo(cx + right, cy)
+                                                            close()
+                                                        }
+                                                        drawPath(path = triangle, color = Accent)
+                                                    }
+                                                }
+                                            }
+                                            Text(
+                                                text = "▶",
+                                                color = Color(0xFFE5C982),
+                                                fontSize = 27.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) { exoPlayer.seekToNextMediaItem() }
+                                            )
+                                            Text(
+                                                text = when (repeatMode) {
+                                                    Player.REPEAT_MODE_ONE -> "1↻"
+                                                    else -> "↻"
+                                                },
+                                                color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
+                                                fontSize = 27.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
+                                                    val nextMode = when (exoPlayer.repeatMode) {
+                                                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                                        else -> Player.REPEAT_MODE_OFF
+                                                    }
+                                                    exoPlayer.repeatMode = nextMode
+                                                    repeatMode = nextMode
+                                                }
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { sleepTimerDialogOpen = true }
+                                                    .padding(horizontal = 3.dp, vertical = 6.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (sleepTimerMinutes > 0) {
+                                                    val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
+                                                    val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                                    Text(
+                                                        text = "%02d:%02d".format(timerMinutes, timerSeconds),
+                                                        color = Accent,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 1
+                                                    )
+                                                } else {
+                                                    Text("◷", color = MutedText, fontSize = 20.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "Выбери композицию во вкладке «Музыка»",
+                                        color = MutedText
+                                    )
+                                }
+                            }
+                        } else if (isLandscapeLayout) {
+                            // Компактная горизонтальная компоновка для смартфонов.
+                            if (currentTrack != null) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(0.78f)
+                                            .fillMaxHeight(),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        AlbumCover(
+                                            albumId = currentTrack.albumId,
+                                            modifier = Modifier
+                                                .fillMaxHeight(0.72f)
+                                                .aspectRatio(1f)
+                                                .widthIn(max = 220.dp),
+                                            themeSurface = Panel,
+                                            isGlassTheme = isGlassTheme
+                                        )
+                                        Spacer(Modifier.height(5.dp))
+                                        PremiumSpectrum(isPlaying = playing)
+                                    }
+
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1.22f)
+                                            .fillMaxHeight()
+                                            .padding(vertical = 3.dp),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                .border(
+                                                    1.dp,
+                                                    Accent.copy(alpha = 0.30f),
+                                                    RoundedCornerShape(14.dp)
+                                                )
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = currentTrack.title,
+                                                color = TextPrimary,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = currentTrack.artist,
+                                                color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Spacer(Modifier.height(4.dp))
+                                        Slider(
+                                            value = position.coerceIn(0f, 1f),
+                                            onValueChange = { position = it },
+                                            onValueChangeFinished = {
+                                                if (duration > 0L) {
+                                                    exoPlayer.seekTo((position * duration).toLong())
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(20.dp),
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Accent,
+                                                activeTrackColor = Accent,
+                                                inactiveTrackColor = MutedText.copy(alpha = 0.32f)
+                                            )
+                                        )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(time(exoPlayer.currentPosition), color = Accent, fontSize = 9.sp)
+                                            Text(time(duration), color = MutedText, fontSize = 9.sp)
+                                        }
+
+                                        Spacer(Modifier.height(6.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 16.dp, isGlassTheme))
+                                                .border(
+                                                    1.dp,
+                                                    Accent.copy(alpha = 0.25f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .padding(horizontal = 3.dp, vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "⤨",
+                                                color = if (shuffleEnabled) Accent else MutedText,
+                                                fontSize = 20.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
+                                                    exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
+                                                    shuffleEnabled = exoPlayer.shuffleModeEnabled
+                                                }
+                                            )
+                                            Text(
+                                                "◀",
+                                                color = Accent,
+                                                fontSize = 20.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) { exoPlayer.seekToPreviousMediaItem() }
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(42.dp)
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                        playing = exoPlayer.isPlaying
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Canvas(Modifier.fillMaxSize()) {
+                                                    val cx = size.width / 2f
+                                                    val cy = size.height / 2f
+                                                    if (playing) {
+                                                        val bw = 4.dp.toPx()
+                                                        val bh = 16.dp.toPx()
+                                                        val gap = 4.dp.toPx()
+                                                        drawRoundRect(Accent, Offset(cx - gap / 2f - bw, cy - bh / 2f), Size(bw, bh), CornerRadius(1.dp.toPx()))
+                                                        drawRoundRect(Accent, Offset(cx + gap / 2f, cy - bh / 2f), Size(bw, bh), CornerRadius(1.dp.toPx()))
+                                                    } else {
+                                                        val path = androidx.compose.ui.graphics.Path().apply {
+                                                            moveTo(cx - 7.dp.toPx(), cy - 10.dp.toPx())
+                                                            lineTo(cx - 7.dp.toPx(), cy + 10.dp.toPx())
+                                                            lineTo(cx + 10.dp.toPx(), cy)
+                                                            close()
+                                                        }
+                                                        drawPath(path, Accent)
+                                                    }
+                                                }
+                                            }
+                                            Text(
+                                                "▶",
+                                                color = Accent,
+                                                fontSize = 20.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) { exoPlayer.seekToNextMediaItem() }
+                                            )
+                                            Text(
+                                                if (repeatMode == Player.REPEAT_MODE_ONE) "1↻" else "↻",
+                                                color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
+                                                fontSize = 20.sp,
+                                                modifier = Modifier.clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
+                                                    val nextMode = when (exoPlayer.repeatMode) {
+                                                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                                        else -> Player.REPEAT_MODE_OFF
+                                                    }
+                                                    exoPlayer.repeatMode = nextMode
+                                                    repeatMode = nextMode
+                                                }
+                                            )
+                                            Text(
+                                                "◷",
+                                                color = if (sleepTimerMinutes > 0) Accent else MutedText,
+                                                fontSize = 17.sp,
+                                                modifier = Modifier.clickable { sleepTimerDialogOpen = true }
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("Выбери композицию во вкладке «Музыка»", color = MutedText)
+                                }
+                            }
+                        } else {
+                        if (currentTrack != null) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                AlbumCover(
+                                    albumId = currentTrack.albumId,
+                                    modifier = Modifier
+                                        .fillMaxWidth(
+                                            if (isTabletWidth) 0.62f else 0.94f
+                                        )
+                                        .widthIn(max = if (isTabletWidth) 520.dp else Dp.Unspecified),
+                                    themeSurface = Panel,
+                                    isGlassTheme = isGlassTheme
+                                )
+
+                                Spacer(Modifier.height(8.dp))
+                                PremiumSpectrum(isPlaying = playing)
+                                Spacer(Modifier.height(if (isLandscapeLayout) 6.dp else 18.dp))
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
+                                        .border(
+                                            width = 1.dp,
+                                            color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
+                                            shape = RoundedCornerShape(18.dp)
+                                        )
+                                        .padding(horizontal = 18.dp, vertical = 10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = currentTrack.title,
+                                        color = TextPrimary,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.15.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .width(26.dp)
+                                            .height(2.dp)
+                                            .background(
+                                                Accent.copy(alpha = if (isGlassTheme) 0.78f else 0.55f),
+                                                RoundedCornerShape(2.dp)
+                                            )
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = currentTrack.artist,
+                                        color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 0.35.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Spacer(Modifier.height(if (isLandscapeLayout) 5.dp else 12.dp))
+
+                                Slider(
+                                    value = position.coerceIn(0f, 1f),
+                                    onValueChange = { position = it },
+                                    onValueChangeFinished = {
+                                        if (duration > 0L) {
+                                            exoPlayer.seekTo(
+                                                (position * duration).toLong()
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(20.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Accent,
+                                        activeTrackColor = Accent,
+                                        inactiveTrackColor = MutedText.copy(alpha = if (isGlassTheme) 0.32f else 0.38f)
+                                    )
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = time(exoPlayer.currentPosition),
+                                        color = Accent.copy(alpha = 0.92f),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    Text(
+                                        text = time(duration),
+                                        color = MutedText.copy(alpha = 0.88f),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+
+                                Spacer(Modifier.height(if (isLandscapeLayout) 6.dp else 16.dp))
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(glassPanelModifier(Panel, 22.dp, isGlassTheme))
+                                        .border(
+                                            width = 1.dp,
+                                            color = Accent.copy(alpha = if (isGlassTheme) 0.28f else 0.08f),
+                                            shape = RoundedCornerShape(22.dp)
+                                        )
+                                        .padding(horizontal = 5.dp, vertical = 7.dp)
+                                        .offset(y = (-6).dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "⤨",
+                                        color = if (shuffleEnabled) Accent else MutedText,
+                                        fontSize = 30.sp,
+                                        modifier = Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
+                                            shuffleEnabled = exoPlayer.shuffleModeEnabled
+                                        }
+                                    )
+
+                                    Text(
+                                        text = "◀",
+                                        color = Color(0xFFE5C982),
+                                        fontSize = 30.sp,
+                                        modifier = Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            exoPlayer.seekToPreviousMediaItem()
+                                        }
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(68.dp)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                if (exoPlayer.isPlaying) {
+                                                    exoPlayer.pause()
+                                                } else {
+                                                    exoPlayer.play()
+                                                }
+                                                playing = exoPlayer.isPlaying
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Canvas(modifier = Modifier.fillMaxSize()) {
+                                            // Play/pause glyph stays centered; no decorative circle behind it.
+                                            val cx = size.width / 2f
+                                            val cy = size.height / 2f
+                                            if (playing) {
+                                                val barWidth = 5.dp.toPx()
+                                                val barHeight = 22.dp.toPx()
+                                                val gap = 5.dp.toPx()
+                                                drawRoundRect(
+                                                    color = Accent,
+                                                    topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
+                                                    size = Size(barWidth, barHeight),
+                                                    cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                )
+                                                drawRoundRect(
+                                                    color = Accent,
+                                                    topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
+                                                    size = Size(barWidth, barHeight),
+                                                    cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                )
+                                            } else {
+                                                val halfHeight = 13.dp.toPx()
+                                                val left = 10.dp.toPx()
+                                                val right = 16.dp.toPx()
+                                                val triangle = androidx.compose.ui.graphics.Path().apply {
+                                                    moveTo(cx - left, cy - halfHeight)
+                                                    lineTo(cx - left, cy + halfHeight)
+                                                    lineTo(cx + right, cy)
+                                                    close()
+                                                }
+                                                drawPath(path = triangle, color = Accent)
+                                            }
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "▶",
+                                        color = Color(0xFFE5C982),
+                                        fontSize = 30.sp,
+                                        modifier = Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            exoPlayer.seekToNextMediaItem()
+                                        }
+                                    )
+
+                                    Text(
+                                        text = when (repeatMode) {
+                                            Player.REPEAT_MODE_ONE -> "1↻"
+                                            Player.REPEAT_MODE_ALL -> "↻"
+                                            else -> "↻"
+                                        },
+                                        color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
+                                        fontSize = 30.sp,
+                                        modifier = Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            val nextMode = when (exoPlayer.repeatMode) {
+                                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                                else -> Player.REPEAT_MODE_OFF
+                                            }
+                                            exoPlayer.repeatMode = nextMode
+                                            repeatMode = nextMode
+                                        }
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) { sleepTimerDialogOpen = true }
+                                            .padding(horizontal = 3.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (sleepTimerMinutes > 0) {
+                                            val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
+                                            val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                            Text(
+                                                text = "%02d:%02d".format(timerMinutes, timerSeconds),
+                                                color = Accent,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1
+                                            )
+                                        } else {
+                                            Text("◷", color = MutedText, fontSize = 21.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(18.dp))
+                        }
+
+                        }
+
+
+                                        if (currentTrack == null) {
+                                            Text(
+                                                text = "Выбери композицию во вкладке «Музыка»",
+                                                color = MutedText,
+                                                modifier = Modifier.padding(vertical = 36.dp)
+                                            )
+                                        }
+                                    }
+                                
+                }
+
+                @Composable
+                fun MusicTabContent() {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState())
+                                            .padding(horizontal = 18.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Музыка",
+                                            color = TextPrimary,
+                                            fontSize = 27.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = "${tracks.size} аудиофайлов",
+                                            color = MutedText,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
+                                        )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(
+                                                onClick = { selectedFolderPath = null; navigateTo(tab = 1, mode = "Плейлисты", playlist = null, albumId = null, artist = null) },
+                                                modifier = Modifier.then(glassPanelModifier(Panel, 12.dp, isGlassTheme)),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                            ) { Text("♫ Плейлисты", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) }
+                                            TextButton(
+                                                onClick = {
+                                                    playlistNameInput = ""
+                                                    createPlaylistDialogOpen = true
+                                                },
+                                                modifier = Modifier
+                                                    .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme))
+                                                    .border(1.dp, Accent.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("＋ Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
+                                            }
+                                        }
+                                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            listOf("Композиции", "Альбомы", "Исполнители", "Папки").forEach { mode ->
+                                val isSelected = libraryMode == mode
+                                Text(
+                                    text = when (mode) {
+                                        "Композиции" -> "Песни"
+                                        "Исполнители" -> "Артисты"
+                                        else -> mode
+                                    },
+                                    color = if (isSelected) Color(0xFF211B10) else Accent,
+                                    fontSize = 9.sp,
+                                    lineHeight = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    maxLines = 1,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp)
+                                        .background(
+                                            if (isSelected) Brush.linearGradient(listOf(Accent, Color(0xFFE9D49B))) else Brush.linearGradient(listOf(Panel, Background)),
+                                            RoundedCornerShape(9.dp)
+                                        )
+                                        .clickable {
+                                            selectedFolderPath = null
+                                            navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null)
+                                        }
+                                        .wrapContentHeight(Alignment.CenterVertically)
+                                        .padding(horizontal = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (libraryMode == "Альбомы" || libraryMode == "Исполнители" || libraryMode == "Папки") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Плитки:", color = MutedText, fontSize = 11.sp)
+                                Spacer(Modifier.width(6.dp))
+                                listOf(3 to "Меньше", 2 to "Больше").forEach { (columns, label) ->
+                                    TextButton(
+                                        onClick = {
+                                            libraryTileSize = columns
+                                            playerPreferences.edit().putInt("library_tile_columns", columns).apply()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(label, color = if (libraryTileSize == columns) Accent else MutedText, fontSize = 11.sp,
+                                            fontWeight = if (libraryTileSize == columns) FontWeight.Bold else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(10.dp))
+
+                        if (selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null || selectedFolderPath != null) {
+                            TextButton(
+                                onClick = { goBack() }
+                            ) {
+                                Text(
+                                    if (selectedPlaylist != null) "← Все композиции" else if (selectedFolderPath != null) "← Все папки" else "← Назад к библиотеке",
+                                    color = Accent
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = if (favoritesOnly) {
+                                "★ ПОКАЗАТЬ ВСЕ ПЕСНИ"
+                            } else {
+                                "☆ ТОЛЬКО ИЗБРАННОЕ"
+                            },
+                            color = Accent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable {
+                                    favoritesOnly = !favoritesOnly
+                                }
+                                .padding(vertical = 8.dp)
+                        )
+
+                        if (libraryMode == "Композиции" && selectedPlaylist == null) {
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    "Сортировка:",
+                                    color = MutedText,
+                                    fontSize = 13.sp
+                                )
+                                Box {
+                                    TextButton(onClick = { sortMenuExpanded = true }) {
+                                        Text(
+                                            sortMode,
+                                            color = Accent,
+                                            fontSize = 13.sp
+                                        )
+                                        Text(" ▾", color = Accent)
+                                    }
+                                    DropdownMenu(
+                                        expanded = sortMenuExpanded,
+                                        onDismissRequest = { sortMenuExpanded = false },
+                                        containerColor = Panel
+                                    ) {
+                                        listOf(
+                                            "По названию",
+                                            "По исполнителю",
+                                            "Сначала новые",
+                                            "Сначала старые",
+                                            "По длительности ↑",
+                                            "По длительности ↓"
+                                        ).forEach { option ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        option,
+                                                        color = if (sortMode == option) Accent else TextPrimary
+                                                    )
+                                                },
+                                                onClick = {
+                                                    sortMode = option
+                                                    sortMenuExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (libraryMode == "Плейлисты") {
+                            if (playlists.isEmpty()) {
+                                Text("Пока нет плейлистов. Создай первую подборку кнопкой выше.", color = MutedText)
+                            } else {
+                                playlists.toSortedMap().forEach { (name, ids) ->
+                                    val playlistTracks = tracks.filter { it.id in ids }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 7.dp)
+                                            .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
+                                            .clickable { navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null) }
+                                            .padding(horizontal = 12.dp, vertical = 11.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("♫", color = Accent, fontSize = 21.sp)
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(name, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            Text("${playlistTracks.size} композиций", color = MutedText, fontSize = 11.sp)
+                                        }
+                                        Text("⋮", color = Accent, fontSize = 22.sp,
+                                            modifier = Modifier.clickable { playlistMenuName = name; playlistMenuExpanded = true }.padding(horizontal = 7.dp))
+                                        DropdownMenu(expanded = playlistMenuExpanded && playlistMenuName == name,
+                                            onDismissRequest = { playlistMenuExpanded = false; playlistMenuName = null }) {
+                                            DropdownMenuItem(text = { Text("Переименовать") }, onClick = { renamePlaylistInput = name; playlistToRename = name; playlistMenuExpanded = false; playlistMenuName = null })
+                                            DropdownMenuItem(text = { Text("Удалить плейлист") }, onClick = { playlistToDelete = name; playlistMenuExpanded = false; playlistMenuName = null })
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (libraryMode == "Папки" && selectedFolderPath == null) {
+                            val folders = visibleTracks.groupBy { it.folderPath }
+                                .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+                                .map { (folder, folderTracks) ->
+                                    Triple(folder.substringAfterLast('/').ifBlank { "Музыка" }, "${folderTracks.size} треков", folderTracks.first().albumId) to folder
+                                }
+                            folders.chunked(libraryTileSize).forEach { rowItems ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                    rowItems.forEach { (info, folder) ->
+                                        SquareLibraryTile(
+                                            title = info.first,
+                                            subtitle = info.second,
+                                            albumId = info.third,
+                                            themeSurface = Panel,
+                                            glass = isGlassTheme,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { selectedFolderPath = folder }
+                                        )
+                                    }
+                                    repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                                Spacer(Modifier.height(10.dp))
+                            }
+                        } else if (libraryMode == "Папки" && selectedFolderPath != null) {
+                            // Show the contents of an opened folder using the same
+                            // adjustable square-tile layout as the folder overview.
+                            visibleTracks.chunked(libraryTileSize).forEach { rowItems ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    rowItems.forEach { track ->
+                                        SquareLibraryTile(
+                                            title = track.title,
+                                            subtitle = track.artist,
+                                            albumId = track.albumId,
+                                            themeSurface = Panel,
+                                            glass = isGlassTheme,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { playAt(track, visibleTracks) }
+                                        )
+                                    }
+                                    repeat(libraryTileSize - rowItems.size) {
+                                        Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                                Spacer(Modifier.height(10.dp))
+                            }
+                        } else if (libraryMode == "Альбомы" && selectedAlbumId == null) {
+                            val albums = visibleTracks.groupBy { it.albumId }
+                                .values
+                                .sortedBy { it.first().album.lowercase() }
+                            albums.chunked(libraryTileSize).forEach { rowItems ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                    rowItems.forEach { albumTracks ->
+                                        val sample = albumTracks.first()
+                                        SquareLibraryTile(
+                                            title = sample.album,
+                                            subtitle = "${albumTracks.size} тр. · ${sample.artist}",
+                                            albumId = sample.albumId,
+                                            themeSurface = Panel,
+                                            glass = isGlassTheme,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = {
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
+                                            }
+                                        )
+                                    }
+                                    repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                                Spacer(Modifier.height(10.dp))
+                            }
+                        } else if (libraryMode == "Исполнители" && selectedArtist == null) {
+                            val artists = visibleTracks.groupBy { it.artist }
+                                .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+                                .toList()
+                            artists.chunked(libraryTileSize).forEach { rowItems ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                    rowItems.forEach { (artistName, artistTracks) ->
+                                        SquareLibraryTile(
+                                            title = artistName,
+                                            subtitle = "${artistTracks.size} тр.",
+                                            albumId = artistTracks.first().albumId,
+                                            themeSurface = Panel,
+                                            glass = isGlassTheme,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = {
+                                                navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
+                                            }
+                                        )
+                                    }
+                                    repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                                Spacer(Modifier.height(10.dp))
+                            }
+                        } else if (selectedPlaylist != null) {
+                            Text(
+                                "Чтобы изменить порядок, удерживай значок ⠿ и перетаскивай песню",
+                                color = MutedText,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            if (visibleTracks.isEmpty()) {
+                                Text("В этом плейлисте пока нет песен.", color = MutedText)
+                            } else {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(7.dp)
+                                ) {
+                                    visibleTracks.forEach { track ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(
+                                                    if (track.id == currentTrack?.id) {
+                                                        Modifier.background(Color(0xFFF1E4CC), RoundedCornerShape(13.dp))
+                                                    } else {
+                                                        glassPanelModifier(Panel, 13.dp, isGlassTheme)
+                                                    }
+                                                )
+                                                .clickable { playAt(track, visibleTracks) }
+                                                .padding(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
+                                            Spacer(Modifier.width(10.dp))
+                                            Text(
+                                                "⠿",
+                                                color = Accent,
+                                                fontSize = 24.sp,
+                                                modifier = Modifier
+                                                    .pointerInput(track.id, selectedPlaylist, dragThresholdPx) {
+                                                        var accumulatedDrag = 0f
+                                                        detectDragGestures(
+                                                            onDrag = { change, dragAmount ->
+                                                                change.consume()
+                                                                accumulatedDrag += dragAmount.y
+                                                                if (accumulatedDrag >= dragThresholdPx) {
+                                                                    movePlaylistTrack(track.id, 1)
+                                                                    accumulatedDrag -= dragThresholdPx
+                                                                } else if (accumulatedDrag <= -dragThresholdPx) {
+                                                                    movePlaylistTrack(track.id, -1)
+                                                                    accumulatedDrag += dragThresholdPx
+                                                                }
+                                                            }
+                                                        )
+                                                    }
+                                                    .padding(horizontal = 7.dp, vertical = 4.dp)
+                                            )
+                                            Column(Modifier.weight(1f)) {
+                                                Text(
+                                                    track.title,
+                                                    color = TextPrimary,
+                                                    fontSize = 15.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    track.artist,
+                                                    color = MutedText,
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.size(40.dp).clickable {
+                                                        val name = selectedPlaylist
+                                                        if (name != null) {
+                                                            val updated = playlists.toMutableMap()
+                                                            updated[name] = updated[name].orEmpty().filterNot { it == track.id }
+                                                            playlists = updated
+                                                            savePlaylists(updated)
+                                                        }
+                                                    },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text("−", color = Accent, fontSize = 23.sp)
+                                                }
+                                                Box(
+                                                    modifier = Modifier.size(40.dp).clickable {
+                                                        val updated = favoriteIds.toMutableSet()
+                                                        if (track.id in updated) updated.remove(track.id) else updated.add(track.id)
+                                                        favoriteIds = updated
+                                                        saveFavorites(updated)
+                                                    },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(if (track.id in favoriteIds) "★" else "☆", color = Accent, fontSize = 21.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (visibleTracks.isEmpty()) {
+                            Text(
+                                text = if (selectedPlaylist == null) {
+                                    "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам."
+                                } else {
+                                    "В этом плейлисте пока нет песен."
+                                },
+                                color = MutedText
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                visibleTracks.forEach { track ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .then(
+                                                if (track.id == currentTrack?.id) {
+                                                    Modifier.background(Color(0xFFF1E4CC), RoundedCornerShape(13.dp))
+                                                } else {
+                                                    glassPanelModifier(Panel, 13.dp, isGlassTheme)
+                                                }
+                                            )
+                                            .clickable {
+                                                playAt(track, visibleTracks)
+                                            }
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
+
+                                        Spacer(Modifier.width(12.dp))
+
+                                        Column(
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                text = track.title,
+                                                color = TextPrimary,
+                                                fontSize = 15.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+
+                                            Text(
+                                                text = track.artist,
+                                                color = MutedText,
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.size(40.dp).clickable {
+                                                    val playlistName = selectedPlaylist
+                                                    if (playlistName != null) {
+                                                        val updated = playlists.toMutableMap()
+                                                        updated[playlistName] = updated[playlistName]
+                                                            .orEmpty()
+                                                            .filterNot { it == track.id }
+                                                        playlists = updated
+                                                        savePlaylists(updated)
+                                                    } else {
+                                                        pendingTrack = track
+                                                    }
+                                                },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(if (selectedPlaylist != null) "−" else "＋", color = Accent, fontSize = 23.sp)
+                                            }
+                                            Box(
+                                                modifier = Modifier.size(40.dp).clickable {
+                                                    val updated = favoriteIds.toMutableSet()
+                                                    if (!updated.add(track.id)) updated.remove(track.id)
+                                                    favoriteIds = updated
+                                                    saveFavorites(updated)
+                                                },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(if (track.id in favoriteIds) "★" else "☆", color = Accent, fontSize = 21.sp)
+                                            }
+                                            Box(
+                                                modifier = Modifier.size(40.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    if (track.id == currentTrack?.id && playing) "Ⅱ" else "▶",
+                                                    color = Accent,
+                                                    fontSize = 19.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+
+                                    }
+                                
+                }
+
+                @Composable
+                fun SoundTabContent() {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState())
+                                            .padding(horizontal = 18.dp, vertical = 12.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .then(glassPanelModifier(PanelRaised, 15.dp, isGlassTheme)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("♫", color = Accent, fontSize = 25.sp)
+                                            }
+                                            Spacer(Modifier.width(12.dp))
+                                            Column(Modifier.weight(1f)) {
+                                                Text("Звук", color = TextPrimary, fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
+                                                Text("Точная настройка звучания", color = MutedText, fontSize = 12.sp)
+                                            }
+                                            Text(
+                                                "10 ПОЛОС",
+                                                color = Accent,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier
+                                                    .background(PanelRaised, RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                                            )
+                                        }
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Background, RoundedCornerShape(20.dp))
+                                                .border(1.dp, Accent.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+                                                .padding(horizontal = 17.dp, vertical = 15.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(Modifier.weight(1f)) {
+                                                Text("Эквалайзер", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                                Text(
+                                                    if (equalizerEnabled) "Обработка звука активна" else "Обработка отключена",
+                                                    color = MutedText,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                            Switch(
+                                                checked = equalizerEnabled,
+                                                onCheckedChange = {
+                                                    equalizerEnabled = it
+                                                    sendEqualizerSettings(
+                                                        it, equalizerLevels, bassStrength, virtualizerStrength
+                                                    )
+                                                }
+                                            )
+                                        }
+
+                                        Box {
+                                            TextButton(
+                                                onClick = { presetMenuExpanded = true },
+                                                modifier = Modifier
+                                                    .background(Background, RoundedCornerShape(10.dp))
+                                                    .border(1.dp, Accent.copy(alpha = 0.20f), RoundedCornerShape(10.dp)),
+                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)
+                                            ) {
+                                                Text("♫  Пресеты  ▾", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                            }
+                                            DropdownMenu(
+                                                expanded = presetMenuExpanded,
+                                                onDismissRequest = { presetMenuExpanded = false },
+                                                containerColor = if (isGlassTheme) Color(0xFF26384B) else Background
+                                            ) {
+                                                equalizerPresets.forEach { preset ->
+                                                    DropdownMenuItem(
+                                                        text = { Text(preset.name, color = TextPrimary) },
+                                                        onClick = {
+                                                            equalizerLevels = preset.levels
+                                                            presetMenuExpanded = false
+                                                            sendEqualizerSettings(
+                                                                equalizerEnabled, equalizerLevels,
+                                                                bassStrength, virtualizerStrength
+                                                            )
+                                                        }
+                                                    )
+                                                }
+                                                customProfiles.toSortedMap().forEach { (name, values) ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("★ $name", color = TextPrimary) },
+                                                        onClick = {
+                                                            equalizerLevels = values
+                                                            presetMenuExpanded = false
+                                                            sendEqualizerSettings(
+                                                                equalizerEnabled, equalizerLevels,
+                                                                bassStrength, virtualizerStrength
+                                                            )
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Text(
+                                            "Частотные полосы · от −12 до +12 дБ",
+                                            color = MutedText,
+                                            fontSize = 12.sp
+                                        )
+
+                                        equalizerFrequencies.forEachIndexed { index, label ->
+                                            Column(modifier = Modifier.padding(top = 3.dp, bottom = 3.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(label, color = TextPrimary, fontSize = 11.sp)
+                                                    Text(
+                                                        "${equalizerLevels[index]} дБ",
+                                                        color = Accent,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                                Slider(
+                                                    value = equalizerLevels[index].toFloat(),
+                                                    onValueChange = { value ->
+                                                        equalizerLevels = equalizerLevels.toMutableList().also {
+                                                            it[index] = value.toInt()
+                                                        }
+                                                    },
+                                                    onValueChangeFinished = {
+                                                        sendEqualizerSettings(
+                                                            equalizerEnabled, equalizerLevels,
+                                                            bassStrength, virtualizerStrength
+                                                        )
+                                                    },
+                                                    valueRange = -12f..12f,
+                                                    steps = 23,
+                                                    enabled = equalizerEnabled,
+                                                    colors = SliderDefaults.colors(
+                                                        thumbColor = Accent,
+                                                        activeTrackColor = Accent
+                                                    )
+                                                )
+                                            }
+                                        }
+
+                                        HorizontalDivider(color = Panel)
+                                        Text("Усиление баса", color = TextPrimary)
+                                        Slider(
+                                            value = bassStrength.toFloat(),
+                                            onValueChange = { bassStrength = it.toInt() },
+                                            onValueChangeFinished = {
+                                                sendEqualizerSettings(
+                                                    equalizerEnabled, equalizerLevels,
+                                                    bassStrength, virtualizerStrength
+                                                )
+                                            },
+                                            valueRange = 0f..100f,
+                                            enabled = equalizerEnabled,
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Accent,
+                                                activeTrackColor = Accent
+                                            )
+                                        )
+                                        Text("$bassStrength %", color = MutedText, fontSize = 12.sp)
+
+                                        Text("Объёмное звучание", color = TextPrimary)
+                                        Slider(
+                                            value = virtualizerStrength.toFloat(),
+                                            onValueChange = { virtualizerStrength = it.toInt() },
+                                            onValueChangeFinished = {
+                                                sendEqualizerSettings(
+                                                    equalizerEnabled, equalizerLevels,
+                                                    bassStrength, virtualizerStrength
+                                                )
+                                            },
+                                            valueRange = 0f..100f,
+                                            enabled = equalizerEnabled,
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Accent,
+                                                activeTrackColor = Accent
+                                            )
+                                        )
+                                        Text("$virtualizerStrength %", color = MutedText, fontSize = 12.sp)
+
+                                        TextButton(onClick = {
+                                            equalizerLevels = List(10) { 0 }
+                                            bassStrength = 0
+                                            virtualizerStrength = 0
+                                            equalizerEnabled = true
+                                            sendEqualizerSettings(
+                                                true, equalizerLevels, bassStrength, virtualizerStrength
+                                            )
+                                        }) {
+                                            Text("СБРОСИТЬ НАСТРОЙКИ", color = Accent)
+                                        }
+                                        TextButton(onClick = {
+                                            profileName = ""
+                                            saveProfileDialogOpen = true
+                                        }) {
+                                            Text("СОХРАНИТЬ СВОЙ ПРОФИЛЬ", color = Accent)
+                                        }
+                                    }
+                                    }
+                                
+                }
+
+                @Composable
+                fun SettingsTabContent() {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState())
+                                            .padding(horizontal = 18.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Настройки",
+                                            color = TextPrimary,
+                                            fontSize = 27.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = "Параметры Pure Music Player",
+                                            color = MutedText,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
+                                        )
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                .padding(16.dp)
+                                        ) {
+                                            Text("Цвет оформления", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            Text("Выбери фон. Позолота и золотой вензель остаются неизменными.", color = MutedText, fontSize = 12.sp)
+                                            Spacer(Modifier.height(12.dp))
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                            ) {
+                                                playerThemes.forEach { theme ->
+                                                    val selected = selectedThemeName == theme.name
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .size(width = 70.dp, height = 64.dp)
+                                                            .background(
+                                                                Brush.linearGradient(listOf(theme.background, theme.panel, theme.panelRaised)),
+                                                                RoundedCornerShape(12.dp)
+                                                            )
+                                                            .border(
+                                                                width = if (selected) 2.dp else 1.dp,
+                                                                color = if (selected) Accent else theme.panelRaised,
+                                                                shape = RoundedCornerShape(14.dp)
+                                                            )
+                                                            .clickable {
+                                                                selectedThemeName = theme.name
+                                                                playerPreferences.edit().putString("player_theme", theme.name).apply()
+                                                            }
+                                                            .padding(4.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(16.dp)
+                                                                .background(
+                                                                    Brush.linearGradient(listOf(theme.panel, theme.panelRaised, theme.background)),
+                                                                    RoundedCornerShape(7.dp)
+                                                                )
+                                                                .border(1.dp, Accent.copy(alpha = 0.85f), RoundedCornerShape(9.dp))
+                                                        )
+                                                        Spacer(Modifier.height(3.dp))
+                                                        Text(
+                                                            theme.name,
+                                                            color = theme.textPrimary,
+                                                            fontSize = 9.sp,
+                                                            lineHeight = 10.sp,
+                                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                            maxLines = 2,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                .padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("♫", color = Accent, fontSize = 24.sp)
+                                            Spacer(Modifier.width(14.dp))
+                                            Column(Modifier.weight(1f)) {
+                                                Text("Музыкальная библиотека", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                                Text("${tracks.size} аудиофайлов найдено", color = MutedText, fontSize = 12.sp)
+                                            }
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                .padding(16.dp)
+                                        ) {
+                                            Text("Таймер сна", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            Text(
+                                                if (sleepTimerMinutes > 0) {
+                                                    val mins = (sleepTimerRemaining / 60_000L).toInt()
+                                                    val secs = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                                    "Остановка через %02d:%02d".format(mins, secs)
+                                                } else "Автоматическая остановка музыки",
+                                                color = MutedText,
+                                                fontSize = 12.sp
+                                            )
+                                            Spacer(Modifier.height(8.dp))
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                TextButton(
+                                                    onClick = { sleepTimerDialogOpen = true },
+                                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                                                ) {
+                                                    Text("ТАЙМЕР", color = Accent, fontSize = 10.sp)
+                                                }
+                                                if (sleepTimerMinutes > 0) {
+                                                    TextButton(
+                                                        onClick = {
+                                                            sleepTimerMinutes = 0
+                                                            startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                                                    ) {
+                                                        Text("ОТМЕНИТЬ", color = MutedText, fontSize = 10.sp)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        TextButton(
+                                            onClick = { tracks = loadTracks() },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
+                                        ) {
+                                            Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
+                                        }
+                                        Spacer(Modifier.height(8.dp))
+                                        TextButton(
+                                            onClick = {
+                                                val crashFile = java.io.File(filesDir, "last_crash.txt")
+                                                if (crashFile.exists()) {
+                                                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                                                    clipboard.setPrimaryClip(
+                                                        ClipData.newPlainText("Pure Music Player crash log", crashFile.readText())
+                                                    )
+                                                    Toast.makeText(this@MainActivity, "Журнал сбоя скопирован. Вставь его в чат.", Toast.LENGTH_LONG).show()
+                                                } else {
+                                                    Toast.makeText(this@MainActivity, "Сохранённых сбоев пока нет.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
+                                        ) {
+                                            Text("СКОПИРОВАТЬ ЖУРНАЛ СБОЯ", color = Accent)
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        Text(
+                                            text = "PURE MUSIC  ·  PREMIUM HI-FI",
+                                            color = Accent,
+                                            fontSize = 12.sp,
+                                            letterSpacing = 1.1.sp,
+                                            modifier = Modifier.padding(top = 18.dp)
+                                        )
+                                        Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
+                                    }
+                                
+                }
+
+
+
+                @Composable
+                fun PlaylistTabContent() {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState())
+                                            .padding(horizontal = 18.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Плейлисты",
+                                            color = TextPrimary,
+                                            fontSize = 27.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = "Твои музыкальные подборки",
+                                            color = MutedText,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
+                                        )
+                                        if (playlists.isEmpty()) {
+                                            Text(
+                                                text = "Пока нет плейлистов. Создай первую подборку или добавляй песни в плейлист из раздела «Музыка».",
+                                                color = MutedText,
+                                                modifier = Modifier.padding(vertical = 16.dp)
+                                            )
+                                        } else {
+                                            playlists.toSortedMap().forEach { (name, ids) ->
+                                                val playlistTracks = tracks.filter { it.id in ids }
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(bottom = 8.dp)
+                                                        .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                        .clickable {
+                                                            navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null)
+                                                        }
+                                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("♫", color = Accent, fontSize = 24.sp)
+                                                    Spacer(Modifier.width(12.dp))
+                                                    Column(Modifier.weight(1f)) {
+                                                        Text(name, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                                        Text("${playlistTracks.size} композиций", color = MutedText, fontSize = 12.sp)
+                                                    }
+                                                    if (playlistTracks.isNotEmpty()) {
+                                                        Text(
+                                                            "▶",
+                                                            color = Accent,
+                                                            fontSize = 18.sp,
+                                                            modifier = Modifier
+                                                                .clickable { playAt(playlistTracks.first(), playlistTracks) }
+                                                                .padding(horizontal = 9.dp, vertical = 8.dp)
+                                                        )
+                                                    }
+                                                    Box {
+                                                        Text(
+                                                            "⋮",
+                                                            color = Accent,
+                                                            fontSize = 23.sp,
+                                                            modifier = Modifier
+                                                                .clickable {
+                                                                    playlistMenuName = name
+                                                                    playlistMenuExpanded = true
+                                                                }
+                                                                .padding(horizontal = 7.dp, vertical = 5.dp)
+                                                        )
+                                                        DropdownMenu(
+                                                            expanded = playlistMenuExpanded && playlistMenuName == name,
+                                                            onDismissRequest = {
+                                                                playlistMenuExpanded = false
+                                                                playlistMenuName = null
+                                                            }
+                                                        ) {
+                                                            DropdownMenuItem(
+                                                                text = { Text("Переименовать") },
+                                                                onClick = {
+                                                                    renamePlaylistInput = name
+                                                                    playlistToRename = name
+                                                                    playlistMenuExpanded = false
+                                                                    playlistMenuName = null
+                                                                }
+                                                            )
+                                                            DropdownMenuItem(
+                                                                text = { Text("Удалить плейлист") },
+                                                                onClick = {
+                                                                    playlistToDelete = name
+                                                                    playlistMenuExpanded = false
+                                                                    playlistMenuName = null
+                                                                }
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                
+                }
+
                 MaterialTheme(
                     colorScheme = lightColorScheme(
                         primary = Accent,
@@ -712,1857 +2510,29 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxWidth()
                             ) {
                                 when (selectedTab) {
-                                    0 -> {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .then(
-                                                    if (isLandscapeLayout && selectedTab != 0) Modifier.verticalScroll(rememberScrollState())
-                                                    else Modifier
-                                                )
-                                                .widthIn(max = if (isTabletWidth) 980.dp else Dp.Unspecified)
-                                                .padding(
-                                                    horizontal = if (isTabletWidth) 24.dp else 10.dp,
-                                                    vertical = if (isLandscapeLayout) 2.dp else 6.dp
-                                                ),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            if (!(isLandscapeLayout && isTabletWidth)) {
-                                                Text(
-                                                    text = if (playbackQueue.isNotEmpty()) "Сейчас играет из выбранного списка" else "Твоя музыка. Твой мир.",
-                                                    color = MutedText,
-                                                    fontSize = 13.sp,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(top = 12.dp, bottom = 8.dp)
-                                                )
-                                            }
-                            if (isLandscapeLayout && isTabletWidth) {
-                                if (currentTrack != null) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight()
-                                            .padding(horizontal = 18.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(28.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        // Левая зона: крупная квадратная обложка и спектр.
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(0.88f)
-                                                .fillMaxHeight(),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            AlbumCover(
-                                                albumId = currentTrack.albumId,
-                                                modifier = Modifier
-                                                    .fillMaxHeight(0.78f)
-                                                    .aspectRatio(1f)
-                                                    .widthIn(max = 360.dp),
-                                                themeSurface = Panel,
-                                                isGlassTheme = isGlassTheme
-                                            )
-                                            Spacer(Modifier.height(10.dp))
-                                            PremiumSpectrum(isPlaying = playing)
-                                        }
+                                    0 -> HomeTabContent()
 
-                                        // Правая зона: название, прогресс и управление.
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(1.12f)
-                                                .fillMaxHeight()
-                                                .padding(vertical = 8.dp),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Text(
-                                                text = if (playbackQueue.isNotEmpty()) "Сейчас играет из выбранного списка" else "Твоя музыка. Твой мир.",
-                                                color = MutedText,
-                                                fontSize = 12.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(bottom = 12.dp)
-                                            )
+                                    1 -> MusicTabContent()
 
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
-                                                    .border(
-                                                        width = 1.dp,
-                                                        color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
-                                                        shape = RoundedCornerShape(18.dp)
-                                                    )
-                                                    .padding(horizontal = 18.dp, vertical = 12.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                Text(
-                                                    text = currentTrack.title,
-                                                    color = TextPrimary,
-                                                    fontSize = 21.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    letterSpacing = 0.15.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Spacer(Modifier.height(5.dp))
-                                                Box(
-                                                    modifier = Modifier
-                                                        .width(28.dp)
-                                                        .height(2.dp)
-                                                        .background(Accent.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
-                                                )
-                                                Spacer(Modifier.height(5.dp))
-                                                Text(
-                                                    text = currentTrack.artist,
-                                                    color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    letterSpacing = 0.35.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
+                                    2 -> PlaylistTabContent()
 
-                                            Spacer(Modifier.height(14.dp))
+                                    3 -> SoundTabContent()
 
-                                            Slider(
-                                                value = position.coerceIn(0f, 1f),
-                                                onValueChange = { position = it },
-                                                onValueChangeFinished = {
-                                                    if (duration > 0L) {
-                                                        exoPlayer.seekTo((position * duration).toLong())
-                                                    }
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(24.dp),
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Accent,
-                                                    activeTrackColor = Accent,
-                                                    inactiveTrackColor = MutedText.copy(alpha = 0.32f)
-                                                )
-                                            )
-
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = time(exoPlayer.currentPosition),
-                                                    color = Accent.copy(alpha = 0.92f),
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                                Text(
-                                                    text = time(duration),
-                                                    color = MutedText.copy(alpha = 0.88f),
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-
-                                            Spacer(Modifier.height(18.dp))
-
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 22.dp, isGlassTheme))
-                                                    .border(
-                                                        width = 1.dp,
-                                                        color = Accent.copy(alpha = 0.28f),
-                                                        shape = RoundedCornerShape(22.dp)
-                                                    )
-                                                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = "⤨",
-                                                    color = if (shuffleEnabled) Accent else MutedText,
-                                                    fontSize = 27.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) {
-                                                        exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
-                                                        shuffleEnabled = exoPlayer.shuffleModeEnabled
-                                                    }
-                                                )
-                                                Text(
-                                                    text = "◀",
-                                                    color = Color(0xFFE5C982),
-                                                    fontSize = 27.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) { exoPlayer.seekToPreviousMediaItem() }
-                                                )
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(58.dp)
-                                                        .clickable(
-                                                            interactionSource = remember { MutableInteractionSource() },
-                                                            indication = null
-                                                        ) {
-                                                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                                            playing = exoPlayer.isPlaying
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Canvas(modifier = Modifier.fillMaxSize()) {
-                                                        val cx = size.width / 2f
-                                                        val cy = size.height / 2f
-                                                        if (playing) {
-                                                            val barWidth = 5.dp.toPx()
-                                                            val barHeight = 21.dp.toPx()
-                                                            val gap = 5.dp.toPx()
-                                                            drawRoundRect(
-                                                                color = Accent,
-                                                                topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
-                                                                size = Size(barWidth, barHeight),
-                                                                cornerRadius = CornerRadius(1.5.dp.toPx())
-                                                            )
-                                                            drawRoundRect(
-                                                                color = Accent,
-                                                                topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
-                                                                size = Size(barWidth, barHeight),
-                                                                cornerRadius = CornerRadius(1.5.dp.toPx())
-                                                            )
-                                                        } else {
-                                                            val halfHeight = 13.dp.toPx()
-                                                            val left = 10.dp.toPx()
-                                                            val right = 16.dp.toPx()
-                                                            val triangle = androidx.compose.ui.graphics.Path().apply {
-                                                                moveTo(cx - left, cy - halfHeight)
-                                                                lineTo(cx - left, cy + halfHeight)
-                                                                lineTo(cx + right, cy)
-                                                                close()
-                                                            }
-                                                            drawPath(path = triangle, color = Accent)
-                                                        }
-                                                    }
-                                                }
-                                                Text(
-                                                    text = "▶",
-                                                    color = Color(0xFFE5C982),
-                                                    fontSize = 27.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) { exoPlayer.seekToNextMediaItem() }
-                                                )
-                                                Text(
-                                                    text = when (repeatMode) {
-                                                        Player.REPEAT_MODE_ONE -> "1↻"
-                                                        else -> "↻"
-                                                    },
-                                                    color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
-                                                    fontSize = 27.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) {
-                                                        val nextMode = when (exoPlayer.repeatMode) {
-                                                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                                            else -> Player.REPEAT_MODE_OFF
-                                                        }
-                                                        exoPlayer.repeatMode = nextMode
-                                                        repeatMode = nextMode
-                                                    }
-                                                )
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clickable(
-                                                            interactionSource = remember { MutableInteractionSource() },
-                                                            indication = null
-                                                        ) { sleepTimerDialogOpen = true }
-                                                        .padding(horizontal = 3.dp, vertical = 6.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    if (sleepTimerMinutes > 0) {
-                                                        val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
-                                                        val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
-                                                        Text(
-                                                            text = "%02d:%02d".format(timerMinutes, timerSeconds),
-                                                            color = Accent,
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            maxLines = 1
-                                                        )
-                                                    } else {
-                                                        Text("◷", color = MutedText, fontSize = 20.sp)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = "Выбери композицию во вкладке «Музыка»",
-                                            color = MutedText
-                                        )
-                                    }
-                                }
-                            } else if (isLandscapeLayout) {
-                                // Компактная горизонтальная компоновка для смартфонов.
-                                if (currentTrack != null) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight()
-                                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(0.78f)
-                                                .fillMaxHeight(),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            AlbumCover(
-                                                albumId = currentTrack.albumId,
-                                                modifier = Modifier
-                                                    .fillMaxHeight(0.72f)
-                                                    .aspectRatio(1f)
-                                                    .widthIn(max = 220.dp),
-                                                themeSurface = Panel,
-                                                isGlassTheme = isGlassTheme
-                                            )
-                                            Spacer(Modifier.height(5.dp))
-                                            PremiumSpectrum(isPlaying = playing)
-                                        }
-
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(1.22f)
-                                                .fillMaxHeight()
-                                                .padding(vertical = 3.dp),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                    .border(
-                                                        1.dp,
-                                                        Accent.copy(alpha = 0.30f),
-                                                        RoundedCornerShape(14.dp)
-                                                    )
-                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                Text(
-                                                    text = currentTrack.title,
-                                                    color = TextPrimary,
-                                                    fontSize = 15.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Spacer(Modifier.height(2.dp))
-                                                Text(
-                                                    text = currentTrack.artist,
-                                                    color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
-                                                    fontSize = 10.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-
-                                            Spacer(Modifier.height(4.dp))
-                                            Slider(
-                                                value = position.coerceIn(0f, 1f),
-                                                onValueChange = { position = it },
-                                                onValueChangeFinished = {
-                                                    if (duration > 0L) {
-                                                        exoPlayer.seekTo((position * duration).toLong())
-                                                    }
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(20.dp),
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Accent,
-                                                    activeTrackColor = Accent,
-                                                    inactiveTrackColor = MutedText.copy(alpha = 0.32f)
-                                                )
-                                            )
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(time(exoPlayer.currentPosition), color = Accent, fontSize = 9.sp)
-                                                Text(time(duration), color = MutedText, fontSize = 9.sp)
-                                            }
-
-                                            Spacer(Modifier.height(6.dp))
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 16.dp, isGlassTheme))
-                                                    .border(
-                                                        1.dp,
-                                                        Accent.copy(alpha = 0.25f),
-                                                        RoundedCornerShape(16.dp)
-                                                    )
-                                                    .padding(horizontal = 3.dp, vertical = 4.dp),
-                                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    "⤨",
-                                                    color = if (shuffleEnabled) Accent else MutedText,
-                                                    fontSize = 20.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) {
-                                                        exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
-                                                        shuffleEnabled = exoPlayer.shuffleModeEnabled
-                                                    }
-                                                )
-                                                Text(
-                                                    "◀",
-                                                    color = Accent,
-                                                    fontSize = 20.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) { exoPlayer.seekToPreviousMediaItem() }
-                                                )
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(42.dp)
-                                                        .clickable(
-                                                            interactionSource = remember { MutableInteractionSource() },
-                                                            indication = null
-                                                        ) {
-                                                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                                            playing = exoPlayer.isPlaying
-                                                        },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Canvas(Modifier.fillMaxSize()) {
-                                                        val cx = size.width / 2f
-                                                        val cy = size.height / 2f
-                                                        if (playing) {
-                                                            val bw = 4.dp.toPx()
-                                                            val bh = 16.dp.toPx()
-                                                            val gap = 4.dp.toPx()
-                                                            drawRoundRect(Accent, Offset(cx - gap / 2f - bw, cy - bh / 2f), Size(bw, bh), CornerRadius(1.dp.toPx()))
-                                                            drawRoundRect(Accent, Offset(cx + gap / 2f, cy - bh / 2f), Size(bw, bh), CornerRadius(1.dp.toPx()))
-                                                        } else {
-                                                            val path = androidx.compose.ui.graphics.Path().apply {
-                                                                moveTo(cx - 7.dp.toPx(), cy - 10.dp.toPx())
-                                                                lineTo(cx - 7.dp.toPx(), cy + 10.dp.toPx())
-                                                                lineTo(cx + 10.dp.toPx(), cy)
-                                                                close()
-                                                            }
-                                                            drawPath(path, Accent)
-                                                        }
-                                                    }
-                                                }
-                                                Text(
-                                                    "▶",
-                                                    color = Accent,
-                                                    fontSize = 20.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) { exoPlayer.seekToNextMediaItem() }
-                                                )
-                                                Text(
-                                                    if (repeatMode == Player.REPEAT_MODE_ONE) "1↻" else "↻",
-                                                    color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
-                                                    fontSize = 20.sp,
-                                                    modifier = Modifier.clickable(
-                                                        interactionSource = remember { MutableInteractionSource() },
-                                                        indication = null
-                                                    ) {
-                                                        val nextMode = when (exoPlayer.repeatMode) {
-                                                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                                            else -> Player.REPEAT_MODE_OFF
-                                                        }
-                                                        exoPlayer.repeatMode = nextMode
-                                                        repeatMode = nextMode
-                                                    }
-                                                )
-                                                Text(
-                                                    "◷",
-                                                    color = if (sleepTimerMinutes > 0) Accent else MutedText,
-                                                    fontSize = 17.sp,
-                                                    modifier = Modifier.clickable { sleepTimerDialogOpen = true }
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text("Выбери композицию во вкладке «Музыка»", color = MutedText)
-                                    }
-                                }
-                            } else {
-                            if (currentTrack != null) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    AlbumCover(
-                                        albumId = currentTrack.albumId,
-                                        modifier = Modifier
-                                            .fillMaxWidth(
-                                                if (isTabletWidth) 0.62f else 0.94f
-                                            )
-                                            .widthIn(max = if (isTabletWidth) 520.dp else Dp.Unspecified),
-                                        themeSurface = Panel,
-                                        isGlassTheme = isGlassTheme
-                                    )
-
-                                    Spacer(Modifier.height(8.dp))
-                                    PremiumSpectrum(isPlaying = playing)
-                                    Spacer(Modifier.height(if (isLandscapeLayout) 6.dp else 18.dp))
-
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
-                                            .border(
-                                                width = 1.dp,
-                                                color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
-                                                shape = RoundedCornerShape(18.dp)
-                                            )
-                                            .padding(horizontal = 18.dp, vertical = 10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = currentTrack.title,
-                                            color = TextPrimary,
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            letterSpacing = 0.15.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Spacer(Modifier.height(4.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .width(26.dp)
-                                                .height(2.dp)
-                                                .background(
-                                                    Accent.copy(alpha = if (isGlassTheme) 0.78f else 0.55f),
-                                                    RoundedCornerShape(2.dp)
-                                                )
-                                        )
-                                        Spacer(Modifier.height(4.dp))
-                                        Text(
-                                            text = currentTrack.artist,
-                                            color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            letterSpacing = 0.35.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    Spacer(Modifier.height(if (isLandscapeLayout) 5.dp else 12.dp))
-
-                                    Slider(
-                                        value = position.coerceIn(0f, 1f),
-                                        onValueChange = { position = it },
-                                        onValueChangeFinished = {
-                                            if (duration > 0L) {
-                                                exoPlayer.seekTo(
-                                                    (position * duration).toLong()
-                                                )
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(20.dp),
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = Accent,
-                                            activeTrackColor = Accent,
-                                            inactiveTrackColor = MutedText.copy(alpha = if (isGlassTheme) 0.32f else 0.38f)
-                                        )
-                                    )
-
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 2.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = time(exoPlayer.currentPosition),
-                                            color = Accent.copy(alpha = 0.92f),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-
-                                        Text(
-                                            text = time(duration),
-                                            color = MutedText.copy(alpha = 0.88f),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-
-                                    Spacer(Modifier.height(if (isLandscapeLayout) 6.dp else 16.dp))
-
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .then(glassPanelModifier(Panel, 22.dp, isGlassTheme))
-                                            .border(
-                                                width = 1.dp,
-                                                color = Accent.copy(alpha = if (isGlassTheme) 0.28f else 0.08f),
-                                                shape = RoundedCornerShape(22.dp)
-                                            )
-                                            .padding(horizontal = 5.dp, vertical = 7.dp)
-                                            .offset(y = (-6).dp),
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "⤨",
-                                            color = if (shuffleEnabled) Accent else MutedText,
-                                            fontSize = 30.sp,
-                                            modifier = Modifier.clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
-                                                shuffleEnabled = exoPlayer.shuffleModeEnabled
-                                            }
-                                        )
-
-                                        Text(
-                                            text = "◀",
-                                            color = Color(0xFFE5C982),
-                                            fontSize = 30.sp,
-                                            modifier = Modifier.clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                exoPlayer.seekToPreviousMediaItem()
-                                            }
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .size(68.dp)
-                                                .clickable(
-                                                    interactionSource = remember { MutableInteractionSource() },
-                                                    indication = null
-                                                ) {
-                                                    if (exoPlayer.isPlaying) {
-                                                        exoPlayer.pause()
-                                                    } else {
-                                                        exoPlayer.play()
-                                                    }
-                                                    playing = exoPlayer.isPlaying
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                                // Play/pause glyph stays centered; no decorative circle behind it.
-                                                val cx = size.width / 2f
-                                                val cy = size.height / 2f
-                                                if (playing) {
-                                                    val barWidth = 5.dp.toPx()
-                                                    val barHeight = 22.dp.toPx()
-                                                    val gap = 5.dp.toPx()
-                                                    drawRoundRect(
-                                                        color = Accent,
-                                                        topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
-                                                        size = Size(barWidth, barHeight),
-                                                        cornerRadius = CornerRadius(1.5.dp.toPx())
-                                                    )
-                                                    drawRoundRect(
-                                                        color = Accent,
-                                                        topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
-                                                        size = Size(barWidth, barHeight),
-                                                        cornerRadius = CornerRadius(1.5.dp.toPx())
-                                                    )
-                                                } else {
-                                                    val halfHeight = 13.dp.toPx()
-                                                    val left = 10.dp.toPx()
-                                                    val right = 16.dp.toPx()
-                                                    val triangle = androidx.compose.ui.graphics.Path().apply {
-                                                        moveTo(cx - left, cy - halfHeight)
-                                                        lineTo(cx - left, cy + halfHeight)
-                                                        lineTo(cx + right, cy)
-                                                        close()
-                                                    }
-                                                    drawPath(path = triangle, color = Accent)
-                                                }
-                                            }
-                                        }
-
-                                        Text(
-                                            text = "▶",
-                                            color = Color(0xFFE5C982),
-                                            fontSize = 30.sp,
-                                            modifier = Modifier.clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                exoPlayer.seekToNextMediaItem()
-                                            }
-                                        )
-
-                                        Text(
-                                            text = when (repeatMode) {
-                                                Player.REPEAT_MODE_ONE -> "1↻"
-                                                Player.REPEAT_MODE_ALL -> "↻"
-                                                else -> "↻"
-                                            },
-                                            color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
-                                            fontSize = 30.sp,
-                                            modifier = Modifier.clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                val nextMode = when (exoPlayer.repeatMode) {
-                                                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                                    else -> Player.REPEAT_MODE_OFF
-                                                }
-                                                exoPlayer.repeatMode = nextMode
-                                                repeatMode = nextMode
-                                            }
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .clickable(
-                                                    interactionSource = remember { MutableInteractionSource() },
-                                                    indication = null
-                                                ) { sleepTimerDialogOpen = true }
-                                                .padding(horizontal = 3.dp, vertical = 6.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (sleepTimerMinutes > 0) {
-                                                val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
-                                                val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
-                                                Text(
-                                                    text = "%02d:%02d".format(timerMinutes, timerSeconds),
-                                                    color = Accent,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    maxLines = 1
-                                                )
-                                            } else {
-                                                Text("◷", color = MutedText, fontSize = 21.sp)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Spacer(Modifier.height(18.dp))
-                            }
-
-                            }
-
-
-                                            if (currentTrack == null) {
-                                                Text(
-                                                    text = "Выбери композицию во вкладке «Музыка»",
-                                                    color = MutedText,
-                                                    modifier = Modifier.padding(vertical = 36.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    1 -> {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .verticalScroll(rememberScrollState())
-                                                .padding(horizontal = 18.dp, vertical = 12.dp)
-                                        ) {
-                                            Text(
-                                                text = "Музыка",
-                                                color = TextPrimary,
-                                                fontSize = 27.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Text(
-                                                text = "${tracks.size} аудиофайлов",
-                                                color = MutedText,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
-                                            )
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                TextButton(
-                                                    onClick = { selectedFolderPath = null; navigateTo(tab = 1, mode = "Плейлисты", playlist = null, albumId = null, artist = null) },
-                                                    modifier = Modifier.then(glassPanelModifier(Panel, 12.dp, isGlassTheme)),
-                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                                ) { Text("♫ Плейлисты", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) }
-                                                TextButton(
-                                                    onClick = {
-                                                        playlistNameInput = ""
-                                                        createPlaylistDialogOpen = true
-                                                    },
-                                                    modifier = Modifier
-                                                        .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme))
-                                                        .border(1.dp, Accent.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
-                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                                ) {
-                                                    Text("＋ Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
-                                                }
-                                            }
-                                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                listOf("Композиции", "Альбомы", "Исполнители", "Папки").forEach { mode ->
-                                    val isSelected = libraryMode == mode
-                                    Text(
-                                        text = when (mode) {
-                                            "Композиции" -> "Песни"
-                                            "Исполнители" -> "Артисты"
-                                            else -> mode
-                                        },
-                                        color = if (isSelected) Color(0xFF211B10) else Accent,
-                                        fontSize = 9.sp,
-                                        lineHeight = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        maxLines = 1,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(34.dp)
-                                            .background(
-                                                if (isSelected) Brush.linearGradient(listOf(Accent, Color(0xFFE9D49B))) else Brush.linearGradient(listOf(Panel, Background)),
-                                                RoundedCornerShape(9.dp)
-                                            )
-                                            .clickable {
-                                                selectedFolderPath = null
-                                                navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null)
-                                            }
-                                            .wrapContentHeight(Alignment.CenterVertically)
-                                            .padding(horizontal = 2.dp)
-                                    )
+                                    else -> SettingsTabContent()
                                 }
                             }
 
-                            if (libraryMode == "Альбомы" || libraryMode == "Исполнители" || libraryMode == "Папки") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Плитки:", color = MutedText, fontSize = 11.sp)
-                                    Spacer(Modifier.width(6.dp))
-                                    listOf(3 to "Меньше", 2 to "Больше").forEach { (columns, label) ->
-                                        TextButton(
-                                            onClick = {
-                                                libraryTileSize = columns
-                                                playerPreferences.edit().putInt("library_tile_columns", columns).apply()
-                                            },
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(label, color = if (libraryTileSize == columns) Accent else MutedText, fontSize = 11.sp,
-                                                fontWeight = if (libraryTileSize == columns) FontWeight.Bold else FontWeight.Normal)
-                                        }
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(10.dp))
-
-                            if (selectedPlaylist != null || selectedAlbumId != null || selectedArtist != null || selectedFolderPath != null) {
-                                TextButton(
-                                    onClick = { goBack() }
-                                ) {
-                                    Text(
-                                        if (selectedPlaylist != null) "← Все композиции" else if (selectedFolderPath != null) "← Все папки" else "← Назад к библиотеке",
-                                        color = Accent
-                                    )
-                                }
-                            }
-
-                            Text(
-                                text = if (favoritesOnly) {
-                                    "★ ПОКАЗАТЬ ВСЕ ПЕСНИ"
-                                } else {
-                                    "☆ ТОЛЬКО ИЗБРАННОЕ"
-                                },
-                                color = Accent,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier
-                                    .clickable {
-                                        favoritesOnly = !favoritesOnly
-                                    }
-                                    .padding(vertical = 8.dp)
+                            PlayerBottomNavigation(
+                                selectedTab = selectedTab,
+                                accent = Accent,
+                                mutedText = MutedText,
+                                panel = Panel,
+                                panelRaised = PanelRaised,
+                                isGlassTheme = isGlassTheme,
+                                isCompactLandscape = isLandscapeLayout && !isTabletWidth,
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                                onNavigate = { index -> navigateTo(tab = index) }
                             )
-
-                            if (libraryMode == "Композиции" && selectedPlaylist == null) {
-                                Spacer(Modifier.height(4.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        "Сортировка:",
-                                        color = MutedText,
-                                        fontSize = 13.sp
-                                    )
-                                    Box {
-                                        TextButton(onClick = { sortMenuExpanded = true }) {
-                                            Text(
-                                                sortMode,
-                                                color = Accent,
-                                                fontSize = 13.sp
-                                            )
-                                            Text(" ▾", color = Accent)
-                                        }
-                                        DropdownMenu(
-                                            expanded = sortMenuExpanded,
-                                            onDismissRequest = { sortMenuExpanded = false },
-                                            containerColor = Panel
-                                        ) {
-                                            listOf(
-                                                "По названию",
-                                                "По исполнителю",
-                                                "Сначала новые",
-                                                "Сначала старые",
-                                                "По длительности ↑",
-                                                "По длительности ↓"
-                                            ).forEach { option ->
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            option,
-                                                            color = if (sortMode == option) Accent else TextPrimary
-                                                        )
-                                                    },
-                                                    onClick = {
-                                                        sortMode = option
-                                                        sortMenuExpanded = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (libraryMode == "Плейлисты") {
-                                if (playlists.isEmpty()) {
-                                    Text("Пока нет плейлистов. Создай первую подборку кнопкой выше.", color = MutedText)
-                                } else {
-                                    playlists.toSortedMap().forEach { (name, ids) ->
-                                        val playlistTracks = tracks.filter { it.id in ids }
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(bottom = 7.dp)
-                                                .then(glassPanelModifier(Panel, 13.dp, isGlassTheme))
-                                                .clickable { navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null) }
-                                                .padding(horizontal = 12.dp, vertical = 11.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text("♫", color = Accent, fontSize = 21.sp)
-                                            Spacer(Modifier.width(10.dp))
-                                            Column(Modifier.weight(1f)) {
-                                                Text(name, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                Text("${playlistTracks.size} композиций", color = MutedText, fontSize = 11.sp)
-                                            }
-                                            Text("⋮", color = Accent, fontSize = 22.sp,
-                                                modifier = Modifier.clickable { playlistMenuName = name; playlistMenuExpanded = true }.padding(horizontal = 7.dp))
-                                            DropdownMenu(expanded = playlistMenuExpanded && playlistMenuName == name,
-                                                onDismissRequest = { playlistMenuExpanded = false; playlistMenuName = null }) {
-                                                DropdownMenuItem(text = { Text("Переименовать") }, onClick = { renamePlaylistInput = name; playlistToRename = name; playlistMenuExpanded = false; playlistMenuName = null })
-                                                DropdownMenuItem(text = { Text("Удалить плейлист") }, onClick = { playlistToDelete = name; playlistMenuExpanded = false; playlistMenuName = null })
-                                            }
-                                        }
-                                    }
-                                }
-                            } else if (libraryMode == "Папки" && selectedFolderPath == null) {
-                                val folders = visibleTracks.groupBy { it.folderPath }
-                                    .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                    .map { (folder, folderTracks) ->
-                                        Triple(folder.substringAfterLast('/').ifBlank { "Музыка" }, "${folderTracks.size} треков", folderTracks.first().albumId) to folder
-                                    }
-                                folders.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                        rowItems.forEach { (info, folder) ->
-                                            SquareLibraryTile(
-                                                title = info.first,
-                                                subtitle = info.second,
-                                                albumId = info.third,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = { selectedFolderPath = folder }
-                                            )
-                                        }
-                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
-                                    }
-                                    Spacer(Modifier.height(10.dp))
-                                }
-                            } else if (libraryMode == "Папки" && selectedFolderPath != null) {
-                                // Show the contents of an opened folder using the same
-                                // adjustable square-tile layout as the folder overview.
-                                visibleTracks.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        rowItems.forEach { track ->
-                                            SquareLibraryTile(
-                                                title = track.title,
-                                                subtitle = track.artist,
-                                                albumId = track.albumId,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = { playAt(track, visibleTracks) }
-                                            )
-                                        }
-                                        repeat(libraryTileSize - rowItems.size) {
-                                            Spacer(Modifier.weight(1f))
-                                        }
-                                    }
-                                    Spacer(Modifier.height(10.dp))
-                                }
-                            } else if (libraryMode == "Альбомы" && selectedAlbumId == null) {
-                                val albums = visibleTracks.groupBy { it.albumId }
-                                    .values
-                                    .sortedBy { it.first().album.lowercase() }
-                                albums.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                        rowItems.forEach { albumTracks ->
-                                            val sample = albumTracks.first()
-                                            SquareLibraryTile(
-                                                title = sample.album,
-                                                subtitle = "${albumTracks.size} тр. · ${sample.artist}",
-                                                albumId = sample.albumId,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = {
-                                                    navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = sample.albumId, artist = null)
-                                                }
-                                            )
-                                        }
-                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
-                                    }
-                                    Spacer(Modifier.height(10.dp))
-                                }
-                            } else if (libraryMode == "Исполнители" && selectedArtist == null) {
-                                val artists = visibleTracks.groupBy { it.artist }
-                                    .toSortedMap(String.CASE_INSENSITIVE_ORDER)
-                                    .toList()
-                                artists.chunked(libraryTileSize).forEach { rowItems ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                        rowItems.forEach { (artistName, artistTracks) ->
-                                            SquareLibraryTile(
-                                                title = artistName,
-                                                subtitle = "${artistTracks.size} тр.",
-                                                albumId = artistTracks.first().albumId,
-                                                themeSurface = Panel,
-                                                glass = isGlassTheme,
-                                                modifier = Modifier.weight(1f),
-                                                onClick = {
-                                                    navigateTo(tab = 1, mode = "Композиции", playlist = null, albumId = null, artist = artistName)
-                                                }
-                                            )
-                                        }
-                                        repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
-                                    }
-                                    Spacer(Modifier.height(10.dp))
-                                }
-                            } else if (selectedPlaylist != null) {
-                                Text(
-                                    "Чтобы изменить порядок, удерживай значок ⠿ и перетаскивай песню",
-                                    color = MutedText,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(bottom = 8.dp)
-                                )
-                                if (visibleTracks.isEmpty()) {
-                                    Text("В этом плейлисте пока нет песен.", color = MutedText)
-                                } else {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(7.dp)
-                                    ) {
-                                        visibleTracks.forEach { track ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(
-                                                        if (track.id == currentTrack?.id) {
-                                                            Modifier.background(Color(0xFFF1E4CC), RoundedCornerShape(13.dp))
-                                                        } else {
-                                                            glassPanelModifier(Panel, 13.dp, isGlassTheme)
-                                                        }
-                                                    )
-                                                    .clickable { playAt(track, visibleTracks) }
-                                                    .padding(10.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
-                                                Spacer(Modifier.width(10.dp))
-                                                Text(
-                                                    "⠿",
-                                                    color = Accent,
-                                                    fontSize = 24.sp,
-                                                    modifier = Modifier
-                                                        .pointerInput(track.id, selectedPlaylist, dragThresholdPx) {
-                                                            var accumulatedDrag = 0f
-                                                            detectDragGestures(
-                                                                onDrag = { change, dragAmount ->
-                                                                    change.consume()
-                                                                    accumulatedDrag += dragAmount.y
-                                                                    if (accumulatedDrag >= dragThresholdPx) {
-                                                                        movePlaylistTrack(track.id, 1)
-                                                                        accumulatedDrag -= dragThresholdPx
-                                                                    } else if (accumulatedDrag <= -dragThresholdPx) {
-                                                                        movePlaylistTrack(track.id, -1)
-                                                                        accumulatedDrag += dragThresholdPx
-                                                                    }
-                                                                }
-                                                            )
-                                                        }
-                                                        .padding(horizontal = 7.dp, vertical = 4.dp)
-                                                )
-                                                Column(Modifier.weight(1f)) {
-                                                    Text(
-                                                        track.title,
-                                                        color = TextPrimary,
-                                                        fontSize = 15.sp,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                    Text(
-                                                        track.artist,
-                                                        color = MutedText,
-                                                        fontSize = 12.sp,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                }
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier.size(40.dp).clickable {
-                                                            val name = selectedPlaylist
-                                                            if (name != null) {
-                                                                val updated = playlists.toMutableMap()
-                                                                updated[name] = updated[name].orEmpty().filterNot { it == track.id }
-                                                                playlists = updated
-                                                                savePlaylists(updated)
-                                                            }
-                                                        },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text("−", color = Accent, fontSize = 23.sp)
-                                                    }
-                                                    Box(
-                                                        modifier = Modifier.size(40.dp).clickable {
-                                                            val updated = favoriteIds.toMutableSet()
-                                                            if (track.id in updated) updated.remove(track.id) else updated.add(track.id)
-                                                            favoriteIds = updated
-                                                            saveFavorites(updated)
-                                                        },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(if (track.id in favoriteIds) "★" else "☆", color = Accent, fontSize = 21.sp)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            } else if (visibleTracks.isEmpty()) {
-                                Text(
-                                    text = if (selectedPlaylist == null) {
-                                        "Музыка не найдена. Проверьте разрешение на доступ к аудиофайлам."
-                                    } else {
-                                        "В этом плейлисте пока нет песен."
-                                    },
-                                    color = MutedText
-                                )
-                            } else {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(7.dp)
-                                ) {
-                                    visibleTracks.forEach { track ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(
-                                                    if (track.id == currentTrack?.id) {
-                                                        Modifier.background(Color(0xFFF1E4CC), RoundedCornerShape(13.dp))
-                                                    } else {
-                                                        glassPanelModifier(Panel, 13.dp, isGlassTheme)
-                                                    }
-                                                )
-                                                .clickable {
-                                                    playAt(track, visibleTracks)
-                                                }
-                                                .padding(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            AlbumThumbnail(albumId = track.albumId, themeSurface = Panel)
-
-                                            Spacer(Modifier.width(12.dp))
-
-                                            Column(
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                Text(
-                                                    text = track.title,
-                                                    color = TextPrimary,
-                                                    fontSize = 15.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-
-                                                Text(
-                                                    text = track.artist,
-                                                    color = MutedText,
-                                                    fontSize = 12.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier.size(40.dp).clickable {
-                                                        val playlistName = selectedPlaylist
-                                                        if (playlistName != null) {
-                                                            val updated = playlists.toMutableMap()
-                                                            updated[playlistName] = updated[playlistName]
-                                                                .orEmpty()
-                                                                .filterNot { it == track.id }
-                                                            playlists = updated
-                                                            savePlaylists(updated)
-                                                        } else {
-                                                            pendingTrack = track
-                                                        }
-                                                    },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(if (selectedPlaylist != null) "−" else "＋", color = Accent, fontSize = 23.sp)
-                                                }
-                                                Box(
-                                                    modifier = Modifier.size(40.dp).clickable {
-                                                        val updated = favoriteIds.toMutableSet()
-                                                        if (!updated.add(track.id)) updated.remove(track.id)
-                                                        favoriteIds = updated
-                                                        saveFavorites(updated)
-                                                    },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(if (track.id in favoriteIds) "★" else "☆", color = Accent, fontSize = 21.sp)
-                                                }
-                                                Box(
-                                                    modifier = Modifier.size(40.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        if (track.id == currentTrack?.id && playing) "Ⅱ" else "▶",
-                                                        color = Accent,
-                                                        fontSize = 19.sp
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-
-
-                                        }
-                                    }
-
-                                    2 -> {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .verticalScroll(rememberScrollState())
-                                                .padding(horizontal = 18.dp, vertical = 12.dp)
-                                        ) {
-                                            Text(
-                                                text = "Плейлисты",
-                                                color = TextPrimary,
-                                                fontSize = 27.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Text(
-                                                text = "Твои музыкальные подборки",
-                                                color = MutedText,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
-                                            )
-                                            if (playlists.isEmpty()) {
-                                                Text(
-                                                    text = "Пока нет плейлистов. Создай первую подборку или добавляй песни в плейлист из раздела «Музыка».",
-                                                    color = MutedText,
-                                                    modifier = Modifier.padding(vertical = 16.dp)
-                                                )
-                                            } else {
-                                                playlists.toSortedMap().forEach { (name, ids) ->
-                                                    val playlistTracks = tracks.filter { it.id in ids }
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(bottom = 8.dp)
-                                                            .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                            .clickable {
-                                                                navigateTo(tab = 1, mode = "Композиции", playlist = name, albumId = null, artist = null)
-                                                            }
-                                                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Text("♫", color = Accent, fontSize = 24.sp)
-                                                        Spacer(Modifier.width(12.dp))
-                                                        Column(Modifier.weight(1f)) {
-                                                            Text(name, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                            Text("${playlistTracks.size} композиций", color = MutedText, fontSize = 12.sp)
-                                                        }
-                                                        if (playlistTracks.isNotEmpty()) {
-                                                            Text(
-                                                                "▶",
-                                                                color = Accent,
-                                                                fontSize = 18.sp,
-                                                                modifier = Modifier
-                                                                    .clickable { playAt(playlistTracks.first(), playlistTracks) }
-                                                                    .padding(horizontal = 9.dp, vertical = 8.dp)
-                                                            )
-                                                        }
-                                                        Box {
-                                                            Text(
-                                                                "⋮",
-                                                                color = Accent,
-                                                                fontSize = 23.sp,
-                                                                modifier = Modifier
-                                                                    .clickable {
-                                                                        playlistMenuName = name
-                                                                        playlistMenuExpanded = true
-                                                                    }
-                                                                    .padding(horizontal = 7.dp, vertical = 5.dp)
-                                                            )
-                                                            DropdownMenu(
-                                                                expanded = playlistMenuExpanded && playlistMenuName == name,
-                                                                onDismissRequest = {
-                                                                    playlistMenuExpanded = false
-                                                                    playlistMenuName = null
-                                                                }
-                                                            ) {
-                                                                DropdownMenuItem(
-                                                                    text = { Text("Переименовать") },
-                                                                    onClick = {
-                                                                        renamePlaylistInput = name
-                                                                        playlistToRename = name
-                                                                        playlistMenuExpanded = false
-                                                                        playlistMenuName = null
-                                                                    }
-                                                                )
-                                                                DropdownMenuItem(
-                                                                    text = { Text("Удалить плейлист") },
-                                                                    onClick = {
-                                                                        playlistToDelete = name
-                                                                        playlistMenuExpanded = false
-                                                                        playlistMenuName = null
-                                                                    }
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    3 -> {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .verticalScroll(rememberScrollState())
-                                                .padding(horizontal = 18.dp, vertical = 12.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(bottom = 16.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(48.dp)
-                                                        .then(glassPanelModifier(PanelRaised, 15.dp, isGlassTheme)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text("♫", color = Accent, fontSize = 25.sp)
-                                                }
-                                                Spacer(Modifier.width(12.dp))
-                                                Column(Modifier.weight(1f)) {
-                                                    Text("Звук", color = TextPrimary, fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
-                                                    Text("Точная настройка звучания", color = MutedText, fontSize = 12.sp)
-                                                }
-                                                Text(
-                                                    "10 ПОЛОС",
-                                                    color = Accent,
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier
-                                                        .background(PanelRaised, RoundedCornerShape(8.dp))
-                                                        .padding(horizontal = 8.dp, vertical = 6.dp)
-                                                )
-                                            }
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .background(Background, RoundedCornerShape(20.dp))
-                                                    .border(1.dp, Accent.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
-                                                    .padding(horizontal = 17.dp, vertical = 15.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Column(Modifier.weight(1f)) {
-                                                    Text("Эквалайзер", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                    Text(
-                                                        if (equalizerEnabled) "Обработка звука активна" else "Обработка отключена",
-                                                        color = MutedText,
-                                                        fontSize = 11.sp
-                                                    )
-                                                }
-                                                Switch(
-                                                    checked = equalizerEnabled,
-                                                    onCheckedChange = {
-                                                        equalizerEnabled = it
-                                                        sendEqualizerSettings(
-                                                            it, equalizerLevels, bassStrength, virtualizerStrength
-                                                        )
-                                                    }
-                                                )
-                                            }
-
-                                            Box {
-                                                TextButton(
-                                                    onClick = { presetMenuExpanded = true },
-                                                    modifier = Modifier
-                                                        .background(Background, RoundedCornerShape(10.dp))
-                                                        .border(1.dp, Accent.copy(alpha = 0.20f), RoundedCornerShape(10.dp)),
-                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp)
-                                                ) {
-                                                    Text("♫  Пресеты  ▾", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                                }
-                                                DropdownMenu(
-                                                    expanded = presetMenuExpanded,
-                                                    onDismissRequest = { presetMenuExpanded = false },
-                                                    containerColor = if (isGlassTheme) Color(0xFF26384B) else Background
-                                                ) {
-                                                    equalizerPresets.forEach { preset ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(preset.name, color = TextPrimary) },
-                                                            onClick = {
-                                                                equalizerLevels = preset.levels
-                                                                presetMenuExpanded = false
-                                                                sendEqualizerSettings(
-                                                                    equalizerEnabled, equalizerLevels,
-                                                                    bassStrength, virtualizerStrength
-                                                                )
-                                                            }
-                                                        )
-                                                    }
-                                                    customProfiles.toSortedMap().forEach { (name, values) ->
-                                                        DropdownMenuItem(
-                                                            text = { Text("★ $name", color = TextPrimary) },
-                                                            onClick = {
-                                                                equalizerLevels = values
-                                                                presetMenuExpanded = false
-                                                                sendEqualizerSettings(
-                                                                    equalizerEnabled, equalizerLevels,
-                                                                    bassStrength, virtualizerStrength
-                                                                )
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            Text(
-                                                "Частотные полосы · от −12 до +12 дБ",
-                                                color = MutedText,
-                                                fontSize = 12.sp
-                                            )
-
-                                            equalizerFrequencies.forEachIndexed { index, label ->
-                                                Column(modifier = Modifier.padding(top = 3.dp, bottom = 3.dp)) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween
-                                                    ) {
-                                                        Text(label, color = TextPrimary, fontSize = 11.sp)
-                                                        Text(
-                                                            "${equalizerLevels[index]} дБ",
-                                                            color = Accent,
-                                                            fontSize = 11.sp
-                                                        )
-                                                    }
-                                                    Slider(
-                                                        value = equalizerLevels[index].toFloat(),
-                                                        onValueChange = { value ->
-                                                            equalizerLevels = equalizerLevels.toMutableList().also {
-                                                                it[index] = value.toInt()
-                                                            }
-                                                        },
-                                                        onValueChangeFinished = {
-                                                            sendEqualizerSettings(
-                                                                equalizerEnabled, equalizerLevels,
-                                                                bassStrength, virtualizerStrength
-                                                            )
-                                                        },
-                                                        valueRange = -12f..12f,
-                                                        steps = 23,
-                                                        enabled = equalizerEnabled,
-                                                        colors = SliderDefaults.colors(
-                                                            thumbColor = Accent,
-                                                            activeTrackColor = Accent
-                                                        )
-                                                    )
-                                                }
-                                            }
-
-                                            HorizontalDivider(color = Panel)
-                                            Text("Усиление баса", color = TextPrimary)
-                                            Slider(
-                                                value = bassStrength.toFloat(),
-                                                onValueChange = { bassStrength = it.toInt() },
-                                                onValueChangeFinished = {
-                                                    sendEqualizerSettings(
-                                                        equalizerEnabled, equalizerLevels,
-                                                        bassStrength, virtualizerStrength
-                                                    )
-                                                },
-                                                valueRange = 0f..100f,
-                                                enabled = equalizerEnabled,
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Accent,
-                                                    activeTrackColor = Accent
-                                                )
-                                            )
-                                            Text("$bassStrength %", color = MutedText, fontSize = 12.sp)
-
-                                            Text("Объёмное звучание", color = TextPrimary)
-                                            Slider(
-                                                value = virtualizerStrength.toFloat(),
-                                                onValueChange = { virtualizerStrength = it.toInt() },
-                                                onValueChangeFinished = {
-                                                    sendEqualizerSettings(
-                                                        equalizerEnabled, equalizerLevels,
-                                                        bassStrength, virtualizerStrength
-                                                    )
-                                                },
-                                                valueRange = 0f..100f,
-                                                enabled = equalizerEnabled,
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = Accent,
-                                                    activeTrackColor = Accent
-                                                )
-                                            )
-                                            Text("$virtualizerStrength %", color = MutedText, fontSize = 12.sp)
-
-                                            TextButton(onClick = {
-                                                equalizerLevels = List(10) { 0 }
-                                                bassStrength = 0
-                                                virtualizerStrength = 0
-                                                equalizerEnabled = true
-                                                sendEqualizerSettings(
-                                                    true, equalizerLevels, bassStrength, virtualizerStrength
-                                                )
-                                            }) {
-                                                Text("СБРОСИТЬ НАСТРОЙКИ", color = Accent)
-                                            }
-                                            TextButton(onClick = {
-                                                profileName = ""
-                                                saveProfileDialogOpen = true
-                                            }) {
-                                                Text("СОХРАНИТЬ СВОЙ ПРОФИЛЬ", color = Accent)
-                                            }
-                                        }
-                                        }
-                                    }
-
-                                    else -> {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .verticalScroll(rememberScrollState())
-                                                .padding(horizontal = 18.dp, vertical = 12.dp)
-                                        ) {
-                                            Text(
-                                                text = "Настройки",
-                                                color = TextPrimary,
-                                                fontSize = 27.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Text(
-                                                text = "Параметры Pure Music Player",
-                                                color = MutedText,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
-                                            )
-
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                    .padding(16.dp)
-                                            ) {
-                                                Text("Цвет оформления", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                Text("Выбери фон. Позолота и золотой вензель остаются неизменными.", color = MutedText, fontSize = 12.sp)
-                                                Spacer(Modifier.height(12.dp))
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .horizontalScroll(rememberScrollState()),
-                                                    horizontalArrangement = Arrangement.spacedBy(7.dp)
-                                                ) {
-                                                    playerThemes.forEach { theme ->
-                                                        val selected = selectedThemeName == theme.name
-                                                        Column(
-                                                            modifier = Modifier
-                                                                .size(width = 70.dp, height = 64.dp)
-                                                                .background(
-                                                                    Brush.linearGradient(listOf(theme.background, theme.panel, theme.panelRaised)),
-                                                                    RoundedCornerShape(12.dp)
-                                                                )
-                                                                .border(
-                                                                    width = if (selected) 2.dp else 1.dp,
-                                                                    color = if (selected) Accent else theme.panelRaised,
-                                                                    shape = RoundedCornerShape(14.dp)
-                                                                )
-                                                                .clickable {
-                                                                    selectedThemeName = theme.name
-                                                                    playerPreferences.edit().putString("player_theme", theme.name).apply()
-                                                                }
-                                                                .padding(4.dp),
-                                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                                            verticalArrangement = Arrangement.Center
-                                                        ) {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(16.dp)
-                                                                    .background(
-                                                                        Brush.linearGradient(listOf(theme.panel, theme.panelRaised, theme.background)),
-                                                                        RoundedCornerShape(7.dp)
-                                                                    )
-                                                                    .border(1.dp, Accent.copy(alpha = 0.85f), RoundedCornerShape(9.dp))
-                                                            )
-                                                            Spacer(Modifier.height(3.dp))
-                                                            Text(
-                                                                theme.name,
-                                                                color = theme.textPrimary,
-                                                                fontSize = 9.sp,
-                                                                lineHeight = 10.sp,
-                                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                                maxLines = 2,
-                                                                overflow = TextOverflow.Ellipsis
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            Spacer(Modifier.height(10.dp))
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                    .padding(16.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("♫", color = Accent, fontSize = 24.sp)
-                                                Spacer(Modifier.width(14.dp))
-                                                Column(Modifier.weight(1f)) {
-                                                    Text("Музыкальная библиотека", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                    Text("${tracks.size} аудиофайлов найдено", color = MutedText, fontSize = 12.sp)
-                                                }
-                                            }
-                                            Spacer(Modifier.height(10.dp))
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                    .padding(16.dp)
-                                            ) {
-                                                Text("Таймер сна", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                Text(
-                                                    if (sleepTimerMinutes > 0) {
-                                                        val mins = (sleepTimerRemaining / 60_000L).toInt()
-                                                        val secs = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
-                                                        "Остановка через %02d:%02d".format(mins, secs)
-                                                    } else "Автоматическая остановка музыки",
-                                                    color = MutedText,
-                                                    fontSize = 12.sp
-                                                )
-                                                Spacer(Modifier.height(8.dp))
-                                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    TextButton(
-                                                        onClick = { sleepTimerDialogOpen = true },
-                                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                                                    ) {
-                                                        Text("ТАЙМЕР", color = Accent, fontSize = 10.sp)
-                                                    }
-                                                    if (sleepTimerMinutes > 0) {
-                                                        TextButton(
-                                                            onClick = {
-                                                                sleepTimerMinutes = 0
-                                                                startService(Intent(this@MainActivity, PlaybackService::class.java).setAction(PlaybackService.ACTION_CANCEL_SLEEP_TIMER))
-                                                            },
-                                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                                                        ) {
-                                                            Text("ОТМЕНИТЬ", color = MutedText, fontSize = 10.sp)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            Spacer(Modifier.height(10.dp))
-                                            TextButton(
-                                                onClick = { tracks = loadTracks() },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
-                                            ) {
-                                                Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
-                                            }
-                                            Spacer(Modifier.height(8.dp))
-                                            TextButton(
-                                                onClick = {
-                                                    val crashFile = java.io.File(filesDir, "last_crash.txt")
-                                                    if (crashFile.exists()) {
-                                                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                                                        clipboard.setPrimaryClip(
-                                                            ClipData.newPlainText("Pure Music Player crash log", crashFile.readText())
-                                                        )
-                                                        Toast.makeText(this@MainActivity, "Журнал сбоя скопирован. Вставь его в чат.", Toast.LENGTH_LONG).show()
-                                                    } else {
-                                                        Toast.makeText(this@MainActivity, "Сохранённых сбоев пока нет.", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
-                                            ) {
-                                                Text("СКОПИРОВАТЬ ЖУРНАЛ СБОЯ", color = Accent)
-                                            }
-                                            Spacer(Modifier.height(10.dp))
-                                            Text(
-                                                text = "PURE MUSIC  ·  PREMIUM HI-FI",
-                                                color = Accent,
-                                                fontSize = 12.sp,
-                                                letterSpacing = 1.1.sp,
-                                                modifier = Modifier.padding(top = 18.dp)
-                                            )
-                                            Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.92f)
-                                    .align(Alignment.CenterHorizontally)
-                                    .windowInsetsPadding(WindowInsets.navigationBars)
-                                    .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
-                                    .border(
-                                        width = 1.dp,
-                                        color = PanelRaised,
-                                        shape = RoundedCornerShape(18.dp)
-                                    )
-                                    .padding(
-                                        top = if (isLandscapeLayout && !isTabletWidth) 2.dp else 5.dp,
-                                        bottom = if (isLandscapeLayout && !isTabletWidth) 2.dp else 6.dp
-                                    ),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val navItems = listOf(
-                                    Triple("⌂", "Главная", 0),
-                                    Triple("♫", "Музыка", 1),
-                                    Triple("≋", "Звук", 3),
-                                    Triple("⚙", "Настройки", 4)
-                                )
-                                navItems.forEach { (symbol, label, index) ->
-                                    val selected = selectedTab == index
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { navigateTo(tab = index) }
-                                            .padding(vertical = if (isLandscapeLayout && !isTabletWidth) 1.dp else 3.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(if (isLandscapeLayout && !isTabletWidth) 24.dp else 32.dp)
-                                                .then(
-                                                    if (selected) Modifier.background(
-                                                        Accent.copy(alpha = 0.12f),
-                                                        RoundedCornerShape(11.dp)
-                                                    ) else Modifier
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = symbol,
-                                                color = if (selected) Accent else MutedText,
-                                                fontSize = if (isLandscapeLayout && !isTabletWidth) 15.sp else 18.sp,
-                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                                            )
-                                        }
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(
-                                            text = label,
-                                            color = if (selected) Accent else MutedText,
-                                            fontSize = if (isLandscapeLayout && !isTabletWidth) 7.sp else 9.sp,
-                                            maxLines = 1
-                                        )
-                                        if (selected) {
-                                            Spacer(Modifier.height(3.dp))
-                                            Box(
-                                                Modifier
-                                                    .width(18.dp)
-                                                    .height(2.dp)
-                                                    .background(Accent, RoundedCornerShape(2.dp))
-                                            )
-                                        }
-                                    }
-                                }
-                            }
                             if (playlistToRename != null) {
                                 AlertDialog(
                                     onDismissRequest = { playlistToRename = null },
@@ -2840,9 +2810,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
-    }
-
+            }
 
     private fun installCrashLogger() {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
@@ -3135,6 +3103,89 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+@Composable
+private fun PlayerBottomNavigation(
+    selectedTab: Int,
+    accent: Color,
+    mutedText: Color,
+    panel: Color,
+    panelRaised: Color,
+    isGlassTheme: Boolean,
+    isCompactLandscape: Boolean,
+    modifier: Modifier = Modifier,
+    onNavigate: (Int) -> Unit
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth(0.92f)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .then(glassPanelModifier(panel, 18.dp, isGlassTheme))
+            .border(
+                width = 1.dp,
+                color = panelRaised,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(
+                top = if (isCompactLandscape) 2.dp else 5.dp,
+                bottom = if (isCompactLandscape) 2.dp else 6.dp
+            ),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val navItems = listOf(
+            Triple("⌂", "Главная", 0),
+            Triple("♫", "Музыка", 1),
+            Triple("≋", "Звук", 3),
+            Triple("⚙", "Настройки", 4)
+        )
+        navItems.forEach { (symbol, label, index) ->
+            val selected = selectedTab == index
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onNavigate(index) }
+                    .padding(vertical = if (isCompactLandscape) 1.dp else 3.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(if (isCompactLandscape) 24.dp else 32.dp)
+                        .then(
+                            if (selected) Modifier.background(
+                                accent.copy(alpha = 0.12f),
+                                RoundedCornerShape(11.dp)
+                            ) else Modifier
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = symbol,
+                        color = if (selected) accent else mutedText,
+                        fontSize = if (isCompactLandscape) 15.sp else 18.sp,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = label,
+                    color = if (selected) accent else mutedText,
+                    fontSize = if (isCompactLandscape) 7.sp else 9.sp,
+                    maxLines = 1
+                )
+                if (selected) {
+                    Spacer(Modifier.height(3.dp))
+                    Box(
+                        Modifier
+                            .width(18.dp)
+                            .height(2.dp)
+                            .background(accent, RoundedCornerShape(2.dp))
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun PremiumSpectrum(isPlaying: Boolean) {
