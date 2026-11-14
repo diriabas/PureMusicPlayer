@@ -87,9 +87,9 @@ private fun glassPanelModifier(
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.24f),
-                        color.copy(alpha = 0.82f),
-                        Color(0xFF9CCFFF).copy(alpha = 0.16f)
+                        Color.White.copy(alpha = 0.22f),
+                        color.copy(alpha = 0.84f),
+                        Color(0xFFD6B878).copy(alpha = 0.13f)
                     )
                 ),
                 shape = shape
@@ -98,8 +98,8 @@ private fun glassPanelModifier(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.58f),
-                        Color(0xFF9CCFFF).copy(alpha = 0.22f),
+                        Color.White.copy(alpha = 0.48f),
+                        Color(0xFFD6B878).copy(alpha = 0.42f),
                         Color.White.copy(alpha = 0.10f)
                     )
                 ),
@@ -150,11 +150,10 @@ private data class PlayerTheme(
 private val playerThemes = listOf(
     // Glass вынесена первой, чтобы карточка была видна сразу без горизонтальной прокрутки.
     // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
-    PlayerTheme("Стеклянная", Color(0xFF101A29), Color(0xFF425D78), Color(0xFF536F89), Color(0xFFB7C7D8), Color(0xFFF1F6FC)),
+    PlayerTheme("Стеклянная", Color(0xFF101316), Color(0xB8262B30), Color(0xD13A4148), Color(0xFFBDB7AA), Color(0xFFF5F1E8)),
 
     // Светлые темы
     PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
-    PlayerTheme("Синий", Color(0xFFE8EFFB), Color(0xFFF8FAFF), Color(0xFFD5E1F4), Color(0xFF657895), Color(0xFF263B5A)),
 
     // Тёмные темы с неизменной шампань-позолотой
     PlayerTheme("Совсем тёмная", Color(0xFF090A0C), Color(0xFF202327), Color(0xFF30343A), Color(0xFFB5B0A5), Color(0xFFF4F0E7)),
@@ -733,25 +732,38 @@ class MainActivity : ComponentActivity() {
                                     PremiumSpectrum(isPlaying = playing)
                                     Spacer(Modifier.height(18.dp))
 
-                                    Text(
-                                        text = currentTrack.title,
-                                        color = TextPrimary,
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        letterSpacing = 0.05.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
+                                            .border(
+                                                width = 1.dp,
+                                                color = Accent.copy(alpha = if (isGlassTheme) 0.30f else 0.12f),
+                                                shape = RoundedCornerShape(18.dp)
+                                            )
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = currentTrack.title,
+                                            color = TextPrimary,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = 0.1.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(Modifier.height(3.dp))
+                                        Text(
+                                            text = currentTrack.artist,
+                                            color = MutedText,
+                                            fontSize = 13.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
 
-                                    Text(
-                                        text = currentTrack.artist,
-                                        color = MutedText,
-                                        fontSize = 14.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-
-                                    Spacer(Modifier.height(18.dp))
+                                    Spacer(Modifier.height(14.dp))
 
                                     Slider(
                                         value = position.coerceIn(0f, 1f),
@@ -795,6 +807,13 @@ class MainActivity : ComponentActivity() {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .then(glassPanelModifier(Panel, 22.dp, isGlassTheme))
+                                            .border(
+                                                width = 1.dp,
+                                                color = Accent.copy(alpha = if (isGlassTheme) 0.28f else 0.08f),
+                                                shape = RoundedCornerShape(22.dp)
+                                            )
+                                            .padding(horizontal = 5.dp, vertical = 7.dp)
                                             .offset(y = (-6).dp),
                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
