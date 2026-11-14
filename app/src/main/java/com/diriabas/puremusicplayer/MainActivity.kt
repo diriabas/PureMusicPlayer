@@ -936,8 +936,6 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 Spacer(Modifier.height(18.dp))
-                                HorizontalDivider(color = Color(0xFFE5D7BD))
-                                Spacer(Modifier.height(12.dp))
                             }
 
 
@@ -1181,6 +1179,31 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
                                         repeat(libraryTileSize - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                }
+                            } else if (libraryMode == "Папки" && selectedFolderPath != null) {
+                                // Show the contents of an opened folder using the same
+                                // adjustable square-tile layout as the folder overview.
+                                visibleTracks.chunked(libraryTileSize).forEach { rowItems ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        rowItems.forEach { track ->
+                                            SquareLibraryTile(
+                                                title = track.title,
+                                                subtitle = track.artist,
+                                                albumId = track.albumId,
+                                                themeSurface = Panel,
+                                                glass = isGlassTheme,
+                                                modifier = Modifier.weight(1f),
+                                                onClick = { playAt(track, visibleTracks) }
+                                            )
+                                        }
+                                        repeat(libraryTileSize - rowItems.size) {
+                                            Spacer(Modifier.weight(1f))
+                                        }
                                     }
                                     Spacer(Modifier.height(10.dp))
                                 }
