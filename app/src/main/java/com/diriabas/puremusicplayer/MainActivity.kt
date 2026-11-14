@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -229,7 +230,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         installCrashLogger()
 
         val sessionToken = SessionToken(
@@ -266,6 +267,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val exoPlayer = controllerState.value
+            val screenConfiguration = LocalConfiguration.current
+            val screenWidthDp = screenConfiguration.screenWidthDp
+            val screenHeightDp = screenConfiguration.screenHeightDp
+            val isTabletWidth = screenWidthDp >= 600
+            val isLandscapeLayout = screenWidthDp > screenHeightDp
 
             if (exoPlayer == null) {
                 MaterialTheme(
@@ -681,7 +687,7 @@ class MainActivity : ComponentActivity() {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 34.dp),
+                                        .padding(top = if (isLandscapeLayout) 8.dp else 34.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -710,7 +716,15 @@ class MainActivity : ComponentActivity() {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                .then(
+                                                    if (isLandscapeLayout) Modifier.verticalScroll(rememberScrollState())
+                                                    else Modifier
+                                                )
+                                                .widthIn(max = if (isTabletWidth) 980.dp else Dp.Unspecified)
+                                                .padding(
+                                                    horizontal = if (isTabletWidth) 24.dp else 10.dp,
+                                                    vertical = if (isLandscapeLayout) 2.dp else 6.dp
+                                                ),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
@@ -728,14 +742,22 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     AlbumCover(
                                         albumId = currentTrack.albumId,
-                                        modifier = Modifier.fillMaxWidth(0.94f),
+                                        modifier = Modifier
+                                            .fillMaxWidth(
+                                                when {
+                                                    isLandscapeLayout -> 0.42f
+                                                    isTabletWidth -> 0.62f
+                                                    else -> 0.94f
+                                                }
+                                            )
+                                            .widthIn(max = if (isTabletWidth) 520.dp else Dp.Unspecified),
                                         themeSurface = Panel,
                                         isGlassTheme = isGlassTheme
                                     )
 
                                     Spacer(Modifier.height(8.dp))
                                     PremiumSpectrum(isPlaying = playing)
-                                    Spacer(Modifier.height(18.dp))
+                                    Spacer(Modifier.height(if (isLandscapeLayout) 6.dp else 18.dp))
 
                                     Column(
                                         modifier = Modifier
@@ -780,7 +802,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    Spacer(Modifier.height(12.dp))
+                                    Spacer(Modifier.height(if (isLandscapeLayout) 5.dp else 12.dp))
 
                                     Slider(
                                         value = position.coerceIn(0f, 1f),
@@ -824,7 +846,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    Spacer(Modifier.height(16.dp))
+                                    Spacer(Modifier.height(if (isLandscapeLayout) 6.dp else 16.dp))
 
                                     Row(
                                         modifier = Modifier
