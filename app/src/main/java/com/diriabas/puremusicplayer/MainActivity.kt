@@ -728,7 +728,7 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     AlbumCover(
                                         albumId = currentTrack.albumId,
-                                        modifier = Modifier.fillMaxWidth(0.78f),
+                                        modifier = Modifier.fillMaxWidth(0.94f),
                                         themeSurface = Panel,
                                         isGlassTheme = isGlassTheme
                                     )
