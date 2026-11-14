@@ -743,32 +743,44 @@ class MainActivity : ComponentActivity() {
                                             .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
                                             .border(
                                                 width = 1.dp,
-                                                color = Accent.copy(alpha = if (isGlassTheme) 0.30f else 0.12f),
+                                                color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
                                                 shape = RoundedCornerShape(18.dp)
                                             )
-                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                            .padding(horizontal = 18.dp, vertical = 10.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Text(
                                             text = currentTrack.title,
                                             color = TextPrimary,
-                                            fontSize = 18.sp,
+                                            fontSize = 20.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            letterSpacing = 0.1.sp,
+                                            letterSpacing = 0.15.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                        Spacer(Modifier.height(3.dp))
+                                        Spacer(Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .width(26.dp)
+                                                .height(2.dp)
+                                                .background(
+                                                    Accent.copy(alpha = if (isGlassTheme) 0.78f else 0.55f),
+                                                    RoundedCornerShape(2.dp)
+                                                )
+                                        )
+                                        Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = currentTrack.artist,
-                                            color = MutedText,
-                                            fontSize = 13.sp,
+                                            color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            letterSpacing = 0.35.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
 
-                                    Spacer(Modifier.height(14.dp))
+                                    Spacer(Modifier.height(12.dp))
 
                                     Slider(
                                         value = position.coerceIn(0f, 1f),
@@ -782,28 +794,33 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(18.dp),
+                                            .height(20.dp),
                                         colors = SliderDefaults.colors(
                                             thumbColor = Accent,
                                             activeTrackColor = Accent,
-                                            inactiveTrackColor = MutedText.copy(alpha = 0.38f)
+                                            inactiveTrackColor = MutedText.copy(alpha = if (isGlassTheme) 0.32f else 0.38f)
                                         )
                                     )
 
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = time(exoPlayer.currentPosition),
-                                            color = MutedText,
-                                            fontSize = 11.sp
+                                            color = Accent.copy(alpha = 0.92f),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold
                                         )
 
                                         Text(
                                             text = time(duration),
-                                            color = MutedText,
-                                            fontSize = 11.sp
+                                            color = MutedText.copy(alpha = 0.88f),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
                                         )
                                     }
 
