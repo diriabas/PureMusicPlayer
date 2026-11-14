@@ -277,8 +277,11 @@ class MainActivity : ComponentActivity() {
             val screenConfiguration = LocalConfiguration.current
             val screenWidthDp = screenConfiguration.screenWidthDp
             val screenHeightDp = screenConfiguration.screenHeightDp
-            val isTabletWidth = screenConfiguration.smallestScreenWidthDp >= 600
             val isLandscapeLayout = screenWidthDp > screenHeightDp
+            // A few phones report a large smallestScreenWidthDp in landscape/windowed mode.
+            // Require a genuinely large overall window as well, so phones keep the compact layout.
+            val isTabletWidth = screenConfiguration.smallestScreenWidthDp >= 600 &&
+                maxOf(screenWidthDp, screenHeightDp) >= 900
 
             if (exoPlayer == null) {
                 MaterialTheme(
@@ -695,13 +698,13 @@ class MainActivity : ComponentActivity() {
                                         .fillMaxWidth()
                                         .fillMaxHeight()
                                         .padding(horizontal = 18.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Левая зона: крупная квадратная обложка и спектр.
                                     Column(
                                         modifier = Modifier
-                                            .weight(0.88f)
+                                            .weight(1.02f)
                                             .fillMaxHeight(),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
@@ -709,9 +712,9 @@ class MainActivity : ComponentActivity() {
                                         AlbumCover(
                                             albumId = currentTrack.albumId,
                                             modifier = Modifier
-                                                .fillMaxHeight(0.78f)
+                                                .fillMaxHeight(0.86f)
                                                 .aspectRatio(1f)
-                                                .widthIn(max = 360.dp),
+                                                .widthIn(max = 440.dp),
                                             themeSurface = Panel,
                                             isGlassTheme = isGlassTheme
                                         )
@@ -722,7 +725,7 @@ class MainActivity : ComponentActivity() {
                                     // Правая зона: название, прогресс и управление.
                                     Column(
                                         modifier = Modifier
-                                            .weight(1.12f)
+                                            .weight(0.98f)
                                             .fillMaxHeight()
                                             .padding(vertical = 8.dp),
                                         verticalArrangement = Arrangement.Center,
@@ -748,7 +751,7 @@ class MainActivity : ComponentActivity() {
                                                     color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
                                                     shape = RoundedCornerShape(18.dp)
                                                 )
-                                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                                                .padding(horizontal = 13.dp, vertical = 9.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Text(
@@ -827,14 +830,14 @@ class MainActivity : ComponentActivity() {
                                                     color = Accent.copy(alpha = 0.28f),
                                                     shape = RoundedCornerShape(22.dp)
                                                 )
-                                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                                                .padding(horizontal = 5.dp, vertical = 7.dp),
                                             horizontalArrangement = Arrangement.SpaceEvenly,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
                                                 text = "⤨",
                                                 color = if (shuffleEnabled) Accent else MutedText,
-                                                fontSize = 27.sp,
+                                                fontSize = 23.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -846,7 +849,7 @@ class MainActivity : ComponentActivity() {
                                             Text(
                                                 text = "◀",
                                                 color = Color(0xFFE5C982),
-                                                fontSize = 27.sp,
+                                                fontSize = 23.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -854,7 +857,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                             Box(
                                                 modifier = Modifier
-                                                    .size(58.dp)
+                                                    .size(50.dp)
                                                     .clickable(
                                                         interactionSource = remember { MutableInteractionSource() },
                                                         indication = null
@@ -869,7 +872,7 @@ class MainActivity : ComponentActivity() {
                                                     val cy = size.height / 2f
                                                     if (playing) {
                                                         val barWidth = 5.dp.toPx()
-                                                        val barHeight = 21.dp.toPx()
+                                                        val barHeight = 18.dp.toPx()
                                                         val gap = 5.dp.toPx()
                                                         drawRoundRect(
                                                             color = Accent,
@@ -884,9 +887,9 @@ class MainActivity : ComponentActivity() {
                                                             cornerRadius = CornerRadius(1.5.dp.toPx())
                                                         )
                                                     } else {
-                                                        val halfHeight = 13.dp.toPx()
-                                                        val left = 10.dp.toPx()
-                                                        val right = 16.dp.toPx()
+                                                        val halfHeight = 11.dp.toPx()
+                                                        val left = 9.dp.toPx()
+                                                        val right = 14.dp.toPx()
                                                         val triangle = androidx.compose.ui.graphics.Path().apply {
                                                             moveTo(cx - left, cy - halfHeight)
                                                             lineTo(cx - left, cy + halfHeight)
@@ -900,7 +903,7 @@ class MainActivity : ComponentActivity() {
                                             Text(
                                                 text = "▶",
                                                 color = Color(0xFFE5C982),
-                                                fontSize = 27.sp,
+                                                fontSize = 23.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -912,7 +915,7 @@ class MainActivity : ComponentActivity() {
                                                     else -> "↻"
                                                 },
                                                 color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
-                                                fontSize = 27.sp,
+                                                fontSize = 23.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -968,12 +971,12 @@ class MainActivity : ComponentActivity() {
                                         .fillMaxWidth()
                                         .fillMaxHeight()
                                         .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(
                                         modifier = Modifier
-                                            .weight(0.78f)
+                                            .weight(0.98f)
                                             .fillMaxHeight(),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
@@ -981,9 +984,9 @@ class MainActivity : ComponentActivity() {
                                         AlbumCover(
                                             albumId = currentTrack.albumId,
                                             modifier = Modifier
-                                                .fillMaxHeight(0.72f)
+                                                .fillMaxHeight(0.84f)
                                                 .aspectRatio(1f)
-                                                .widthIn(max = 220.dp),
+                                                .widthIn(max = 300.dp),
                                             themeSurface = Panel,
                                             isGlassTheme = isGlassTheme
                                         )
@@ -993,7 +996,7 @@ class MainActivity : ComponentActivity() {
 
                                     Column(
                                         modifier = Modifier
-                                            .weight(1.22f)
+                                            .weight(1.02f)
                                             .fillMaxHeight()
                                             .padding(vertical = 3.dp),
                                         verticalArrangement = Arrangement.Center,
@@ -1065,14 +1068,14 @@ class MainActivity : ComponentActivity() {
                                                     Accent.copy(alpha = 0.25f),
                                                     RoundedCornerShape(16.dp)
                                                 )
-                                                .padding(horizontal = 3.dp, vertical = 4.dp),
+                                                .padding(horizontal = 2.dp, vertical = 3.dp),
                                             horizontalArrangement = Arrangement.SpaceEvenly,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
                                                 "⤨",
                                                 color = if (shuffleEnabled) Accent else MutedText,
-                                                fontSize = 20.sp,
+                                                fontSize = 17.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -1084,7 +1087,7 @@ class MainActivity : ComponentActivity() {
                                             Text(
                                                 "◀",
                                                 color = Accent,
-                                                fontSize = 20.sp,
+                                                fontSize = 17.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -1092,7 +1095,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                             Box(
                                                 modifier = Modifier
-                                                    .size(42.dp)
+                                                    .size(38.dp)
                                                     .clickable(
                                                         interactionSource = remember { MutableInteractionSource() },
                                                         indication = null
@@ -1125,7 +1128,7 @@ class MainActivity : ComponentActivity() {
                                             Text(
                                                 "▶",
                                                 color = Accent,
-                                                fontSize = 20.sp,
+                                                fontSize = 17.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
@@ -1134,7 +1137,7 @@ class MainActivity : ComponentActivity() {
                                             Text(
                                                 if (repeatMode == Player.REPEAT_MODE_ONE) "1↻" else "↻",
                                                 color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
-                                                fontSize = 20.sp,
+                                                fontSize = 17.sp,
                                                 modifier = Modifier.clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null
