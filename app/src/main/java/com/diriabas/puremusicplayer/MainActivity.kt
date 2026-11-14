@@ -727,14 +727,289 @@ class MainActivity : ComponentActivity() {
                                                 ),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
+                                            if (!(isLandscapeLayout && isTabletWidth)) {
+                                                Text(
+                                                    text = if (playbackQueue.isNotEmpty()) "Сейчас играет из выбранного списка" else "Твоя музыка. Твой мир.",
+                                                    color = MutedText,
+                                                    fontSize = 13.sp,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(top = 12.dp, bottom = 8.dp)
+                                                )
+                                            }
+                            if (isLandscapeLayout && isTabletWidth) {
+                                if (currentTrack != null) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight()
+                                            .padding(horizontal = 18.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(28.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Левая зона: крупная квадратная обложка и спектр.
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(0.88f)
+                                                .fillMaxHeight(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            AlbumCover(
+                                                albumId = currentTrack.albumId,
+                                                modifier = Modifier
+                                                    .fillMaxHeight(0.78f)
+                                                    .aspectRatio(1f)
+                                                    .widthIn(max = 360.dp),
+                                                themeSurface = Panel,
+                                                isGlassTheme = isGlassTheme
+                                            )
+                                            Spacer(Modifier.height(10.dp))
+                                            PremiumSpectrum(isPlaying = playing)
+                                        }
+
+                                        // Правая зона: название, прогресс и управление.
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(1.12f)
+                                                .fillMaxHeight()
+                                                .padding(vertical = 8.dp),
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
                                             Text(
                                                 text = if (playbackQueue.isNotEmpty()) "Сейчас играет из выбранного списка" else "Твоя музыка. Твой мир.",
                                                 color = MutedText,
-                                                fontSize = 13.sp,
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(top = 12.dp, bottom = 8.dp)
+                                                    .padding(bottom = 12.dp)
                                             )
+
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(glassPanelModifier(Panel, 18.dp, isGlassTheme))
+                                                    .border(
+                                                        width = 1.dp,
+                                                        color = Accent.copy(alpha = if (isGlassTheme) 0.34f else 0.12f),
+                                                        shape = RoundedCornerShape(18.dp)
+                                                    )
+                                                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(
+                                                    text = currentTrack.title,
+                                                    color = TextPrimary,
+                                                    fontSize = 21.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    letterSpacing = 0.15.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(Modifier.height(5.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .width(28.dp)
+                                                        .height(2.dp)
+                                                        .background(Accent.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+                                                )
+                                                Spacer(Modifier.height(5.dp))
+                                                Text(
+                                                    text = currentTrack.artist,
+                                                    color = if (isGlassTheme) Color(0xFFD6C7A5) else MutedText,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    letterSpacing = 0.35.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            Spacer(Modifier.height(14.dp))
+
+                                            Slider(
+                                                value = position.coerceIn(0f, 1f),
+                                                onValueChange = { position = it },
+                                                onValueChangeFinished = {
+                                                    if (duration > 0L) {
+                                                        exoPlayer.seekTo((position * duration).toLong())
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(24.dp),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Accent,
+                                                    activeTrackColor = Accent,
+                                                    inactiveTrackColor = MutedText.copy(alpha = 0.32f)
+                                                )
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = time(exoPlayer.currentPosition),
+                                                    color = Accent.copy(alpha = 0.92f),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                Text(
+                                                    text = time(duration),
+                                                    color = MutedText.copy(alpha = 0.88f),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            Spacer(Modifier.height(18.dp))
+
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(glassPanelModifier(Panel, 22.dp, isGlassTheme))
+                                                    .border(
+                                                        width = 1.dp,
+                                                        color = Accent.copy(alpha = 0.28f),
+                                                        shape = RoundedCornerShape(22.dp)
+                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "⤨",
+                                                    color = if (shuffleEnabled) Accent else MutedText,
+                                                    fontSize = 27.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
+                                                        shuffleEnabled = exoPlayer.shuffleModeEnabled
+                                                    }
+                                                )
+                                                Text(
+                                                    text = "◀",
+                                                    color = Color(0xFFE5C982),
+                                                    fontSize = 27.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { exoPlayer.seekToPreviousMediaItem() }
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(58.dp)
+                                                        .clickable(
+                                                            interactionSource = remember { MutableInteractionSource() },
+                                                            indication = null
+                                                        ) {
+                                                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                            playing = exoPlayer.isPlaying
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Canvas(modifier = Modifier.fillMaxSize()) {
+                                                        val cx = size.width / 2f
+                                                        val cy = size.height / 2f
+                                                        if (playing) {
+                                                            val barWidth = 5.dp.toPx()
+                                                            val barHeight = 21.dp.toPx()
+                                                            val gap = 5.dp.toPx()
+                                                            drawRoundRect(
+                                                                color = Accent,
+                                                                topLeft = Offset(cx - gap / 2f - barWidth, cy - barHeight / 2f),
+                                                                size = Size(barWidth, barHeight),
+                                                                cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                            )
+                                                            drawRoundRect(
+                                                                color = Accent,
+                                                                topLeft = Offset(cx + gap / 2f, cy - barHeight / 2f),
+                                                                size = Size(barWidth, barHeight),
+                                                                cornerRadius = CornerRadius(1.5.dp.toPx())
+                                                            )
+                                                        } else {
+                                                            val halfHeight = 13.dp.toPx()
+                                                            val left = 10.dp.toPx()
+                                                            val right = 16.dp.toPx()
+                                                            val triangle = androidx.compose.ui.graphics.Path().apply {
+                                                                moveTo(cx - left, cy - halfHeight)
+                                                                lineTo(cx - left, cy + halfHeight)
+                                                                lineTo(cx + right, cy)
+                                                                close()
+                                                            }
+                                                            drawPath(path = triangle, color = Accent)
+                                                        }
+                                                    }
+                                                }
+                                                Text(
+                                                    text = "▶",
+                                                    color = Color(0xFFE5C982),
+                                                    fontSize = 27.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { exoPlayer.seekToNextMediaItem() }
+                                                )
+                                                Text(
+                                                    text = when (repeatMode) {
+                                                        Player.REPEAT_MODE_ONE -> "1↻"
+                                                        else -> "↻"
+                                                    },
+                                                    color = if (repeatMode == Player.REPEAT_MODE_OFF) MutedText else Accent,
+                                                    fontSize = 27.sp,
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        val nextMode = when (exoPlayer.repeatMode) {
+                                                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                                            else -> Player.REPEAT_MODE_OFF
+                                                        }
+                                                        exoPlayer.repeatMode = nextMode
+                                                        repeatMode = nextMode
+                                                    }
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clickable(
+                                                            interactionSource = remember { MutableInteractionSource() },
+                                                            indication = null
+                                                        ) { sleepTimerDialogOpen = true }
+                                                        .padding(horizontal = 3.dp, vertical = 6.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (sleepTimerMinutes > 0) {
+                                                        val timerMinutes = (sleepTimerRemaining / 60_000L).toInt()
+                                                        val timerSeconds = ((sleepTimerRemaining % 60_000L) / 1_000L).toInt()
+                                                        Text(
+                                                            text = "%02d:%02d".format(timerMinutes, timerSeconds),
+                                                            color = Accent,
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            maxLines = 1
+                                                        )
+                                                    } else {
+                                                        Text("◷", color = MutedText, fontSize = 20.sp)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = "Выбери композицию во вкладке «Музыка»",
+                                            color = MutedText
+                                        )
+                                    }
+                                }
+                            } else {
                             if (currentTrack != null) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -744,11 +1019,7 @@ class MainActivity : ComponentActivity() {
                                         albumId = currentTrack.albumId,
                                         modifier = Modifier
                                             .fillMaxWidth(
-                                                when {
-                                                    isLandscapeLayout -> 0.42f
-                                                    isTabletWidth -> 0.62f
-                                                    else -> 0.94f
-                                                }
+                                                if (isTabletWidth) 0.62f else 0.94f
                                             )
                                             .widthIn(max = if (isTabletWidth) 520.dp else Dp.Unspecified),
                                         themeSurface = Panel,
@@ -999,6 +1270,8 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 Spacer(Modifier.height(18.dp))
+                            }
+
                             }
 
 
