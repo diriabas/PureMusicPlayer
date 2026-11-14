@@ -2006,15 +2006,28 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier
                                             .weight(1f)
                                             .clickable { navigateTo(tab = index) }
-                                            .padding(vertical = 2.dp),
+                                            .padding(vertical = 3.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Text(
-                                            text = symbol,
-                                            color = if (selected) Accent else MutedText,
-                                            fontSize = 21.sp,
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .then(
+                                                    if (selected) Modifier.background(
+                                                        Accent.copy(alpha = 0.12f),
+                                                        RoundedCornerShape(11.dp)
+                                                    ) else Modifier
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = symbol,
+                                                color = if (selected) Accent else MutedText,
+                                                fontSize = 18.sp,
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                            )
+                                        }
+                                        Spacer(Modifier.height(2.dp))
                                         Text(
                                             text = label,
                                             color = if (selected) Accent else MutedText,
@@ -2025,7 +2038,7 @@ class MainActivity : ComponentActivity() {
                                             Spacer(Modifier.height(3.dp))
                                             Box(
                                                 Modifier
-                                                    .width(22.dp)
+                                                    .width(18.dp)
                                                     .height(2.dp)
                                                     .background(Accent, RoundedCornerShape(2.dp))
                                             )
