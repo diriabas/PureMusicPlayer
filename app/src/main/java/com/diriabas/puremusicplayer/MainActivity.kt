@@ -123,13 +123,13 @@ private data class Track(
     val folderPath: String
 )
 
-// Тёплая светлая палитра с сохранением фирменной позолоты
-private val Accent = Color(0xFFD6B878) // Champagne gold — фирменный акцент
-private val Background = Color(0xFFFFF8EC) // Светлый сливочный фон
-private val Panel = Color(0xFFFFFDF8) // Почти белые карточки
-private val PanelRaised = Color(0xFFF3EBDD) // Тёплый оттенок для вложенных элементов
-private val MutedText = Color(0xFF8B7962) // Приглушённый тёплый текст
-private val TextPrimary = Color(0xFF493A2A) // Основной текст
+// Стартовая палитра — сразу стеклянная, без светлого кадра при запуске.
+private val Accent = Color(0xFFD6B878)
+private val Background = Color(0xFF101316)
+private val Panel = Color(0xB8262B30)
+private val PanelRaised = Color(0xD13A4148)
+private val MutedText = Color(0xFFBDB7AA)
+private val TextPrimary = Color(0xFFF5F1E8)
 
 private data class NavigationSnapshot(
     val tab: Int,
@@ -159,8 +159,6 @@ private val playerThemes = listOf(
     PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF1A3B39), Color(0xFF28534F), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
     PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF969BA1), Color(0xFFA7ACB2), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
 
-    // Светлая тема — последняя.
-    PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
 )
 
 
@@ -284,7 +282,7 @@ class MainActivity : ComponentActivity() {
 
             if (exoPlayer == null) {
                 MaterialTheme(
-                    colorScheme = lightColorScheme(
+                    colorScheme = darkColorScheme(
                         primary = Accent,
                         background = Background,
                         surface = Panel
@@ -320,7 +318,11 @@ class MainActivity : ComponentActivity() {
                     getSharedPreferences("pure_music_player", MODE_PRIVATE)
                 }
                 var selectedThemeName by remember {
-                    mutableStateOf(playerPreferences.getString("player_theme", "Стеклянная") ?: "Стеклянная")
+                    mutableStateOf(
+                        playerPreferences.getString("player_theme", "Стеклянная")
+                            ?.takeIf { savedName -> playerThemes.any { it.name == savedName } }
+                            ?: "Стеклянная"
+                    )
                 }
                 val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
                 val isGlassTheme = currentTheme.name == "Стеклянная"
@@ -2444,7 +2446,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 MaterialTheme(
-                    colorScheme = lightColorScheme(
+                    colorScheme = darkColorScheme(
                         primary = Accent,
                         background = Background,
                         surface = Panel
