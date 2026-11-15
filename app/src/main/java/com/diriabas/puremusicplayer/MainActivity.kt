@@ -2332,7 +2332,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                         Spacer(Modifier.height(18.dp))
                                         Text(
-                                            text = "PURE MUSIC PLAYER  ·  VERSION 0.1.2  ·  BUILD 3",
+                                            text = "PURE MUSIC PLAYER  ·  VERSION ${BuildConfig.VERSION_NAME}  ·  BUILD ${BuildConfig.VERSION_CODE}",
                                             color = MutedText.copy(alpha = 0.72f),
                                             fontSize = 10.sp,
                                             letterSpacing = 0.8.sp,
