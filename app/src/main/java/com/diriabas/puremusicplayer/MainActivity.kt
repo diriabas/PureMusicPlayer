@@ -2312,9 +2312,9 @@ class MainActivity : ComponentActivity() {
                                                         Toast.makeText(this@MainActivity, "Сохранённых сбоев пока нет.", Toast.LENGTH_SHORT).show()
                                                     }
                                                 },
-                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                                             ) {
-                                                Text("ЖУРНАЛ СБОЯ", color = MutedText, fontSize = 10.sp)
+                                                Text("ЖУРНАЛ СБОЯ", color = MutedText.copy(alpha = 0.78f), fontSize = 9.sp)
                                             }
                                         }
                                         Text(
@@ -2327,7 +2327,7 @@ class MainActivity : ComponentActivity() {
                                         Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
                                         Spacer(Modifier.height(18.dp))
                                         Text(
-                                            text = "PURE MUSIC PLAYER  ·  VERSION 0.1.1  ·  BUILD 2",
+                                            text = "PURE MUSIC PLAYER  ·  VERSION 0.1.2  ·  BUILD 3",
                                             color = MutedText.copy(alpha = 0.72f),
                                             fontSize = 10.sp,
                                             letterSpacing = 0.8.sp,
