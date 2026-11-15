@@ -157,6 +157,8 @@ private val playerThemes = listOf(
     PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF3B4047), Color(0xFF4B5159), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
     PlayerTheme("Тёмно-синяя", Color(0xFF0B1424), Color(0xFF1B2D47), Color(0xFF2A405D), Color(0xFFA9B9CF), Color(0xFFEAF1FA)),
     PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF1A3B39), Color(0xFF28534F), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
+    // Новогодняя: глубокий хвойный сине-зелёный фон, ледяные стеклянные панели.
+    PlayerTheme("Новогодняя", Color(0xFF071D27), Color(0xD0184148), Color(0xE0265960), Color(0xFFB6D9D7), Color(0xFFEAF8F6)),
     PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF969BA1), Color(0xFFA7ACB2), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
 
 )
@@ -2245,7 +2247,7 @@ class MainActivity : ComponentActivity() {
                                                 .padding(16.dp)
                                         ) {
                                             Text("Цвет оформления", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                            Text("Выбери фон. Позолота и золотой вензель остаются неизменными.", color = MutedText, fontSize = 12.sp)
+                                            Text("Выбери фон. Золотые акценты и вензель остаются неизменными.", color = MutedText, fontSize = 12.sp)
                                             Spacer(Modifier.height(12.dp))
                                             Row(
                                                 modifier = Modifier
