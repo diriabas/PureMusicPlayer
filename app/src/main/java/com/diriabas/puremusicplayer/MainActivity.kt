@@ -44,6 +44,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
@@ -328,6 +329,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
                 val isGlassTheme = currentTheme.name == "Стеклянная"
+                val isNewYearTheme = currentTheme.name == "Новогодняя"
                 val Accent = Color(0xFFD6B878)
                 val Background = currentTheme.background
                 val Panel = currentTheme.panel
@@ -2477,6 +2479,75 @@ class MainActivity : ComponentActivity() {
                                         Brush.linearGradient(listOf(Background, Background))
                                     }
                                 )
+                                .drawWithContent {
+                                    drawContent()
+                                    if (isNewYearTheme) {
+                                        // Subtle festive garland along the top edge.
+                                        val garland = androidx.compose.ui.graphics.Path().apply {
+                                            moveTo(0f, 22.dp.toPx())
+                                            cubicTo(
+                                                size.width * 0.25f, 54.dp.toPx(),
+                                                size.width * 0.42f, 2.dp.toPx(),
+                                                size.width * 0.66f, 28.dp.toPx()
+                                            )
+                                            cubicTo(
+                                                size.width * 0.82f, 48.dp.toPx(),
+                                                size.width * 0.92f, 8.dp.toPx(),
+                                                size.width, 24.dp.toPx()
+                                            )
+                                        }
+                                        drawPath(
+                                            path = garland,
+                                            color = Color(0xFF4C9B83).copy(alpha = 0.62f),
+                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                                        )
+
+                                        // Small warm and icy lights hanging from the garland.
+                                        val bulbs = listOf(
+                                            0.08f to 0.115f, 0.19f to 0.075f, 0.31f to 0.105f,
+                                            0.44f to 0.045f, 0.57f to 0.095f, 0.70f to 0.12f,
+                                            0.82f to 0.07f, 0.94f to 0.10f
+                                        )
+                                        bulbs.forEachIndexed { index, pair ->
+                                            val x = size.width * pair.first
+                                            val y = (pair.second * 420f).dp.toPx()
+                                            val bulbColor = if (index % 2 == 0) Color(0xFFE5C982) else Color(0xFFB8E8F0)
+                                            drawLine(
+                                                color = Color(0xFF7BB7A5).copy(alpha = 0.7f),
+                                                start = androidx.compose.ui.geometry.Offset(x, 23.dp.toPx()),
+                                                end = androidx.compose.ui.geometry.Offset(x, y),
+                                                strokeWidth = 1.dp.toPx()
+                                            )
+                                            drawCircle(
+                                                color = bulbColor.copy(alpha = 0.9f),
+                                                radius = 4.dp.toPx(),
+                                                center = androidx.compose.ui.geometry.Offset(x, y)
+                                            )
+                                            drawCircle(
+                                                color = Color.White.copy(alpha = 0.32f),
+                                                radius = 7.dp.toPx(),
+                                                center = androidx.compose.ui.geometry.Offset(x, y)
+                                            )
+                                        }
+
+                                        // Discreet snowflakes near the screen edges.
+                                        val flakes = listOf(
+                                            0.07f to 0.25f, 0.91f to 0.31f,
+                                            0.13f to 0.58f, 0.88f to 0.68f,
+                                            0.05f to 0.83f, 0.95f to 0.88f
+                                        )
+                                        flakes.forEachIndexed { index, pair ->
+                                            val x = size.width * pair.first
+                                            val y = size.height * pair.second
+                                            val radius = (4 + index % 3).dp.toPx()
+                                            val snow = Color(0xFFDDF7F7).copy(alpha = 0.42f)
+                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x - radius, y), androidx.compose.ui.geometry.Offset(x + radius, y), 1.dp.toPx())
+                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x, y - radius), androidx.compose.ui.geometry.Offset(x, y + radius), 1.dp.toPx())
+                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x - radius * 0.72f, y - radius * 0.72f), androidx.compose.ui.geometry.Offset(x + radius * 0.72f, y + radius * 0.72f), 1.dp.toPx())
+                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x - radius * 0.72f, y + radius * 0.72f), androidx.compose.ui.geometry.Offset(x + radius * 0.72f, y - radius * 0.72f), 1.dp.toPx())
+                                        }
+                                    }
+                                }
                         ) {
                             if (selectedTab != 0) {
                                 Row(
