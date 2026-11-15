@@ -149,19 +149,18 @@ private data class PlayerTheme(
 )
 
 private val playerThemes = listOf(
-    // Glass вынесена первой, чтобы карточка была видна сразу без горизонтальной прокрутки.
-    // Glass: полупрозрачные панели на глубоком сине-графитовом фоне
+    // Стеклянная остаётся первой.
     PlayerTheme("Стеклянная", Color(0xFF101316), Color(0xB8262B30), Color(0xD13A4148), Color(0xFFBDB7AA), Color(0xFFF5F1E8)),
-
-    // Светлые темы
-    PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
 
     // Тёмные темы с неизменной шампань-позолотой
     PlayerTheme("Совсем тёмная", Color(0xFF090A0C), Color(0xFF202327), Color(0xFF30343A), Color(0xFFB5B0A5), Color(0xFFF4F0E7)),
+    PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF3B4047), Color(0xFF4B5159), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
     PlayerTheme("Тёмно-синяя", Color(0xFF0B1424), Color(0xFF1B2D47), Color(0xFF2A405D), Color(0xFFA9B9CF), Color(0xFFEAF1FA)),
     PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF1A3B39), Color(0xFF28534F), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
     PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF969BA1), Color(0xFFA7ACB2), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
-    PlayerTheme("Тёмно-серая", Color(0xFF25282C), Color(0xFF3B4047), Color(0xFF4B5159), Color(0xFFBFC4CA), Color(0xFFF1F3F5)),
+
+    // Светлая тема — последняя.
+    PlayerTheme("Сливочный", Color(0xFFFFF8EC), Color(0xFFFFFDF8), Color(0xFFF3EBDD), Color(0xFF8B7962), Color(0xFF493A2A)),
 )
 
 
@@ -283,43 +282,13 @@ class MainActivity : ComponentActivity() {
             val isTabletWidth = screenConfiguration.smallestScreenWidthDp >= 600 &&
                 maxOf(screenWidthDp, screenHeightDp) >= 900
 
-            // Read the saved theme before checking the MediaController. Otherwise the
-            // temporary "connecting" screen is drawn with the hard-coded light palette
-            // and flashes before the glass theme appears.
-            val playerPreferences = remember {
-                getSharedPreferences("pure_music_player", MODE_PRIVATE)
-            }
-            var selectedThemeName by remember {
-                mutableStateOf(playerPreferences.getString("player_theme", "Стеклянная") ?: "Стеклянная")
-            }
-            val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
-            val isGlassTheme = currentTheme.name == "Стеклянная"
-            val Accent = Color(0xFFD6B878)
-            val Background = currentTheme.background
-            val Panel = currentTheme.panel
-            val PanelRaised = currentTheme.panelRaised
-            val MutedText = currentTheme.mutedText
-            val TextPrimary = currentTheme.textPrimary
-
             if (exoPlayer == null) {
                 MaterialTheme(
-                    colorScheme = if (isGlassTheme) {
-                        darkColorScheme(
-                            primary = Accent,
-                            background = Background,
-                            surface = Panel,
-                            onBackground = TextPrimary,
-                            onSurface = TextPrimary
-                        )
-                    } else {
-                        lightColorScheme(
-                            primary = Accent,
-                            background = Background,
-                            surface = Panel,
-                            onBackground = TextPrimary,
-                            onSurface = TextPrimary
-                        )
-                    }
+                    colorScheme = lightColorScheme(
+                        primary = Accent,
+                        background = Background,
+                        surface = Panel
+                    )
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -347,6 +316,21 @@ class MainActivity : ComponentActivity() {
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
+                val playerPreferences = remember {
+                    getSharedPreferences("pure_music_player", MODE_PRIVATE)
+                }
+                var selectedThemeName by remember {
+                    mutableStateOf(playerPreferences.getString("player_theme", "Стеклянная") ?: "Стеклянная")
+                }
+                val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
+                val isGlassTheme = currentTheme.name == "Стеклянная"
+                val Accent = Color(0xFFD6B878)
+                val Background = currentTheme.background
+                val Panel = currentTheme.panel
+                val PanelRaised = currentTheme.panelRaised
+                val MutedText = currentTheme.mutedText
+                val TextPrimary = currentTheme.textPrimary
+
                 var libraryMode by remember {
                     mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
                 }
@@ -2212,6 +2196,41 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.padding(top = 3.dp, bottom = 18.dp)
                                         )
 
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
+                                                .padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("♫", color = Accent, fontSize = 24.sp)
+                                            Spacer(Modifier.width(14.dp))
+                                            Column(Modifier.weight(1f)) {
+                                                Text("Музыкальная библиотека", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                                Text("${tracks.size} аудиофайлов найдено", color = MutedText, fontSize = 12.sp)
+                                            }
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        TextButton(
+                                            onClick = {
+                                                val refreshedTracks = loadTracks()
+                                                val queueWasFullLibrary = playbackQueue.map { it.id } == tracks.map { it.id }
+                                                tracks = refreshedTracks
+                                                if (queueWasFullLibrary || playbackQueue.isEmpty()) {
+                                                    playbackQueue = refreshedTracks
+                                                }
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Библиотека обновлена: ${refreshedTracks.size} аудиофайлов",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
+                                        ) {
+                                            Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
+                                        }
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -2274,41 +2293,6 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                         Spacer(Modifier.height(10.dp))
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(Panel, 14.dp, isGlassTheme))
-                                                .padding(16.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text("♫", color = Accent, fontSize = 24.sp)
-                                            Spacer(Modifier.width(14.dp))
-                                            Column(Modifier.weight(1f)) {
-                                                Text("Музыкальная библиотека", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                                Text("${tracks.size} аудиофайлов найдено", color = MutedText, fontSize = 12.sp)
-                                            }
-                                        }
-                                        Spacer(Modifier.height(10.dp))
-                                        TextButton(
-                                            onClick = {
-                                                val refreshedTracks = loadTracks()
-                                                val queueWasFullLibrary = playbackQueue.map { it.id } == tracks.map { it.id }
-                                                tracks = refreshedTracks
-                                                if (queueWasFullLibrary || playbackQueue.isEmpty()) {
-                                                    playbackQueue = refreshedTracks
-                                                }
-                                                Toast.makeText(
-                                                    this@MainActivity,
-                                                    "Библиотека обновлена: ${refreshedTracks.size} аудиофайлов",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .then(glassPanelModifier(PanelRaised, 14.dp, isGlassTheme))
-                                        ) {
-                                            Text("↻  ОБНОВИТЬ МУЗЫКАЛЬНУЮ БИБЛИОТЕКУ", color = Accent)
-                                        }
                                         Spacer(Modifier.height(2.dp))
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
@@ -2339,7 +2323,6 @@ class MainActivity : ComponentActivity() {
                                             letterSpacing = 1.1.sp,
                                             modifier = Modifier.padding(top = 18.dp)
                                         )
-                                        Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
                                         Spacer(Modifier.height(18.dp))
                                         Text(
                                             text = "PURE MUSIC PLAYER  ·  VERSION 0.1.2  ·  BUILD 3",
