@@ -44,7 +44,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
@@ -159,7 +158,7 @@ private val playerThemes = listOf(
     PlayerTheme("Тёмно-синяя", Color(0xFF0B1424), Color(0xFF1B2D47), Color(0xFF2A405D), Color(0xFFA9B9CF), Color(0xFFEAF1FA)),
     PlayerTheme("Тёмно-бирюзовая", Color(0xFF09201F), Color(0xFF1A3B39), Color(0xFF28534F), Color(0xFFA6C3BD), Color(0xFFE6F4EF)),
     // Новогодняя: глубокий хвойный сине-зелёный фон, ледяные стеклянные панели.
-    PlayerTheme("Новогодняя", Color(0xFF071D27), Color(0xD0184148), Color(0xE0265960), Color(0xFFB6D9D7), Color(0xFFEAF8F6)),
+    PlayerTheme("Новогодняя", Color(0xFF061C2D), Color(0xD0184960), Color(0xE02A7180), Color(0xFFB9E6F4), Color(0xFFF5FCFF)),
     PlayerTheme("Серая", Color(0xFF777B80), Color(0xFF969BA1), Color(0xFFA7ACB2), Color(0xFFF0F1F2), Color(0xFFFFFFFF)),
 
 )
@@ -183,6 +182,100 @@ private val equalizerPresets = listOf(
     EqualizerPreset("Рок", listOf(5, 4, 3, 1, -1, 1, 3, 4, 5, 5)),
     EqualizerPreset("Классика", listOf(4, 3, 2, 1, -1, -1, 0, 2, 3, 4))
 )
+
+@Composable
+private fun ChristmasAnimationOverlay(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "christmas_overlay")
+    val snowProgress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 9000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "snow_fall"
+    )
+    val twinkle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1250, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "lights_twinkle"
+    )
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val bulbColors = listOf(
+            Color(0xFFFFFFFF), Color(0xFF8FE8FF), Color(0xFF56E39A),
+            Color(0xFFFFD66E), Color(0xFFB8F4FF), Color(0xFF70D7FF)
+        )
+        val strand = androidx.compose.ui.graphics.Path().apply {
+            moveTo(0f, 17.dp.toPx())
+            for (i in 0..24) {
+                val x = w * i / 24f
+                val y = 18.dp.toPx() + sin(i * 0.48f) * 7.dp.toPx() + (i % 2) * 2.dp.toPx()
+                lineTo(x, y)
+            }
+        }
+        drawPath(strand, Color(0xFFB8D8C9).copy(alpha = 0.72f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx()))
+
+        // Bright, softly glowing multicolour bulbs along the upper edge.
+        for (i in 0..17) {
+            val x = w * (i + 0.5f) / 18f
+            val y = 20.dp.toPx() + sin(i * 0.82f) * 6.dp.toPx()
+            val color = bulbColors[i % bulbColors.size]
+            val pulse = 0.68f + 0.32f * (0.5f + 0.5f * sin(twinkle * 6.283f + i * 1.7f))
+            drawCircle(color.copy(alpha = 0.18f * pulse), 12.dp.toPx(), Offset(x, y))
+            drawCircle(color.copy(alpha = 0.32f * pulse), 7.dp.toPx(), Offset(x, y))
+            drawCircle(color.copy(alpha = pulse), 3.4.dp.toPx(), Offset(x, y))
+            drawCircle(Color.White.copy(alpha = 0.85f * pulse), 1.15.dp.toPx(), Offset(x - 1.dp.toPx(), y - 1.dp.toPx()))
+        }
+
+        // Falling white snowflakes; positions are deterministic so they drift smoothly.
+        val flakes = listOf(
+            0.04f to 0.08f, 0.13f to 0.31f, 0.22f to 0.62f, 0.31f to 0.16f,
+            0.40f to 0.48f, 0.49f to 0.78f, 0.58f to 0.24f, 0.67f to 0.56f,
+            0.76f to 0.10f, 0.85f to 0.40f, 0.94f to 0.72f, 0.09f to 0.88f,
+            0.28f to 0.92f, 0.55f to 0.92f, 0.73f to 0.86f, 0.90f to 0.94f,
+            0.17f to 0.52f, 0.36f to 0.72f, 0.63f to 0.40f, 0.82f to 0.64f,
+            0.02f to 0.44f, 0.97f to 0.22f, 0.45f to 0.05f, 0.69f to 0.04f
+        )
+        flakes.forEachIndexed { index, point ->
+            val drift = ((point.second + snowProgress * (0.72f + (index % 4) * 0.11f)) % 1f)
+            val x = w * point.first + sin(snowProgress * 6.283f + index * 2.1f) * 8.dp.toPx()
+            val y = h * drift
+            val radius = (1.7f + (index % 3) * 0.65f).dp.toPx()
+            val alpha = 0.58f + 0.34f * (0.5f + 0.5f * sin(twinkle * 6.283f + index))
+            val snow = Color.White.copy(alpha = alpha)
+            drawCircle(snow.copy(alpha = alpha * 0.20f), radius * 2.5f, Offset(x, y))
+            drawCircle(snow, radius, Offset(x, y))
+            if (index % 3 == 0) {
+                val arm = radius * 2.7f
+                drawLine(snow, Offset(x - arm, y), Offset(x + arm, y), strokeWidth = 1.dp.toPx())
+                drawLine(snow, Offset(x, y - arm), Offset(x, y + arm), strokeWidth = 1.dp.toPx())
+                drawLine(snow.copy(alpha = alpha * 0.8f), Offset(x - arm * 0.72f, y - arm * 0.72f), Offset(x + arm * 0.72f, y + arm * 0.72f), strokeWidth = 0.8.dp.toPx())
+                drawLine(snow.copy(alpha = alpha * 0.8f), Offset(x - arm * 0.72f, y + arm * 0.72f), Offset(x + arm * 0.72f, y - arm * 0.72f), strokeWidth = 0.8.dp.toPx())
+            }
+        }
+
+        // Tiny icy and champagne sparkles that gently brighten and fade.
+        for (i in 0 until 16) {
+            val x = w * ((i * 0.618f + 0.07f) % 1f)
+            val y = h * ((i * 0.371f + 0.19f) % 1f)
+            val pulse = 0.18f + 0.72f * (0.5f + 0.5f * sin(twinkle * 6.283f + i * 1.9f))
+            val color = if (i % 5 == 0) Color(0xFFFFD98A) else Color(0xFFDDF8FF)
+            val r = (1.2f + (i % 2) * 0.7f).dp.toPx()
+            drawCircle(color.copy(alpha = pulse * 0.8f), r, Offset(x, y))
+            if (i % 2 == 0) {
+                drawLine(color.copy(alpha = pulse * 0.55f), Offset(x - r * 2.4f, y), Offset(x + r * 2.4f, y), strokeWidth = 0.8.dp.toPx())
+                drawLine(color.copy(alpha = pulse * 0.55f), Offset(x, y - r * 2.4f), Offset(x, y + r * 2.4f), strokeWidth = 0.8.dp.toPx())
+            }
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -329,7 +422,6 @@ class MainActivity : ComponentActivity() {
                 }
                 val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
                 val isGlassTheme = currentTheme.name == "Стеклянная"
-                val isNewYearTheme = currentTheme.name == "Новогодняя"
                 val Accent = Color(0xFFD6B878)
                 val Background = currentTheme.background
                 val Panel = currentTheme.panel
@@ -2479,75 +2571,6 @@ class MainActivity : ComponentActivity() {
                                         Brush.linearGradient(listOf(Background, Background))
                                     }
                                 )
-                                .drawWithContent {
-                                    drawContent()
-                                    if (isNewYearTheme) {
-                                        // Subtle festive garland along the top edge.
-                                        val garland = androidx.compose.ui.graphics.Path().apply {
-                                            moveTo(0f, 22.dp.toPx())
-                                            cubicTo(
-                                                size.width * 0.25f, 54.dp.toPx(),
-                                                size.width * 0.42f, 2.dp.toPx(),
-                                                size.width * 0.66f, 28.dp.toPx()
-                                            )
-                                            cubicTo(
-                                                size.width * 0.82f, 48.dp.toPx(),
-                                                size.width * 0.92f, 8.dp.toPx(),
-                                                size.width, 24.dp.toPx()
-                                            )
-                                        }
-                                        drawPath(
-                                            path = garland,
-                                            color = Color(0xFF4C9B83).copy(alpha = 0.62f),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
-                                        )
-
-                                        // Small warm and icy lights hanging from the garland.
-                                        val bulbs = listOf(
-                                            0.08f to 0.115f, 0.19f to 0.075f, 0.31f to 0.105f,
-                                            0.44f to 0.045f, 0.57f to 0.095f, 0.70f to 0.12f,
-                                            0.82f to 0.07f, 0.94f to 0.10f
-                                        )
-                                        bulbs.forEachIndexed { index, pair ->
-                                            val x = size.width * pair.first
-                                            val y = (pair.second * 420f).dp.toPx()
-                                            val bulbColor = if (index % 2 == 0) Color(0xFFE5C982) else Color(0xFFB8E8F0)
-                                            drawLine(
-                                                color = Color(0xFF7BB7A5).copy(alpha = 0.7f),
-                                                start = androidx.compose.ui.geometry.Offset(x, 23.dp.toPx()),
-                                                end = androidx.compose.ui.geometry.Offset(x, y),
-                                                strokeWidth = 1.dp.toPx()
-                                            )
-                                            drawCircle(
-                                                color = bulbColor.copy(alpha = 0.9f),
-                                                radius = 4.dp.toPx(),
-                                                center = androidx.compose.ui.geometry.Offset(x, y)
-                                            )
-                                            drawCircle(
-                                                color = Color.White.copy(alpha = 0.32f),
-                                                radius = 7.dp.toPx(),
-                                                center = androidx.compose.ui.geometry.Offset(x, y)
-                                            )
-                                        }
-
-                                        // Discreet snowflakes near the screen edges.
-                                        val flakes = listOf(
-                                            0.07f to 0.25f, 0.91f to 0.31f,
-                                            0.13f to 0.58f, 0.88f to 0.68f,
-                                            0.05f to 0.83f, 0.95f to 0.88f
-                                        )
-                                        flakes.forEachIndexed { index, pair ->
-                                            val x = size.width * pair.first
-                                            val y = size.height * pair.second
-                                            val radius = (4 + index % 3).dp.toPx()
-                                            val snow = Color(0xFFDDF7F7).copy(alpha = 0.42f)
-                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x - radius, y), androidx.compose.ui.geometry.Offset(x + radius, y), 1.dp.toPx())
-                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x, y - radius), androidx.compose.ui.geometry.Offset(x, y + radius), 1.dp.toPx())
-                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x - radius * 0.72f, y - radius * 0.72f), androidx.compose.ui.geometry.Offset(x + radius * 0.72f, y + radius * 0.72f), 1.dp.toPx())
-                                            drawLine(snow, androidx.compose.ui.geometry.Offset(x - radius * 0.72f, y + radius * 0.72f), androidx.compose.ui.geometry.Offset(x + radius * 0.72f, y - radius * 0.72f), 1.dp.toPx())
-                                        }
-                                    }
-                                }
                         ) {
                             if (selectedTab != 0) {
                                 Row(
@@ -2585,6 +2608,9 @@ class MainActivity : ComponentActivity() {
                                     3 -> SoundTabContent()
 
                                     else -> SettingsTabContent()
+                                }
+                                if (selectedThemeName == "Новогодняя") {
+                                    ChristmasAnimationOverlay(Modifier.fillMaxSize())
                                 }
                             }
 
