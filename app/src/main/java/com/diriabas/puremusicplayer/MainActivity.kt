@@ -283,13 +283,43 @@ class MainActivity : ComponentActivity() {
             val isTabletWidth = screenConfiguration.smallestScreenWidthDp >= 600 &&
                 maxOf(screenWidthDp, screenHeightDp) >= 900
 
+            // Read the saved theme before checking the MediaController. Otherwise the
+            // temporary "connecting" screen is drawn with the hard-coded light palette
+            // and flashes before the glass theme appears.
+            val playerPreferences = remember {
+                getSharedPreferences("pure_music_player", MODE_PRIVATE)
+            }
+            var selectedThemeName by remember {
+                mutableStateOf(playerPreferences.getString("player_theme", "Стеклянная") ?: "Стеклянная")
+            }
+            val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
+            val isGlassTheme = currentTheme.name == "Стеклянная"
+            val Accent = Color(0xFFD6B878)
+            val Background = currentTheme.background
+            val Panel = currentTheme.panel
+            val PanelRaised = currentTheme.panelRaised
+            val MutedText = currentTheme.mutedText
+            val TextPrimary = currentTheme.textPrimary
+
             if (exoPlayer == null) {
                 MaterialTheme(
-                    colorScheme = lightColorScheme(
-                        primary = Accent,
-                        background = Background,
-                        surface = Panel
-                    )
+                    colorScheme = if (isGlassTheme) {
+                        darkColorScheme(
+                            primary = Accent,
+                            background = Background,
+                            surface = Panel,
+                            onBackground = TextPrimary,
+                            onSurface = TextPrimary
+                        )
+                    } else {
+                        lightColorScheme(
+                            primary = Accent,
+                            background = Background,
+                            surface = Panel,
+                            onBackground = TextPrimary,
+                            onSurface = TextPrimary
+                        )
+                    }
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -317,21 +347,6 @@ class MainActivity : ComponentActivity() {
                 var duration by remember { mutableLongStateOf(0L) }
                 var playlists by remember { mutableStateOf(loadPlaylists()) }
                 var selectedPlaylist by remember { mutableStateOf<String?>(null) }
-                val playerPreferences = remember {
-                    getSharedPreferences("pure_music_player", MODE_PRIVATE)
-                }
-                var selectedThemeName by remember {
-                    mutableStateOf(playerPreferences.getString("player_theme", "Стеклянная") ?: "Стеклянная")
-                }
-                val currentTheme = playerThemes.firstOrNull { it.name == selectedThemeName } ?: playerThemes.first()
-                val isGlassTheme = currentTheme.name == "Стеклянная"
-                val Accent = Color(0xFFD6B878)
-                val Background = currentTheme.background
-                val Panel = currentTheme.panel
-                val PanelRaised = currentTheme.panelRaised
-                val MutedText = currentTheme.mutedText
-                val TextPrimary = currentTheme.textPrimary
-
                 var libraryMode by remember {
                     mutableStateOf(playerPreferences.getString("library_mode", "Композиции") ?: "Композиции")
                 }
