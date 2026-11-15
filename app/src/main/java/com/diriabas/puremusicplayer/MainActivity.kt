@@ -1461,64 +1461,66 @@ class MainActivity : ComponentActivity() {
                                             fontSize = 13.sp,
                                             modifier = Modifier.padding(top = 3.dp, bottom = 16.dp)
                                         )
+                                        // Оставляем два режима библиотеки: песни и папки.
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
-                                            verticalAlignment = Alignment.CenterVertically
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                        ) {
+                                            listOf("Композиции", "Папки").forEach { mode ->
+                                                val selected = libraryMode == mode
+                                                Text(
+                                                    text = if (mode == "Композиции") "Песни" else mode,
+                                                    color = if (selected) Color(0xFF211B10) else Accent,
+                                                    fontSize = 10.sp,
+                                                    lineHeight = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                    maxLines = 1,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(34.dp)
+                                                        .background(
+                                                            if (selected) Brush.linearGradient(listOf(Accent, Color(0xFFE9D49B)))
+                                                            else Brush.linearGradient(listOf(Panel, Background)),
+                                                            RoundedCornerShape(9.dp)
+                                                        )
+                                                        .clickable {
+                                                            selectedFolderPath = null
+                                                            navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null)
+                                                        }
+                                                        .wrapContentHeight(Alignment.CenterVertically)
+                                                )
+                                            }
+                                        }
+                                        Spacer(Modifier.height(8.dp))
+                                        // Playlist actions are kept together in one row below the library mode.
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             TextButton(
                                                 onClick = { selectedFolderPath = null; navigateTo(tab = 1, mode = "Плейлисты", playlist = null, albumId = null, artist = null) },
-                                                modifier = Modifier.then(glassPanelModifier(Panel, 12.dp, isGlassTheme)),
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .then(glassPanelModifier(Panel, 12.dp, isGlassTheme)),
                                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                            ) { Text("♫ Плейлисты", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) }
+                                            ) {
+                                                Text("♫ Плейлисты", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                            }
                                             TextButton(
                                                 onClick = {
                                                     playlistNameInput = ""
                                                     createPlaylistDialogOpen = true
                                                 },
                                                 modifier = Modifier
+                                                    .weight(1f)
                                                     .then(glassPanelModifier(PanelRaised, 12.dp, isGlassTheme))
                                                     .border(1.dp, Accent.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
                                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                             ) {
-                                                Text("＋ Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
+                                                Text("＋ Создать плейлист", color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp, maxLines = 1)
                                             }
                                         }
-                                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            listOf("Композиции", "Альбомы", "Исполнители", "Папки").forEach { mode ->
-                                val isSelected = libraryMode == mode
-                                Text(
-                                    text = when (mode) {
-                                        "Композиции" -> "Песни"
-                                        "Исполнители" -> "Артисты"
-                                        else -> mode
-                                    },
-                                    color = if (isSelected) Color(0xFF211B10) else Accent,
-                                    fontSize = 9.sp,
-                                    lineHeight = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    maxLines = 1,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(34.dp)
-                                        .background(
-                                            if (isSelected) Brush.linearGradient(listOf(Accent, Color(0xFFE9D49B))) else Brush.linearGradient(listOf(Panel, Background)),
-                                            RoundedCornerShape(9.dp)
-                                        )
-                                        .clickable {
-                                            selectedFolderPath = null
-                                            navigateTo(tab = 1, mode = mode, playlist = null, albumId = null, artist = null)
-                                        }
-                                        .wrapContentHeight(Alignment.CenterVertically)
-                                        .padding(horizontal = 2.dp)
-                                )
-                            }
-                        }
 
                         if (libraryMode == "Альбомы" || libraryMode == "Исполнители" || libraryMode == "Папки") {
                             Row(
@@ -2484,8 +2486,6 @@ class MainActivity : ComponentActivity() {
                                         fontWeight = FontWeight.SemiBold,
                                         letterSpacing = 1.5.sp
                                     )
-
-                                    AvMonogram(size = 34.dp)
                                 }
                             } else {
                                 Spacer(Modifier.height(8.dp))
