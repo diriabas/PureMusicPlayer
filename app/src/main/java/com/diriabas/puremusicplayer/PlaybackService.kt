@@ -137,21 +137,23 @@ class PlaybackService : MediaSessionService() {
                         onNotificationChangedCallback
                     )
 
-                    val modifiedNotification =
-                        Notification.Builder.recoverBuilder(
-                            this@PlaybackService,
-                            original.notification
-                        )
-                            // PUBLIC allows the media title and transport controls on the lock screen.
-                            // Media3's original MediaStyle and its playback actions are preserved.
-                            .setVisibility(Notification.VISIBILITY_PUBLIC)
-                            .setCategory(Notification.CATEGORY_TRANSPORT)
-                            .setOngoing(true)
-                            // Do not show album artwork or a duplicate large app logo in the shade.
-                            .setLargeIcon(null)
-                            // A dedicated monochrome note is used as the notification's small icon.
-                            .setSmallIcon(R.drawable.ic_notification_note)
-                            .build()
+                    val notificationBuilder = Notification.Builder.recoverBuilder(
+                        this@PlaybackService,
+                        original.notification
+                    )
+
+                    // Keep the Media3 media style and playback actions.
+                    notificationBuilder.setVisibility(Notification.VISIBILITY_PUBLIC)
+                    notificationBuilder.setCategory(Notification.CATEGORY_TRANSPORT)
+                    notificationBuilder.setOngoing(true)
+
+                    // Explicit nullable type selects the Bitmap overload and removes album artwork.
+                    notificationBuilder.setLargeIcon(null as android.graphics.Bitmap?)
+
+                    // Monochrome notification glyph; resource lives in res/drawable-nodpi.
+                    notificationBuilder.setSmallIcon(R.drawable.ic_notification_note)
+
+                    val modifiedNotification = notificationBuilder.build()
 
                     return MediaNotification(
                         original.notificationId,
