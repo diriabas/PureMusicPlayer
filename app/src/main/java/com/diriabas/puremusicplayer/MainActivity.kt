@@ -2325,6 +2325,17 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.padding(top = 18.dp)
                                         )
                                         Text("Чёрно-золотая тема · Локальное воспроизведение", color = MutedText, fontSize = 12.sp)
+                                        Spacer(Modifier.height(18.dp))
+                                        Text(
+                                            text = "PURE MUSIC PLAYER  ·  VERSION 0.1.1  ·  BUILD 2",
+                                            color = MutedText.copy(alpha = 0.72f),
+                                            fontSize = 10.sp,
+                                            letterSpacing = 0.8.sp,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 10.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
                                     }
                                 
                 }
