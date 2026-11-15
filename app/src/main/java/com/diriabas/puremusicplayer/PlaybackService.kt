@@ -3,6 +3,8 @@ package com.diriabas.puremusicplayer
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Bundle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.AudioAttributes
@@ -48,6 +50,23 @@ class PlaybackService : MediaSessionService() {
         override fun run() {
             savePlaybackState()
             playbackStateHandler.postDelayed(this, 1_000L)
+        }
+    }
+
+    // Use the app's own gold Pure Music launcher artwork in the media notification,
+    // without changing the album artwork shown inside the player.
+    private fun createNotificationArtwork(): Bitmap? {
+        return try {
+            val drawable = packageManager.getApplicationIcon(packageName)
+            val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 96
+            val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 96
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, width, height)
+            drawable.draw(canvas)
+            bitmap
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -142,7 +161,12 @@ class PlaybackService : MediaSessionService() {
                             this@PlaybackService,
                             original.notification
                         )
-                            .setVisibility(Notification.VISIBILITY_SECRET)
+                            // PUBLIC allows the media title and transport controls on the lock screen.
+                            // Media3's original MediaStyle and its playback actions are preserved.
+                            .setVisibility(Notification.VISIBILITY_PUBLIC)
+                            .setCategory(Notification.CATEGORY_TRANSPORT)
+                            .setOngoing(true)
+                            .setLargeIcon(createNotificationArtwork())
                             .build()
 
                     return MediaNotification(
